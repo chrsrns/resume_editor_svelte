@@ -180,7 +180,7 @@ export type Education = {
     resume_id: number;
     education_stage: string;
     institution_name: string;
-    degree: string;
+    degree: string | null;
     start_date: string;
     end_date: string | null;
     description: string | null;
@@ -191,7 +191,7 @@ export type Education = {
 export type NewEducationRequest = {
     education_stage: string;
     institution_name: string;
-    degree: string;
+    degree?: string | null;
     start_date: string;
     end_date?: string | null;
     description?: string | null;

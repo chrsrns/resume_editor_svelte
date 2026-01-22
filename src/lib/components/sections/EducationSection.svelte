@@ -74,7 +74,7 @@
 			id: e.id,
 			education_stage: e.education_stage,
 			institution_name: e.institution_name,
-			degree: e.degree,
+			degree: String(e.degree ?? ''),
 			start_date: e.start_date,
 			end_date: e.end_date ?? '',
 			description: e.description ?? '',
@@ -135,7 +135,7 @@
 			const payload: NewEducationRequest = {
 				education_stage: newStage.trim(),
 				institution_name: newInstitution.trim(),
-				degree: newDegree.trim(),
+				degree: toNullable(newDegree),
 				start_date: newStart,
 				end_date: toNullable(newEnd),
 				description: toNullable(newDescription),
@@ -164,7 +164,7 @@
 			const payload: UpdateEducationRequest = {
 				education_stage: d.education_stage.trim(),
 				institution_name: d.institution_name.trim(),
-				degree: d.degree.trim(),
+				degree: toNullable(d.degree),
 				start_date: d.start_date,
 				end_date: toNullable(d.end_date),
 				description: toNullable(d.description),
@@ -258,7 +258,6 @@
 			disabled={creating ||
 				newStage.trim().length === 0 ||
 				newInstitution.trim().length === 0 ||
-				newDegree.trim().length === 0 ||
 				newStart.trim().length === 0}
 		>
 			{creating ? 'Adding…' : 'Add education'}
