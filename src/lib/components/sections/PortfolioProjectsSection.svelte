@@ -315,13 +315,44 @@
 
 	<div class="newCard">
 		<div class="grid">
-			<input class="input" placeholder="Project name" bind:value={newName} />
-			<input class="input" placeholder="Image URL" bind:value={newImage} />
-			<input class="input" placeholder="Project link" bind:value={newProjectLink} />
-			<input class="input" placeholder="Source code link" bind:value={newSourceLink} />
-			<input class="input" type="number" placeholder="#" bind:value={newDisplayOrder} />
+			<input
+				class="input"
+				placeholder="Project name"
+				bind:value={newName}
+				title="Project name/title."
+			/>
+			<input
+				class="input"
+				placeholder="Image URL"
+				bind:value={newImage}
+				title="Optional. Link to a preview image for the project."
+			/>
+			<input
+				class="input"
+				placeholder="Project link"
+				bind:value={newProjectLink}
+				title="Optional. Link to the live project/demo."
+			/>
+			<input
+				class="input"
+				placeholder="Source code link"
+				bind:value={newSourceLink}
+				title="Optional. Link to the source repository (e.g. GitHub)."
+			/>
+			<input
+				class="input"
+				type="number"
+				placeholder="#"
+				bind:value={newDisplayOrder}
+				title="Optional. Order for sorting (lower shows first)."
+			/>
 		</div>
-		<textarea class="textarea" placeholder="Description" bind:value={newDescription} rows={2}
+		<textarea
+			class="textarea"
+			placeholder="Description"
+			bind:value={newDescription}
+			rows={2}
+			title="Optional. Short summary of what you built and the impact."
 		></textarea>
 		<button
 			class="button"
@@ -342,13 +373,32 @@
 			{#each drafts as d (d.id)}
 				<div class="card">
 					<div class="grid">
-						<input class="input" bind:value={d.project_name} />
-						<input class="input" bind:value={d.image_url} />
-						<input class="input" bind:value={d.project_link} />
-						<input class="input" bind:value={d.source_code_link} />
-						<input class="input" type="number" placeholder="#" bind:value={d.display_order} />
+						<input class="input" bind:value={d.project_name} title="Project name/title." />
+						<input class="input" bind:value={d.image_url} title="Optional. Preview image URL." />
+						<input
+							class="input"
+							bind:value={d.project_link}
+							title="Optional. Live project/demo link."
+						/>
+						<input
+							class="input"
+							bind:value={d.source_code_link}
+							title="Optional. Source code repository link."
+						/>
+						<input
+							class="input"
+							type="number"
+							placeholder="#"
+							bind:value={d.display_order}
+							title="Optional. Order for sorting (lower shows first)."
+						/>
 					</div>
-					<textarea class="textarea" bind:value={d.description} rows={2}></textarea>
+					<textarea
+						class="textarea"
+						bind:value={d.description}
+						rows={2}
+						title="Optional. Description/details."
+					></textarea>
 					<div class="actions">
 						<button class="button" type="button" onclick={() => handleSave(d)}>Save</button>
 						<button class="button danger" type="button" onclick={() => handleDelete(d.id)}>
@@ -368,6 +418,7 @@
 							<input
 								class="input"
 								placeholder="Add key point"
+								title="Add a bullet point about this project."
 								value={newKeyPointText[d.id] ?? ''}
 								oninput={(e) =>
 									(newKeyPointText = {
@@ -385,12 +436,13 @@
 						{:else}
 							{#each keyPoints[d.id] ?? [] as kp (kp.id)}
 								<div class="itemRow">
-									<input class="input" bind:value={kp.key_point} />
+									<input class="input" bind:value={kp.key_point} title="Key point text." />
 									<input
 										class="input small"
 										type="number"
 										placeholder="#"
 										bind:value={kp.display_order}
+										title="Optional. Order for sorting (lower shows first)."
 									/>
 									<button class="button" type="button" onclick={() => handleSaveKeyPoint(d.id, kp)}>
 										Save
@@ -419,6 +471,7 @@
 							<input
 								class="input"
 								placeholder="Add technology"
+								title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
 								value={newTechText[d.id] ?? ''}
 								oninput={(e) =>
 									(newTechText = { ...newTechText, [d.id]: (e.target as HTMLInputElement).value })}
@@ -433,12 +486,13 @@
 						{:else}
 							{#each technologies[d.id] ?? [] as t (t.id)}
 								<div class="itemRow">
-									<input class="input" bind:value={t.technology_name} />
+									<input class="input" bind:value={t.technology_name} title="Technology name." />
 									<input
 										class="input small"
 										type="number"
 										placeholder="#"
 										bind:value={t.display_order}
+										title="Optional. Order for sorting (lower shows first)."
 									/>
 									<button
 										class="button"

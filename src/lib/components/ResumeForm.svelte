@@ -40,36 +40,50 @@
 <form class="form" onsubmit={submit}>
 	<label class="field">
 		<span class="label">Name</span>
-		<input class="input" bind:value={name} required />
+		<input class="input" bind:value={name} required title="Full name shown on the resume." />
 	</label>
 
 	<label class="field">
 		<span class="label">Email</span>
-		<input class="input" type="email" bind:value={email} required />
+		<input
+			class="input"
+			type="email"
+			bind:value={email}
+			required
+			title="Primary contact email displayed on the resume."
+		/>
 	</label>
 
 	<label class="field">
 		<span class="label">Profile image URL</span>
-		<input class="input" bind:value={profile_image_url} />
+		<input
+			class="input"
+			bind:value={profile_image_url}
+			title="Optional. Link to a profile photo image (e.g. https://...)."
+		/>
 	</label>
 
 	<label class="field">
 		<span class="label">Location</span>
-		<input class="input" bind:value={location} />
+		<input class="input" bind:value={location} title="Optional. City / country (or remote)." />
 	</label>
 
 	<label class="field">
 		<span class="label">GitHub URL</span>
-		<input class="input" bind:value={github_url} />
+		<input class="input" bind:value={github_url} title="Optional. Link to your GitHub profile." />
 	</label>
 
 	<label class="field">
 		<span class="label">Mobile number</span>
-		<input class="input" bind:value={mobile_number} />
+		<input class="input" bind:value={mobile_number} title="Optional. Phone number for contact." />
 	</label>
 
 	<label class="checkbox">
-		<input type="checkbox" bind:checked={is_public} />
+		<input
+			type="checkbox"
+			bind:checked={is_public}
+			title="If enabled, this resume is visible publicly."
+		/>
 		<span>Public</span>
 	</label>
 

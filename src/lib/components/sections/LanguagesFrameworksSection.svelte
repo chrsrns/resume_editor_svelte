@@ -209,8 +209,19 @@
 	{/if}
 
 	<div class="newRow">
-		<input class="input" placeholder="Language" bind:value={newLanguageName} />
-		<input class="input small" type="number" placeholder="#" bind:value={newLanguageOrder} />
+		<input
+			class="input"
+			placeholder="Language"
+			bind:value={newLanguageName}
+			title="Programming language name (e.g. TypeScript, Rust)."
+		/>
+		<input
+			class="input small"
+			type="number"
+			placeholder="#"
+			bind:value={newLanguageOrder}
+			title="Optional. Order for sorting (lower shows first)."
+		/>
 		<button
 			class="button"
 			type="button"
@@ -230,8 +241,14 @@
 			{#each languages as l (l.id)}
 				<div class="card">
 					<div class="row">
-						<input class="input" bind:value={l.language_name} />
-						<input class="input small" type="number" placeholder="#" bind:value={l.display_order} />
+						<input class="input" bind:value={l.language_name} title="Language name." />
+						<input
+							class="input small"
+							type="number"
+							placeholder="#"
+							bind:value={l.display_order}
+							title="Optional. Order for sorting (lower shows first)."
+						/>
 						<button class="button" type="button" onclick={() => handleSaveLanguage(l)}>Save</button>
 						<button class="button danger" type="button" onclick={() => handleDeleteLanguage(l.id)}>
 							Delete
@@ -250,6 +267,7 @@
 							<input
 								class="input"
 								placeholder="Add framework"
+								title="Add a framework/library for this language (e.g. Svelte, Rocket)."
 								value={newFrameworkText[l.id] ?? ''}
 								oninput={(e) =>
 									(newFrameworkText = {
@@ -267,12 +285,17 @@
 						{:else}
 							{#each frameworks[l.id] ?? [] as f (f.id)}
 								<div class="frameworkRow">
-									<input class="input" bind:value={f.framework_name} />
+									<input
+										class="input"
+										bind:value={f.framework_name}
+										title="Framework/library name."
+									/>
 									<input
 										class="input small"
 										type="number"
 										placeholder="#"
 										bind:value={f.display_order}
+										title="Optional. Order for sorting (lower shows first)."
 									/>
 									<button class="button" type="button" onclick={() => handleSaveFramework(l.id, f)}>
 										Save

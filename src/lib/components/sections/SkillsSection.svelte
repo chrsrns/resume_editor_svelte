@@ -115,7 +115,12 @@
 	{/if}
 
 	<div class="newRow">
-		<input class="input" placeholder="Skill name" bind:value={newSkillName} />
+		<input
+			class="input"
+			placeholder="Skill name"
+			bind:value={newSkillName}
+			title="Name of the skill (e.g. Rust, SQL, Communication)."
+		/>
 		<input
 			class="input small"
 			type="number"
@@ -123,8 +128,15 @@
 			max="100"
 			step="1"
 			bind:value={newConfidence}
+			title="Confidence level (0–100)."
 		/>
-		<input class="input small" type="number" placeholder="#" bind:value={newDisplayOrder} />
+		<input
+			class="input small"
+			type="number"
+			placeholder="#"
+			bind:value={newDisplayOrder}
+			title="Optional. Order for sorting (lower shows first)."
+		/>
 		<button
 			class="button"
 			type="button"
@@ -144,7 +156,7 @@
 			{#each drafts as d (d.id)}
 				<div class="card">
 					<div class="row">
-						<input class="input" bind:value={d.skill_name} />
+						<input class="input" bind:value={d.skill_name} title="Skill name." />
 						<input
 							class="input small"
 							type="number"
@@ -152,8 +164,15 @@
 							max="100"
 							step="1"
 							bind:value={d.confidence_percentage}
+							title="Confidence level (0–100)."
 						/>
-						<input class="input small" type="number" placeholder="#" bind:value={d.display_order} />
+						<input
+							class="input small"
+							type="number"
+							placeholder="#"
+							bind:value={d.display_order}
+							title="Optional. Order for sorting (lower shows first)."
+						/>
 					</div>
 					<div class="actions">
 						<button class="button" type="button" onclick={() => handleSave(d)}>Save</button>

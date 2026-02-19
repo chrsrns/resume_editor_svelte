@@ -242,14 +242,50 @@
 
 	<div class="newCard">
 		<div class="grid">
-			<input class="input" placeholder="Stage (e.g. Bachelor)" bind:value={newStage} />
-			<input class="input" placeholder="Institution" bind:value={newInstitution} />
-			<input class="input" placeholder="Degree" bind:value={newDegree} />
-			<input class="input" type="date" bind:value={newStart} />
-			<input class="input" type="date" bind:value={newEnd} />
-			<input class="input" type="number" placeholder="#" bind:value={newDisplayOrder} />
+			<input
+				class="input"
+				placeholder="Stage (e.g. Bachelor)"
+				bind:value={newStage}
+				title="Education stage/level (e.g. High School, Diploma, Bachelor, Master)."
+			/>
+			<input
+				class="input"
+				placeholder="Institution"
+				bind:value={newInstitution}
+				title="School/university/training provider name."
+			/>
+			<input
+				class="input"
+				placeholder="Degree"
+				bind:value={newDegree}
+				title="Optional. Degree/qualification name."
+			/>
+			<input
+				class="input"
+				type="date"
+				bind:value={newStart}
+				title="Start date for this education."
+			/>
+			<input
+				class="input"
+				type="date"
+				bind:value={newEnd}
+				title="Optional. End date (leave blank if ongoing)."
+			/>
+			<input
+				class="input"
+				type="number"
+				placeholder="#"
+				bind:value={newDisplayOrder}
+				title="Optional. Order for sorting (lower shows first)."
+			/>
 		</div>
-		<textarea class="textarea" placeholder="Description" bind:value={newDescription} rows={2}
+		<textarea
+			class="textarea"
+			placeholder="Description"
+			bind:value={newDescription}
+			rows={2}
+			title="Optional. Additional details about the education."
 		></textarea>
 		<button
 			class="button"
@@ -273,14 +309,29 @@
 			{#each drafts as d (d.id)}
 				<div class="card">
 					<div class="grid">
-						<input class="input" bind:value={d.education_stage} />
-						<input class="input" bind:value={d.institution_name} />
-						<input class="input" bind:value={d.degree} />
-						<input class="input" type="date" bind:value={d.start_date} />
-						<input class="input" type="date" bind:value={d.end_date} />
-						<input class="input" type="number" placeholder="#" bind:value={d.display_order} />
+						<input class="input" bind:value={d.education_stage} title="Education stage/level." />
+						<input class="input" bind:value={d.institution_name} title="Institution name." />
+						<input
+							class="input"
+							bind:value={d.degree}
+							title="Optional. Degree/qualification name."
+						/>
+						<input class="input" type="date" bind:value={d.start_date} title="Start date." />
+						<input class="input" type="date" bind:value={d.end_date} title="Optional. End date." />
+						<input
+							class="input"
+							type="number"
+							placeholder="#"
+							bind:value={d.display_order}
+							title="Optional. Order for sorting (lower shows first)."
+						/>
 					</div>
-					<textarea class="textarea" bind:value={d.description} rows={2}></textarea>
+					<textarea
+						class="textarea"
+						bind:value={d.description}
+						rows={2}
+						title="Optional. Description/details."
+					></textarea>
 					<div class="actions">
 						<button class="button" type="button" onclick={() => handleSave(d)}>Save</button>
 						<button class="button danger" type="button" onclick={() => handleDelete(d.id)}
@@ -300,6 +351,7 @@
 							<input
 								class="input"
 								placeholder="Add key point"
+								title="Add a bullet point for this education entry."
 								value={newKeyPointText[d.id] ?? ''}
 								oninput={(e) =>
 									(newKeyPointText = {
@@ -317,12 +369,13 @@
 						{:else}
 							{#each keyPoints[d.id] ?? [] as kp (kp.id)}
 								<div class="kpRow">
-									<input class="input" bind:value={kp.key_point} />
+									<input class="input" bind:value={kp.key_point} title="Key point text." />
 									<input
 										class="input small"
 										type="number"
 										placeholder="#"
 										bind:value={kp.display_order}
+										title="Optional. Order for sorting (lower shows first)."
 									/>
 									<button class="button" type="button" onclick={() => handleSaveKeyPoint(d.id, kp)}>
 										Save
