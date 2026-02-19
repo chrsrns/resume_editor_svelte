@@ -51,8 +51,10 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let drafts = $state<EducationDraft[]>([]);
+	let savedEduSigById = $state<Record<number, string>>({});
 	let keyPoints = $state<Record<number, KeyPointDraft[]>>({});
 	let keyPointLoading = $state<Record<number, boolean>>({});
+	let savedKeyPointSigById = $state<Record<number, string>>({});
 
 	let creating = $state(false);
 	let newStage = $state('');
@@ -98,12 +100,41 @@
 		};
 	}
 
+	function sigEdu(d: EducationDraft): string {
+		return JSON.stringify({
+			education_stage: d.education_stage.trim(),
+			institution_name: d.institution_name.trim(),
+			degree: toNullable(d.degree),
+			start_date: d.start_date,
+			end_date: toNullable(d.end_date),
+			description: toNullable(d.description),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isEduDirty(d: EducationDraft): boolean {
+		return savedEduSigById[d.id] !== sigEdu(d);
+	}
+
+	function sigKeyPoint(d: KeyPointDraft): string {
+		return JSON.stringify({
+			key_point: d.key_point.trim(),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isKeyPointDirty(d: KeyPointDraft): boolean {
+		return savedKeyPointSigById[d.id] !== sigKeyPoint(d);
+	}
+
 	async function refresh() {
 		loading = true;
 		error = null;
 		try {
 			const items = await listEducations(resumeId);
-			drafts = items.map(toDraft);
+			const ds = items.map(toDraft);
+			drafts = ds;
+			savedEduSigById = Object.fromEntries(ds.map((d) => [d.id, sigEdu(d)]));
 			const newMap: Record<number, KeyPointDraft[]> = {};
 			for (const e of items) {
 				newMap[e.id] = [];
@@ -124,7 +155,12 @@
 		keyPointLoading = { ...keyPointLoading, [educationId]: true };
 		try {
 			const points = await listEducationKeyPoints(resumeId, educationId);
-			keyPoints = { ...keyPoints, [educationId]: points.map(toKeyPointDraft) };
+			const ds = points.map(toKeyPointDraft);
+			keyPoints = { ...keyPoints, [educationId]: ds };
+			savedKeyPointSigById = {
+				...savedKeyPointSigById,
+				...Object.fromEntries(ds.map((d) => [d.id, sigKeyPoint(d)]))
+			};
 		} catch {
 			keyPoints = { ...keyPoints, [educationId]: [] };
 		} finally {
@@ -322,7 +358,9 @@
 					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
 				</FieldsWrap>
 				<CardActions>
-					<Button onclick={() => handleSave(d)}>Save</Button>
+					{#if isEduDirty(d)}
+						<Button onclick={() => handleSave(d)}>Save</Button>
+					{/if}
 					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
 				</CardActions>
 
@@ -361,7 +399,9 @@
 								bind:value={kp.display_order}
 								title="Optional. Order for sorting (lower shows first)."
 							/>
-							<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							{#if isKeyPointDirty(kp)}
+								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							{/if}
 							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
 								Delete
 							</Button>

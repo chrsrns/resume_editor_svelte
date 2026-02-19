@@ -23,6 +23,7 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let drafts = $state<SkillDraft[]>([]);
+	let savedSigById = $state<Record<number, string>>({});
 
 	let newSkillName = $state('');
 	let newConfidence = $state('80');
@@ -38,12 +39,26 @@
 		};
 	}
 
+	function sig(d: SkillDraft): string {
+		return JSON.stringify({
+			skill_name: d.skill_name.trim(),
+			confidence_percentage: Number(d.confidence_percentage),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isDirty(d: SkillDraft): boolean {
+		return savedSigById[d.id] !== sig(d);
+	}
+
 	async function refresh() {
 		loading = true;
 		error = null;
 		try {
 			const items = await listSkills(resumeId);
-			drafts = items.map(toDraft);
+			const ds = items.map(toDraft);
+			drafts = ds;
+			savedSigById = Object.fromEntries(ds.map((d) => [d.id, sig(d)]));
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -173,7 +188,9 @@
 					/>
 				</FieldsWrap>
 				<CardActions>
-					<Button onclick={() => handleSave(d)}>Save</Button>
+					{#if isDirty(d)}
+						<Button onclick={() => handleSave(d)}>Save</Button>
+					{/if}
 					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
 				</CardActions>
 			</Card>

@@ -50,9 +50,11 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let drafts = $state<WorkDraft[]>([]);
+	let savedWorkSigById = $state<Record<number, string>>({});
 	let keyPoints = $state<Record<number, KeyPointDraft[]>>({});
 	let keyPointLoading = $state<Record<number, boolean>>({});
 	let newKeyPointText = $state<Record<number, string>>({});
+	let savedKeyPointSigById = $state<Record<number, string>>({});
 
 	let creating = $state(false);
 	let newTitle = $state('');
@@ -94,12 +96,40 @@
 		};
 	}
 
+	function sigWork(d: WorkDraft): string {
+		return JSON.stringify({
+			job_title: d.job_title.trim(),
+			company_name: d.company_name.trim(),
+			start_date: d.start_date,
+			end_date: toNullable(d.end_date),
+			description: toNullable(d.description),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isWorkDirty(d: WorkDraft): boolean {
+		return savedWorkSigById[d.id] !== sigWork(d);
+	}
+
+	function sigKeyPoint(d: KeyPointDraft): string {
+		return JSON.stringify({
+			key_point: d.key_point.trim(),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isKeyPointDirty(d: KeyPointDraft): boolean {
+		return savedKeyPointSigById[d.id] !== sigKeyPoint(d);
+	}
+
 	async function refresh() {
 		loading = true;
 		error = null;
 		try {
 			const items = await listWorkExperiences(resumeId);
-			drafts = items.map(toDraft);
+			const ds = items.map(toDraft);
+			drafts = ds;
+			savedWorkSigById = Object.fromEntries(ds.map((d) => [d.id, sigWork(d)]));
 			const map: Record<number, KeyPointDraft[]> = {};
 			for (const w of items) map[w.id] = [];
 			keyPoints = map;
@@ -116,7 +146,12 @@
 		keyPointLoading = { ...keyPointLoading, [workId]: true };
 		try {
 			const points = await listWorkExperienceKeyPoints(resumeId, workId);
-			keyPoints = { ...keyPoints, [workId]: points.map(toKeyPointDraft) };
+			const ds = points.map(toKeyPointDraft);
+			keyPoints = { ...keyPoints, [workId]: ds };
+			savedKeyPointSigById = {
+				...savedKeyPointSigById,
+				...Object.fromEntries(ds.map((d) => [d.id, sigKeyPoint(d)]))
+			};
 		} catch {
 			keyPoints = { ...keyPoints, [workId]: [] };
 		} finally {
@@ -297,7 +332,9 @@
 					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
 				</FieldsWrap>
 				<CardActions>
-					<Button onclick={() => handleSave(d)}>Save</Button>
+					{#if isWorkDirty(d)}
+						<Button onclick={() => handleSave(d)}>Save</Button>
+					{/if}
 					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
 				</CardActions>
 
@@ -337,7 +374,9 @@
 								bind:value={kp.display_order}
 								title="Optional. Order for sorting (lower shows first)."
 							/>
-							<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							{#if isKeyPointDirty(kp)}
+								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							{/if}
 							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
 								Delete
 							</Button>

@@ -54,9 +54,12 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let drafts = $state<ProjectDraft[]>([]);
+	let savedProjectSigById = $state<Record<number, string>>({});
 
 	let keyPoints = $state<Record<number, KeyPointDraft[]>>({});
 	let technologies = $state<Record<number, TechDraft[]>>({});
+	let savedKeyPointSigById = $state<Record<number, string>>({});
+	let savedTechSigById = $state<Record<number, string>>({});
 
 	let kpLoading = $state<Record<number, boolean>>({});
 	let techLoading = $state<Record<number, boolean>>({});
@@ -112,12 +115,51 @@
 		};
 	}
 
+	function sigProject(d: ProjectDraft): string {
+		return JSON.stringify({
+			project_name: d.project_name.trim(),
+			image_url: toNullable(d.image_url),
+			project_link: toNullable(d.project_link),
+			source_code_link: toNullable(d.source_code_link),
+			description: toNullable(d.description),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isProjectDirty(d: ProjectDraft): boolean {
+		return savedProjectSigById[d.id] !== sigProject(d);
+	}
+
+	function sigKeyPoint(d: KeyPointDraft): string {
+		return JSON.stringify({
+			key_point: d.key_point.trim(),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isKeyPointDirty(d: KeyPointDraft): boolean {
+		return savedKeyPointSigById[d.id] !== sigKeyPoint(d);
+	}
+
+	function sigTech(d: TechDraft): string {
+		return JSON.stringify({
+			technology_name: d.technology_name.trim(),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isTechDirty(d: TechDraft): boolean {
+		return savedTechSigById[d.id] !== sigTech(d);
+	}
+
 	async function refresh() {
 		loading = true;
 		error = null;
 		try {
 			const items = await listPortfolioProjects(resumeId);
-			drafts = items.map(toDraft);
+			const ds = items.map(toDraft);
+			drafts = ds;
+			savedProjectSigById = Object.fromEntries(ds.map((d) => [d.id, sigProject(d)]));
 			const kpMap: Record<number, KeyPointDraft[]> = {};
 			const techMap: Record<number, TechDraft[]> = {};
 			for (const p of items) {
@@ -142,7 +184,12 @@
 		kpLoading = { ...kpLoading, [projectId]: true };
 		try {
 			const points = await listPortfolioKeyPoints(resumeId, projectId);
-			keyPoints = { ...keyPoints, [projectId]: points.map(toKeyPointDraft) };
+			const ds = points.map(toKeyPointDraft);
+			keyPoints = { ...keyPoints, [projectId]: ds };
+			savedKeyPointSigById = {
+				...savedKeyPointSigById,
+				...Object.fromEntries(ds.map((d) => [d.id, sigKeyPoint(d)]))
+			};
 		} catch {
 			keyPoints = { ...keyPoints, [projectId]: [] };
 		} finally {
@@ -154,7 +201,12 @@
 		techLoading = { ...techLoading, [projectId]: true };
 		try {
 			const items = await listPortfolioTechnologies(resumeId, projectId);
-			technologies = { ...technologies, [projectId]: items.map(toTechDraft) };
+			const ds = items.map(toTechDraft);
+			technologies = { ...technologies, [projectId]: ds };
+			savedTechSigById = {
+				...savedTechSigById,
+				...Object.fromEntries(ds.map((d) => [d.id, sigTech(d)]))
+			};
 		} catch {
 			technologies = { ...technologies, [projectId]: [] };
 		} finally {
@@ -382,7 +434,9 @@
 					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
 				</FieldsWrap>
 				<CardActions>
-					<Button onclick={() => handleSave(d)}>Save</Button>
+					{#if isProjectDirty(d)}
+						<Button onclick={() => handleSave(d)}>Save</Button>
+					{/if}
 					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
 				</CardActions>
 
@@ -421,7 +475,9 @@
 								bind:value={kp.display_order}
 								title="Optional. Order for sorting (lower shows first)."
 							/>
-							<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							{#if isKeyPointDirty(kp)}
+								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							{/if}
 							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
 								Delete
 							</Button>
@@ -464,7 +520,9 @@
 								bind:value={t.display_order}
 								title="Optional. Order for sorting (lower shows first)."
 							/>
-							<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
+							{#if isTechDirty(t)}
+								<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
+							{/if}
 							<Button variant="danger" onclick={() => handleDeleteTechnology(d.id, t.id)}>
 								Delete
 							</Button>

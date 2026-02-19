@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
+	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
 	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
 	import NestedList from '$lib/components/sections/shared/NestedList.svelte';
 	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
@@ -46,9 +47,11 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let languages = $state<LanguageDraft[]>([]);
+	let savedLangSigById = $state<Record<number, string>>({});
 
 	let frameworks = $state<Record<number, FrameworkDraft[]>>({});
 	let frameworksLoading = $state<Record<number, boolean>>({});
+	let savedFrameworkSigById = $state<Record<number, string>>({});
 
 	let newLanguageName = $state('');
 	let newLanguageOrder = $state('');
@@ -79,12 +82,36 @@
 		};
 	}
 
+	function sigLanguage(d: LanguageDraft): string {
+		return JSON.stringify({
+			language_name: d.language_name.trim(),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isLanguageDirty(d: LanguageDraft): boolean {
+		return savedLangSigById[d.id] !== sigLanguage(d);
+	}
+
+	function sigFramework(d: FrameworkDraft): string {
+		return JSON.stringify({
+			framework_name: d.framework_name.trim(),
+			display_order: toNumberOrNull(d.display_order)
+		});
+	}
+
+	function isFrameworkDirty(d: FrameworkDraft): boolean {
+		return savedFrameworkSigById[d.id] !== sigFramework(d);
+	}
+
 	async function refresh() {
 		loading = true;
 		error = null;
 		try {
 			const items = await listLanguages(resumeId);
-			languages = items.map(toLanguageDraft);
+			const ds = items.map(toLanguageDraft);
+			languages = ds;
+			savedLangSigById = Object.fromEntries(ds.map((d) => [d.id, sigLanguage(d)]));
 
 			const map: Record<number, FrameworkDraft[]> = {};
 			for (const l of items) map[l.id] = [];
@@ -102,7 +129,12 @@
 		frameworksLoading = { ...frameworksLoading, [languageId]: true };
 		try {
 			const items = await listFrameworks(resumeId, languageId);
-			frameworks = { ...frameworks, [languageId]: items.map(toFrameworkDraft) };
+			const ds = items.map(toFrameworkDraft);
+			frameworks = { ...frameworks, [languageId]: ds };
+			savedFrameworkSigById = {
+				...savedFrameworkSigById,
+				...Object.fromEntries(ds.map((d) => [d.id, sigFramework(d)]))
+			};
 		} catch {
 			frameworks = { ...frameworks, [languageId]: [] };
 		} finally {
@@ -251,10 +283,12 @@
 						title="Optional. Order for sorting (lower shows first)."
 					/>
 				</FieldsWrap>
-				<div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;">
-					<Button onclick={() => handleSaveLanguage(l)}>Save</Button>
+				<CardActions>
+					{#if isLanguageDirty(l)}
+						<Button onclick={() => handleSaveLanguage(l)}>Save</Button>
+					{/if}
 					<Button variant="danger" onclick={() => handleDeleteLanguage(l.id)}>Delete</Button>
-				</div>
+				</CardActions>
 
 				<FieldsWrap>
 					<TextInput
@@ -291,7 +325,9 @@
 								bind:value={f.display_order}
 								title="Optional. Order for sorting (lower shows first)."
 							/>
-							<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
+							{#if isFrameworkDirty(f)}
+								<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
+							{/if}
 							<Button variant="danger" onclick={() => handleDeleteFramework(l.id, f.id)}>
 								Delete
 							</Button>
