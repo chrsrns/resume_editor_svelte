@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
+	import Card from '$lib/components/sections/shared/Card.svelte';
+	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
+	import NestedList from '$lib/components/sections/shared/NestedList.svelte';
+	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
 	import {
 		createLanguage,
 		deleteLanguage,
@@ -22,6 +26,8 @@
 		UpdateFrameworkRequest,
 		UpdateLanguageRequest
 	} from '$lib/types';
+	import Button from '$lib/components/ui/Button.svelte';
+	import TextInput from '$lib/components/ui/TextInput.svelte';
 
 	let { resumeId } = $props<{ resumeId: number }>();
 
@@ -204,246 +210,95 @@
 </script>
 
 <SectionShell title="Languages & frameworks" description="Languages with nested frameworks.">
-	{#if error}
-		<p class="error">{error}</p>
-	{/if}
+	<Card variant="new">
+		<FieldsWrap>
+			<TextInput
+				placeholder="Language"
+				bind:value={newLanguageName}
+				title="Programming language name (e.g. TypeScript, Rust)."
+			/>
+			<TextInput
+				small
+				type="number"
+				placeholder="#"
+				bind:value={newLanguageOrder}
+				title="Optional. Order for sorting (lower shows first)."
+			/>
+			<Button
+				onclick={handleCreateLanguage}
+				disabled={creatingLanguage || newLanguageName.trim().length === 0}
+			>
+				{creatingLanguage ? 'Adding…' : 'Add language'}
+			</Button>
+		</FieldsWrap>
+	</Card>
 
-	<div class="newRow">
-		<input
-			class="input"
-			placeholder="Language"
-			bind:value={newLanguageName}
-			title="Programming language name (e.g. TypeScript, Rust)."
-		/>
-		<input
-			class="input small"
-			type="number"
-			placeholder="#"
-			bind:value={newLanguageOrder}
-			title="Optional. Order for sorting (lower shows first)."
-		/>
-		<button
-			class="button"
-			type="button"
-			onclick={handleCreateLanguage}
-			disabled={creatingLanguage || newLanguageName.trim().length === 0}
-		>
-			{creatingLanguage ? 'Adding…' : 'Add language'}
-		</button>
-	</div>
-
-	{#if loading}
-		<p>Loading…</p>
-	{:else if languages.length === 0}
-		<p class="muted">No languages yet.</p>
-	{:else}
-		<div class="list">
-			{#each languages as l (l.id)}
-				<div class="card">
-					<div class="row">
-						<input class="input" bind:value={l.language_name} title="Language name." />
-						<input
-							class="input small"
-							type="number"
-							placeholder="#"
-							bind:value={l.display_order}
-							title="Optional. Order for sorting (lower shows first)."
-						/>
-						<button class="button" type="button" onclick={() => handleSaveLanguage(l)}>Save</button>
-						<button class="button danger" type="button" onclick={() => handleDeleteLanguage(l.id)}>
-							Delete
-						</button>
-					</div>
-
-					<div class="nested">
-						<div class="nestedHead">
-							<strong>Frameworks</strong>
-							{#if frameworksLoading[l.id]}
-								<span class="muted">Loading…</span>
-							{/if}
-						</div>
-
-						<div class="addFramework">
-							<input
-								class="input"
-								placeholder="Add framework"
-								title="Add a framework/library for this language (e.g. Svelte, Rocket)."
-								value={newFrameworkText[l.id] ?? ''}
-								oninput={(e) =>
-									(newFrameworkText = {
-										...newFrameworkText,
-										[l.id]: (e.target as HTMLInputElement).value
-									})}
-							/>
-							<button class="button" type="button" onclick={() => handleCreateFramework(l.id)}>
-								Add
-							</button>
-						</div>
-
-						{#if (frameworks[l.id] ?? []).length === 0}
-							<p class="muted">No frameworks.</p>
-						{:else}
-							{#each frameworks[l.id] ?? [] as f (f.id)}
-								<div class="frameworkRow">
-									<input
-										class="input"
-										bind:value={f.framework_name}
-										title="Framework/library name."
-									/>
-									<input
-										class="input small"
-										type="number"
-										placeholder="#"
-										bind:value={f.display_order}
-										title="Optional. Order for sorting (lower shows first)."
-									/>
-									<button class="button" type="button" onclick={() => handleSaveFramework(l.id, f)}>
-										Save
-									</button>
-									<button
-										class="button danger"
-										type="button"
-										onclick={() => handleDeleteFramework(l.id, f.id)}
-									>
-										Delete
-									</button>
-								</div>
-							{/each}
-						{/if}
-					</div>
+	<SectionMessage
+		{error}
+		{loading}
+		empty={!loading && languages.length === 0}
+		emptyText="No languages yet."
+	>
+		{#each languages as l (l.id)}
+			<Card>
+				<FieldsWrap>
+					<TextInput bind:value={l.language_name} title="Language name." />
+					<TextInput
+						small
+						type="number"
+						placeholder="#"
+						bind:value={l.display_order}
+						title="Optional. Order for sorting (lower shows first)."
+					/>
+				</FieldsWrap>
+				<div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;">
+					<Button onclick={() => handleSaveLanguage(l)}>Save</Button>
+					<Button variant="danger" onclick={() => handleDeleteLanguage(l.id)}>Delete</Button>
 				</div>
-			{/each}
-		</div>
-	{/if}
+
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add framework"
+						title="Add a framework/library for this language (e.g. Svelte, Rocket)."
+						value={newFrameworkText[l.id] ?? ''}
+						oninput={(e) =>
+							(newFrameworkText = {
+								...newFrameworkText,
+								[l.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleCreateFramework(l.id)}
+						disabled={(newFrameworkText[l.id] ?? '').trim().length === 0}
+					>
+						Add
+					</Button>
+				</FieldsWrap>
+
+				<NestedList
+					title="Frameworks"
+					loading={frameworksLoading[l.id] ?? false}
+					empty={(frameworks[l.id] ?? []).length === 0}
+					emptyText="No frameworks."
+				>
+					{#each frameworks[l.id] ?? [] as f (f.id)}
+						<FieldsWrap>
+							<TextInput bind:value={f.framework_name} title="Framework/library name." />
+							<TextInput
+								small
+								type="number"
+								placeholder="#"
+								bind:value={f.display_order}
+								title="Optional. Order for sorting (lower shows first)."
+							/>
+							<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
+							<Button variant="danger" onclick={() => handleDeleteFramework(l.id, f.id)}>
+								Delete
+							</Button>
+						</FieldsWrap>
+					{/each}
+				</NestedList>
+			</Card>
+		{/each}
+	</SectionMessage>
 </SectionShell>
-
-<style>
-	.newRow {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.newRow .input:not(.small) {
-		flex: 1 1 240px;
-		min-width: 180px;
-	}
-
-	.newRow .input.small {
-		flex: 0 1 90px;
-		min-width: 80px;
-	}
-
-	.list {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.card {
-		border: 1px solid #e2e8f0;
-		border-radius: 12px;
-		padding: 12px;
-		background: #f8fafc;
-	}
-
-	.row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.row .input:not(.small) {
-		flex: 1 1 240px;
-		min-width: 180px;
-	}
-
-	.row .input.small {
-		flex: 0 1 90px;
-		min-width: 80px;
-	}
-
-	.nested {
-		margin-top: 12px;
-		padding-top: 12px;
-		border-top: 1px solid #e2e8f0;
-	}
-
-	.nestedHead {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.addFramework {
-		margin-top: 10px;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.addFramework .input {
-		flex: 1 1 260px;
-		min-width: 180px;
-	}
-
-	.frameworkRow {
-		margin-top: 8px;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.frameworkRow .input:not(.small) {
-		flex: 1 1 260px;
-		min-width: 180px;
-	}
-
-	.frameworkRow .input.small {
-		flex: 0 1 90px;
-		min-width: 80px;
-	}
-
-	.input {
-		padding: 10px 12px;
-		border: 1px solid #cbd5e1;
-		border-radius: 8px;
-		background: white;
-	}
-
-	.input.small {
-		padding: 10px 8px;
-	}
-
-	.button {
-		padding: 10px 12px;
-		margin-top: 10px;
-		border: 1px solid #0f172a;
-		border-radius: 8px;
-		background: #0f172a;
-		color: white;
-		cursor: pointer;
-	}
-
-	.button.danger {
-		border-color: #b91c1c;
-		background: #b91c1c;
-	}
-
-	.button[disabled] {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.error {
-		color: #b91c1c;
-	}
-
-	.muted {
-		color: #475569;
-	}
-</style>

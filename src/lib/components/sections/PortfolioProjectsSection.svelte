@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
+	import Card from '$lib/components/sections/shared/Card.svelte';
+	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
+	import NestedList from '$lib/components/sections/shared/NestedList.svelte';
+	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
 	import {
 		createPortfolioKeyPoint,
 		createPortfolioProject,
@@ -27,6 +32,9 @@
 		UpdatePortfolioProjectRequest,
 		UpdatePortfolioTechnologyRequest
 	} from '$lib/types';
+	import Button from '$lib/components/ui/Button.svelte';
+	import TextArea from '$lib/components/ui/TextArea.svelte';
+	import TextInput from '$lib/components/ui/TextInput.svelte';
 
 	let { resumeId } = $props<{ resumeId: number }>();
 
@@ -309,343 +317,161 @@
 </script>
 
 <SectionShell title="Portfolio" description="Projects with key points and technologies.">
-	{#if error}
-		<p class="error">{error}</p>
-	{/if}
-
-	<div class="newCard">
-		<div class="grid">
-			<input
-				class="input"
-				placeholder="Project name"
-				bind:value={newName}
-				title="Project name/title."
-			/>
-			<input
-				class="input"
+	<Card variant="new">
+		<FieldsWrap>
+			<TextInput placeholder="Project name" bind:value={newName} title="Project name/title." />
+			<TextInput
 				placeholder="Image URL"
 				bind:value={newImage}
 				title="Optional. Link to a preview image for the project."
 			/>
-			<input
-				class="input"
+			<TextInput
 				placeholder="Project link"
 				bind:value={newProjectLink}
 				title="Optional. Link to the live project/demo."
 			/>
-			<input
-				class="input"
+			<TextInput
 				placeholder="Source code link"
 				bind:value={newSourceLink}
 				title="Optional. Link to the source repository (e.g. GitHub)."
 			/>
-			<input
-				class="input"
+			<TextInput
+				small
 				type="number"
 				placeholder="#"
 				bind:value={newDisplayOrder}
 				title="Optional. Order for sorting (lower shows first)."
 			/>
-		</div>
-		<textarea
-			class="textarea"
-			placeholder="Description"
-			bind:value={newDescription}
-			rows={2}
-			title="Optional. Short summary of what you built and the impact."
-		></textarea>
-		<button
-			class="button"
-			type="button"
-			onclick={handleCreate}
-			disabled={creating || newName.trim().length === 0}
-		>
-			{creating ? 'Adding…' : 'Add project'}
-		</button>
-	</div>
+			<TextArea
+				placeholder="Description"
+				bind:value={newDescription}
+				rows={2}
+				title="Optional. Short summary of what you built and the impact."
+			/>
+		</FieldsWrap>
+		<CardActions>
+			<Button onclick={handleCreate} disabled={creating || newName.trim().length === 0}>
+				{creating ? 'Adding…' : 'Add project'}
+			</Button>
+		</CardActions>
+	</Card>
 
-	{#if loading}
-		<p>Loading…</p>
-	{:else if drafts.length === 0}
-		<p class="muted">No portfolio projects yet.</p>
-	{:else}
-		<div class="list">
-			{#each drafts as d (d.id)}
-				<div class="card">
-					<div class="grid">
-						<input class="input" bind:value={d.project_name} title="Project name/title." />
-						<input class="input" bind:value={d.image_url} title="Optional. Preview image URL." />
-						<input
-							class="input"
-							bind:value={d.project_link}
-							title="Optional. Live project/demo link."
-						/>
-						<input
-							class="input"
-							bind:value={d.source_code_link}
-							title="Optional. Source code repository link."
-						/>
-						<input
-							class="input"
-							type="number"
-							placeholder="#"
-							bind:value={d.display_order}
-							title="Optional. Order for sorting (lower shows first)."
-						/>
-					</div>
-					<textarea
-						class="textarea"
-						bind:value={d.description}
-						rows={2}
-						title="Optional. Description/details."
-					></textarea>
-					<div class="actions">
-						<button class="button" type="button" onclick={() => handleSave(d)}>Save</button>
-						<button class="button danger" type="button" onclick={() => handleDelete(d.id)}>
-							Delete
-						</button>
-					</div>
+	<SectionMessage
+		{error}
+		{loading}
+		empty={!loading && drafts.length === 0}
+		emptyText="No portfolio projects yet."
+	>
+		{#each drafts as d (d.id)}
+			<Card>
+				<FieldsWrap>
+					<TextInput bind:value={d.project_name} title="Project name/title." />
+					<TextInput bind:value={d.image_url} title="Optional. Preview image URL." />
+					<TextInput bind:value={d.project_link} title="Optional. Live project/demo link." />
+					<TextInput
+						bind:value={d.source_code_link}
+						title="Optional. Source code repository link."
+					/>
+					<TextInput
+						small
+						type="number"
+						placeholder="#"
+						bind:value={d.display_order}
+						title="Optional. Order for sorting (lower shows first)."
+					/>
+					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
+				</FieldsWrap>
+				<CardActions>
+					<Button onclick={() => handleSave(d)}>Save</Button>
+					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+				</CardActions>
 
-					<div class="nested">
-						<div class="nestedHead">
-							<strong>Key points</strong>
-							{#if kpLoading[d.id]}
-								<span class="muted">Loading…</span>
-							{/if}
-						</div>
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add key point"
+						title="Add a bullet point about this project."
+						value={newKeyPointText[d.id] ?? ''}
+						oninput={(e) =>
+							(newKeyPointText = {
+								...newKeyPointText,
+								[d.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleAddKeyPoint(d.id)}
+						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
+					>
+						Add
+					</Button>
+				</FieldsWrap>
 
-						<div class="addRow">
-							<input
-								class="input"
-								placeholder="Add key point"
-								title="Add a bullet point about this project."
-								value={newKeyPointText[d.id] ?? ''}
-								oninput={(e) =>
-									(newKeyPointText = {
-										...newKeyPointText,
-										[d.id]: (e.target as HTMLInputElement).value
-									})}
+				<NestedList
+					title="Key points"
+					loading={kpLoading[d.id] ?? false}
+					empty={(keyPoints[d.id] ?? []).length === 0}
+					emptyText="No key points."
+				>
+					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
+						<FieldsWrap>
+							<TextInput bind:value={kp.key_point} title="Key point text." />
+							<TextInput
+								small
+								type="number"
+								placeholder="#"
+								bind:value={kp.display_order}
+								title="Optional. Order for sorting (lower shows first)."
 							/>
-							<button class="button" type="button" onclick={() => handleAddKeyPoint(d.id)}>
-								Add
-							</button>
-						</div>
+							<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
+								Delete
+							</Button>
+						</FieldsWrap>
+					{/each}
+				</NestedList>
 
-						{#if (keyPoints[d.id] ?? []).length === 0}
-							<p class="muted">No key points.</p>
-						{:else}
-							{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-								<div class="itemRow">
-									<input class="input" bind:value={kp.key_point} title="Key point text." />
-									<input
-										class="input small"
-										type="number"
-										placeholder="#"
-										bind:value={kp.display_order}
-										title="Optional. Order for sorting (lower shows first)."
-									/>
-									<button class="button" type="button" onclick={() => handleSaveKeyPoint(d.id, kp)}>
-										Save
-									</button>
-									<button
-										class="button danger"
-										type="button"
-										onclick={() => handleDeleteKeyPoint(d.id, kp.id)}
-									>
-										Delete
-									</button>
-								</div>
-							{/each}
-						{/if}
-					</div>
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add technology"
+						title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
+						value={newTechText[d.id] ?? ''}
+						oninput={(e) =>
+							(newTechText = {
+								...newTechText,
+								[d.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleAddTechnology(d.id)}
+						disabled={(newTechText[d.id] ?? '').trim().length === 0}
+					>
+						Add
+					</Button>
+				</FieldsWrap>
 
-					<div class="nested">
-						<div class="nestedHead">
-							<strong>Technologies</strong>
-							{#if techLoading[d.id]}
-								<span class="muted">Loading…</span>
-							{/if}
-						</div>
-
-						<div class="addRow">
-							<input
-								class="input"
-								placeholder="Add technology"
-								title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
-								value={newTechText[d.id] ?? ''}
-								oninput={(e) =>
-									(newTechText = { ...newTechText, [d.id]: (e.target as HTMLInputElement).value })}
+				<NestedList
+					title="Technologies"
+					loading={techLoading[d.id] ?? false}
+					empty={(technologies[d.id] ?? []).length === 0}
+					emptyText="No technologies."
+				>
+					{#each technologies[d.id] ?? [] as t (t.id)}
+						<FieldsWrap>
+							<TextInput bind:value={t.technology_name} title="Technology name." />
+							<TextInput
+								small
+								type="number"
+								placeholder="#"
+								bind:value={t.display_order}
+								title="Optional. Order for sorting (lower shows first)."
 							/>
-							<button class="button" type="button" onclick={() => handleAddTechnology(d.id)}>
-								Add
-							</button>
-						</div>
-
-						{#if (technologies[d.id] ?? []).length === 0}
-							<p class="muted">No technologies.</p>
-						{:else}
-							{#each technologies[d.id] ?? [] as t (t.id)}
-								<div class="itemRow">
-									<input class="input" bind:value={t.technology_name} title="Technology name." />
-									<input
-										class="input small"
-										type="number"
-										placeholder="#"
-										bind:value={t.display_order}
-										title="Optional. Order for sorting (lower shows first)."
-									/>
-									<button
-										class="button"
-										type="button"
-										onclick={() => handleSaveTechnology(d.id, t)}
-									>
-										Save
-									</button>
-									<button
-										class="button danger"
-										type="button"
-										onclick={() => handleDeleteTechnology(d.id, t.id)}
-									>
-										Delete
-									</button>
-								</div>
-							{/each}
-						{/if}
-					</div>
-				</div>
-			{/each}
-		</div>
-	{/if}
+							<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
+							<Button variant="danger" onclick={() => handleDeleteTechnology(d.id, t.id)}>
+								Delete
+							</Button>
+						</FieldsWrap>
+					{/each}
+				</NestedList>
+			</Card>
+		{/each}
+	</SectionMessage>
 </SectionShell>
-
-<style>
-	.list {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.card,
-	.newCard {
-		border: 1px solid #e2e8f0;
-		border-radius: 12px;
-		padding: 12px;
-		margin-bottom: 12px;
-		background: #f8fafc;
-	}
-
-	.grid {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-	}
-
-	.grid .input {
-		flex: 1 1 220px;
-		min-width: 160px;
-	}
-
-	.grid input[type='number'] {
-		flex: 0 1 90px;
-		min-width: 80px;
-	}
-
-	.textarea {
-		margin-top: 10px;
-		width: 100%;
-		box-sizing: border-box;
-		padding: 10px 12px;
-		border: 1px solid #cbd5e1;
-		border-radius: 8px;
-		background: white;
-		resize: vertical;
-	}
-
-	.actions {
-		margin-top: 10px;
-		display: flex;
-		gap: 10px;
-	}
-
-	.nested {
-		margin-top: 12px;
-		padding-top: 12px;
-		border-top: 1px solid #e2e8f0;
-	}
-
-	.nestedHead {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.addRow {
-		margin-top: 10px;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.addRow .input {
-		flex: 1 1 260px;
-		min-width: 180px;
-	}
-
-	.itemRow {
-		margin-top: 8px;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.itemRow .input:not(.small) {
-		flex: 1 1 260px;
-		min-width: 180px;
-	}
-
-	.itemRow .input.small {
-		flex: 0 1 90px;
-		min-width: 80px;
-	}
-
-	.input {
-		padding: 10px 12px;
-		border: 1px solid #cbd5e1;
-		border-radius: 8px;
-		background: white;
-	}
-
-	.input.small {
-		padding: 10px 8px;
-	}
-
-	.button {
-		padding: 10px 12px;
-		margin-top: 10px;
-		border: 1px solid #0f172a;
-		border-radius: 8px;
-		background: #0f172a;
-		color: white;
-		cursor: pointer;
-	}
-
-	.button.danger {
-		border-color: #b91c1c;
-		background: #b91c1c;
-	}
-
-	.button[disabled] {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.error {
-		color: #b91c1c;
-	}
-
-	.muted {
-		color: #475569;
-	}
-</style>

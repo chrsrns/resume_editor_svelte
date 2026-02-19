@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
+	import Card from '$lib/components/sections/shared/Card.svelte';
+	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
+	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
 	import { createSkill, deleteSkill, listSkills, updateSkill } from '$lib/api/skills';
+	import Button from '$lib/components/ui/Button.svelte';
+	import TextInput from '$lib/components/ui/TextInput.svelte';
 	import type { ApiError } from '$lib/api/client';
 	import type { NewSkillRequest, Skill, UpdateSkillRequest } from '$lib/types';
 
@@ -110,162 +116,67 @@
 </script>
 
 <SectionShell title="Skills" description="Editable list of skills for this resume.">
-	{#if error}
-		<p class="error">{error}</p>
-	{/if}
+	<Card variant="new">
+		<FieldsWrap>
+			<TextInput
+				placeholder="Skill name"
+				bind:value={newSkillName}
+				title="Name of the skill (e.g. Rust, SQL, Communication)."
+			/>
+			<TextInput
+				small
+				type="number"
+				min={0}
+				max={100}
+				step={1}
+				bind:value={newConfidence}
+				title="Confidence level (0–100)."
+			/>
+			<TextInput
+				small
+				type="number"
+				placeholder="#"
+				bind:value={newDisplayOrder}
+				title="Optional. Order for sorting (lower shows first)."
+			/>
+			<Button onclick={handleCreate} disabled={creating || newSkillName.trim().length === 0}>
+				{creating ? 'Adding…' : 'Add'}
+			</Button>
+		</FieldsWrap>
+	</Card>
 
-	<div class="newRow">
-		<input
-			class="input"
-			placeholder="Skill name"
-			bind:value={newSkillName}
-			title="Name of the skill (e.g. Rust, SQL, Communication)."
-		/>
-		<input
-			class="input small"
-			type="number"
-			min="0"
-			max="100"
-			step="1"
-			bind:value={newConfidence}
-			title="Confidence level (0–100)."
-		/>
-		<input
-			class="input small"
-			type="number"
-			placeholder="#"
-			bind:value={newDisplayOrder}
-			title="Optional. Order for sorting (lower shows first)."
-		/>
-		<button
-			class="button"
-			type="button"
-			onclick={handleCreate}
-			disabled={creating || newSkillName.trim().length === 0}
-		>
-			{creating ? 'Adding…' : 'Add'}
-		</button>
-	</div>
-
-	{#if loading}
-		<p>Loading…</p>
-	{:else if drafts.length === 0}
-		<p class="muted">No skills yet.</p>
-	{:else}
-		<div class="grid">
-			{#each drafts as d (d.id)}
-				<div class="card">
-					<div class="row">
-						<input class="input" bind:value={d.skill_name} title="Skill name." />
-						<input
-							class="input small"
-							type="number"
-							min="0"
-							max="100"
-							step="1"
-							bind:value={d.confidence_percentage}
-							title="Confidence level (0–100)."
-						/>
-						<input
-							class="input small"
-							type="number"
-							placeholder="#"
-							bind:value={d.display_order}
-							title="Optional. Order for sorting (lower shows first)."
-						/>
-					</div>
-					<div class="actions">
-						<button class="button" type="button" onclick={() => handleSave(d)}>Save</button>
-						<button class="button danger" type="button" onclick={() => handleDelete(d.id)}
-							>Delete</button
-						>
-					</div>
-				</div>
-			{/each}
-		</div>
-	{/if}
+	<SectionMessage
+		{error}
+		{loading}
+		empty={!loading && drafts.length === 0}
+		emptyText="No skills yet."
+	>
+		{#each drafts as d (d.id)}
+			<Card>
+				<FieldsWrap>
+					<TextInput bind:value={d.skill_name} title="Skill name." />
+					<TextInput
+						small
+						type="number"
+						min={0}
+						max={100}
+						step={1}
+						bind:value={d.confidence_percentage}
+						title="Confidence level (0–100)."
+					/>
+					<TextInput
+						small
+						type="number"
+						placeholder="#"
+						bind:value={d.display_order}
+						title="Optional. Order for sorting (lower shows first)."
+					/>
+				</FieldsWrap>
+				<CardActions>
+					<Button onclick={() => handleSave(d)}>Save</Button>
+					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+				</CardActions>
+			</Card>
+		{/each}
+	</SectionMessage>
 </SectionShell>
-
-<style>
-	.grid {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-
-	.card {
-		border: 1px solid #e2e8f0;
-		border-radius: 10px;
-		padding: 12px;
-		background: #f8fafc;
-	}
-
-	.newRow,
-	.row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.newRow .input:not(.small),
-	.row .input:not(.small) {
-		flex: 1 1 240px;
-		min-width: 180px;
-	}
-
-	.newRow .input.small,
-	.row .input.small {
-		flex: 0 1 110px;
-		min-width: 90px;
-	}
-
-	.newRow .button {
-		flex: 0 0 auto;
-	}
-
-	.actions {
-		margin-top: 10px;
-		display: flex;
-		gap: 10px;
-	}
-
-	.input {
-		padding: 10px 12px;
-		border: 1px solid #cbd5e1;
-		border-radius: 8px;
-		background: white;
-	}
-
-	.input.small {
-		padding: 10px 8px;
-	}
-
-	.button {
-		padding: 10px 12px;
-		margin-top: 10px;
-		border: 1px solid #0f172a;
-		border-radius: 8px;
-		background: #0f172a;
-		color: white;
-		cursor: pointer;
-	}
-
-	.button.danger {
-		border-color: #b91c1c;
-		background: #b91c1c;
-	}
-
-	.button[disabled] {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.error {
-		color: #b91c1c;
-	}
-
-	.muted {
-		color: #475569;
-	}
-</style>
