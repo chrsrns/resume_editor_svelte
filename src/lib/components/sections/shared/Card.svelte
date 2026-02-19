@@ -1,0 +1,27 @@
+<script lang="ts">
+	type Variant = 'card' | 'new';
+
+	let { variant = 'card', class: className = '', children } = $props<{
+		variant?: Variant;
+		class?: string;
+		children: import('svelte').Snippet;
+	}>();
+
+	function classes() {
+		return ['card', variant === 'card' ? '' : variant, className].filter(Boolean).join(' ');
+	}
+</script>
+
+<div class={classes()}>
+	{@render children()}
+</div>
+
+<style>
+	.card {
+		border: 1px solid #e2e8f0;
+		border-radius: 12px;
+		padding: 12px;
+		background: #f8fafc;
+		margin-bottom: 12px;
+	}
+</style>
