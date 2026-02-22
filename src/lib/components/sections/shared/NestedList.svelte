@@ -31,7 +31,6 @@
 
 <style>
 	.nested {
-		margin-top: 12px;
 		padding-top: 10px;
 		border-top: 1px solid #e2e8f0;
 	}

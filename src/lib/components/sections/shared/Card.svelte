@@ -1,7 +1,11 @@
 <script lang="ts">
 	type Variant = 'card' | 'new';
 
-	let { variant = 'card', class: className = '', children } = $props<{
+	let {
+		variant = 'card',
+		class: className = '',
+		children
+	} = $props<{
 		variant?: Variant;
 		class?: string;
 		children: import('svelte').Snippet;
@@ -18,6 +22,9 @@
 
 <style>
 	.card {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
 		border: 1px solid #e2e8f0;
 		border-radius: 12px;
 		padding: 12px;

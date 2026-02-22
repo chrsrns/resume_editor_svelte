@@ -20,15 +20,14 @@
 
 <style>
 	.actions {
-		margin-top: 10px;
-		margin-bottom: 10px;
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px;
 	}
 
 	.actions.compact {
-		margin-top: 0;
-		margin-bottom: 0;
+		/* To counter card flex gap */
+		margin-top: -10px;
+		margin-bottom: -10px;
 	}
 </style>
