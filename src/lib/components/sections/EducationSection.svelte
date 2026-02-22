@@ -7,6 +7,8 @@
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
+		createGroupedDisplayOrderReorder,
+		createGroupedDragReorder,
 		createCardDragReorder,
 		createDisplayOrderReorder
 	} from '$lib/components/sections/shared/displayOrderReorder';
@@ -74,6 +76,8 @@
 	let draggingId = $state<number | null>(null);
 	let dragOverId = $state<number | null>(null);
 	let reordering = $state(false);
+	let keyPointDragging = $state<{ group: number; id: number } | null>(null);
+	let keyPointDragOver = $state<{ group: number; id: number } | null>(null);
 
 	let newKeyPointText = $state<Record<number, string>>({});
 
@@ -133,6 +137,29 @@
 		reorderByIds: displayOrderReorder.reorderByIds
 	});
 
+	const keyPointDisplayOrderReorder = createGroupedDisplayOrderReorder<KeyPointDraft, number>({
+		getDrafts: (educationId) => keyPoints[educationId] ?? [],
+		setDrafts: (educationId, next) => (keyPoints = { ...keyPoints, [educationId]: next }),
+		getSavedSigs: () => savedKeyPointSigById,
+		setSavedSigs: (next) => (savedKeyPointSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updateEducationKeyPoint(id, { display_order }),
+		orderStep: 10
+	});
+
+	const keyPointDragReorder = createGroupedDragReorder<number>({
+		getDragging: () => keyPointDragging,
+		setDragging: (item) => (keyPointDragging = item),
+		setDragOver: (item) => (keyPointDragOver = item),
+		getReordering: () => reordering,
+		getOrderedIds: (educationId) => (keyPoints[educationId] ?? []).map((kp) => kp.id),
+		reorderByIds: keyPointDisplayOrderReorder.reorderByIds
+	});
+
 	function sigEdu(d: EducationDraft): string {
 		return JSON.stringify({
 			education_stage: d.education_stage.trim(),
@@ -189,7 +216,8 @@
 		keyPointLoading = { ...keyPointLoading, [educationId]: true };
 		try {
 			const points = await listEducationKeyPoints(resumeId, educationId);
-			const ds = points.map(toKeyPointDraft);
+			const sorted = [...points].sort(byDisplayOrder);
+			const ds = sorted.map(toKeyPointDraft);
 			keyPoints = { ...keyPoints, [educationId]: ds };
 			savedKeyPointSigById = {
 				...savedKeyPointSigById,
@@ -403,15 +431,30 @@
 					emptyText="No key points."
 				>
 					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-						<FieldsWrap>
-							<TextInput bind:value={kp.key_point} title="Key point text." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={kp.display_order}
-								title="Optional. Order for sorting (lower shows first)."
+						<FieldsWrap
+							role="group"
+							aria-label="Education key point"
+							class={keyPointDragging != null &&
+							keyPointDragOver != null &&
+							keyPointDragOver.group === d.id &&
+							keyPointDragOver.id === kp.id &&
+							!(keyPointDragging.group === d.id && keyPointDragging.id === kp.id)
+								? 'dropOver'
+								: ''}
+							ondragover={(e) => keyPointDragReorder.handleDragOver(d.id, kp.id, e)}
+							ondrop={(e) => keyPointDragReorder.handleDrop(d.id, kp.id, e)}
+						>
+							<DragHandle
+								ondragstart={(e) => keyPointDragReorder.handleDragStart(d.id, kp.id, e)}
+								ondragend={() => keyPointDragReorder.handleDragEnd()}
+								onkeydown={(e) => keyPointDragReorder.handleHandleKeydown(d.id, kp.id, e)}
+								disabled={loading || reordering || (keyPointLoading[d.id] ?? false)}
+								dragging={keyPointDragging != null &&
+									keyPointDragging.group === d.id &&
+									keyPointDragging.id === kp.id}
+								label="Reorder education key point"
 							/>
+							<TextInput bind:value={kp.key_point} title="Key point text." />
 							{#if isKeyPointDirty(kp)}
 								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
 							{/if}

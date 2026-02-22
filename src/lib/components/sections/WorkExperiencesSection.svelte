@@ -7,6 +7,8 @@
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
+		createGroupedDisplayOrderReorder,
+		createGroupedDragReorder,
 		createCardDragReorder,
 		createDisplayOrderReorder
 	} from '$lib/components/sections/shared/displayOrderReorder';
@@ -65,6 +67,8 @@
 	let keyPointLoading = $state<Record<number, boolean>>({});
 	let newKeyPointText = $state<Record<number, string>>({});
 	let savedKeyPointSigById = $state<Record<number, string>>({});
+	let keyPointDragging = $state<{ group: number; id: number } | null>(null);
+	let keyPointDragOver = $state<{ group: number; id: number } | null>(null);
 
 	let creating = $state(false);
 	let newTitle = $state('');
@@ -94,6 +98,29 @@
 		getReordering: () => reordering,
 		getOrderedIds: () => drafts.map((d) => d.id),
 		reorderByIds: displayOrderReorder.reorderByIds
+	});
+
+	const keyPointDisplayOrderReorder = createGroupedDisplayOrderReorder<KeyPointDraft, number>({
+		getDrafts: (workId) => keyPoints[workId] ?? [],
+		setDrafts: (workId, next) => (keyPoints = { ...keyPoints, [workId]: next }),
+		getSavedSigs: () => savedKeyPointSigById,
+		setSavedSigs: (next) => (savedKeyPointSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updateWorkExperienceKeyPoint(id, { display_order }),
+		orderStep: 10
+	});
+
+	const keyPointDragReorder = createGroupedDragReorder<number>({
+		getDragging: () => keyPointDragging,
+		setDragging: (item) => (keyPointDragging = item),
+		setDragOver: (item) => (keyPointDragOver = item),
+		getReordering: () => reordering,
+		getOrderedIds: (workId) => (keyPoints[workId] ?? []).map((kp) => kp.id),
+		reorderByIds: keyPointDisplayOrderReorder.reorderByIds
 	});
 
 	function toNullable(value: string): string | null {
@@ -179,7 +206,8 @@
 		keyPointLoading = { ...keyPointLoading, [workId]: true };
 		try {
 			const points = await listWorkExperienceKeyPoints(resumeId, workId);
-			const ds = points.map(toKeyPointDraft);
+			const sorted = [...points].sort(byDisplayOrder);
+			const ds = sorted.map(toKeyPointDraft);
 			keyPoints = { ...keyPoints, [workId]: ds };
 			savedKeyPointSigById = {
 				...savedKeyPointSigById,
@@ -376,15 +404,30 @@
 					emptyText="No key points."
 				>
 					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-						<FieldsWrap>
-							<TextInput bind:value={kp.key_point} title="Key point text." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={kp.display_order}
-								title="Optional. Order for sorting (lower shows first)."
+						<FieldsWrap
+							role="group"
+							aria-label="Work experience key point"
+							class={keyPointDragging != null &&
+							keyPointDragOver != null &&
+							keyPointDragOver.group === d.id &&
+							keyPointDragOver.id === kp.id &&
+							!(keyPointDragging.group === d.id && keyPointDragging.id === kp.id)
+								? 'dropOver'
+								: ''}
+							ondragover={(e) => keyPointDragReorder.handleDragOver(d.id, kp.id, e)}
+							ondrop={(e) => keyPointDragReorder.handleDrop(d.id, kp.id, e)}
+						>
+							<DragHandle
+								ondragstart={(e) => keyPointDragReorder.handleDragStart(d.id, kp.id, e)}
+								ondragend={() => keyPointDragReorder.handleDragEnd()}
+								onkeydown={(e) => keyPointDragReorder.handleHandleKeydown(d.id, kp.id, e)}
+								disabled={loading || reordering || (keyPointLoading[d.id] ?? false)}
+								dragging={keyPointDragging != null &&
+									keyPointDragging.group === d.id &&
+									keyPointDragging.id === kp.id}
+								label="Reorder work experience key point"
 							/>
+							<TextInput bind:value={kp.key_point} title="Key point text." />
 							{#if isKeyPointDirty(kp)}
 								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
 							{/if}

@@ -7,6 +7,8 @@
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
+		createGroupedDisplayOrderReorder,
+		createGroupedDragReorder,
 		createCardDragReorder,
 		createDisplayOrderReorder
 	} from '$lib/components/sections/shared/displayOrderReorder';
@@ -70,6 +72,10 @@
 	let technologies = $state<Record<number, TechDraft[]>>({});
 	let savedKeyPointSigById = $state<Record<number, string>>({});
 	let savedTechSigById = $state<Record<number, string>>({});
+	let keyPointDragging = $state<{ group: number; id: number } | null>(null);
+	let keyPointDragOver = $state<{ group: number; id: number } | null>(null);
+	let techDragging = $state<{ group: number; id: number } | null>(null);
+	let techDragOver = $state<{ group: number; id: number } | null>(null);
 
 	let kpLoading = $state<Record<number, boolean>>({});
 	let techLoading = $state<Record<number, boolean>>({});
@@ -105,6 +111,52 @@
 		getReordering: () => reordering,
 		getOrderedIds: () => drafts.map((d) => d.id),
 		reorderByIds: displayOrderReorder.reorderByIds
+	});
+
+	const keyPointDisplayOrderReorder = createGroupedDisplayOrderReorder<KeyPointDraft, number>({
+		getDrafts: (projectId) => keyPoints[projectId] ?? [],
+		setDrafts: (projectId, next) => (keyPoints = { ...keyPoints, [projectId]: next }),
+		getSavedSigs: () => savedKeyPointSigById,
+		setSavedSigs: (next) => (savedKeyPointSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updatePortfolioKeyPoint(id, { display_order }),
+		orderStep: 10
+	});
+
+	const keyPointDragReorder = createGroupedDragReorder<number>({
+		getDragging: () => keyPointDragging,
+		setDragging: (item) => (keyPointDragging = item),
+		setDragOver: (item) => (keyPointDragOver = item),
+		getReordering: () => reordering,
+		getOrderedIds: (projectId) => (keyPoints[projectId] ?? []).map((kp) => kp.id),
+		reorderByIds: keyPointDisplayOrderReorder.reorderByIds
+	});
+
+	const techDisplayOrderReorder = createGroupedDisplayOrderReorder<TechDraft, number>({
+		getDrafts: (projectId) => technologies[projectId] ?? [],
+		setDrafts: (projectId, next) => (technologies = { ...technologies, [projectId]: next }),
+		getSavedSigs: () => savedTechSigById,
+		setSavedSigs: (next) => (savedTechSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updatePortfolioTechnology(id, { display_order }),
+		orderStep: 10
+	});
+
+	const techDragReorder = createGroupedDragReorder<number>({
+		getDragging: () => techDragging,
+		setDragging: (item) => (techDragging = item),
+		setDragOver: (item) => (techDragOver = item),
+		getReordering: () => reordering,
+		getOrderedIds: (projectId) => (technologies[projectId] ?? []).map((t) => t.id),
+		reorderByIds: techDisplayOrderReorder.reorderByIds
 	});
 
 	function toNullable(value: string): string | null {
@@ -217,7 +269,8 @@
 		kpLoading = { ...kpLoading, [projectId]: true };
 		try {
 			const points = await listPortfolioKeyPoints(resumeId, projectId);
-			const ds = points.map(toKeyPointDraft);
+			const sorted = [...points].sort(byDisplayOrder);
+			const ds = sorted.map(toKeyPointDraft);
 			keyPoints = { ...keyPoints, [projectId]: ds };
 			savedKeyPointSigById = {
 				...savedKeyPointSigById,
@@ -234,7 +287,8 @@
 		techLoading = { ...techLoading, [projectId]: true };
 		try {
 			const items = await listPortfolioTechnologies(resumeId, projectId);
-			const ds = items.map(toTechDraft);
+			const sorted = [...items].sort(byDisplayOrder);
+			const ds = sorted.map(toTechDraft);
 			technologies = { ...technologies, [projectId]: ds };
 			savedTechSigById = {
 				...savedTechSigById,
@@ -478,15 +532,30 @@
 					emptyText="No key points."
 				>
 					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-						<FieldsWrap>
-							<TextInput bind:value={kp.key_point} title="Key point text." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={kp.display_order}
-								title="Optional. Order for sorting (lower shows first)."
+						<FieldsWrap
+							role="group"
+							aria-label="Portfolio key point"
+							class={keyPointDragging != null &&
+							keyPointDragOver != null &&
+							keyPointDragOver.group === d.id &&
+							keyPointDragOver.id === kp.id &&
+							!(keyPointDragging.group === d.id && keyPointDragging.id === kp.id)
+								? 'dropOver'
+								: ''}
+							ondragover={(e) => keyPointDragReorder.handleDragOver(d.id, kp.id, e)}
+							ondrop={(e) => keyPointDragReorder.handleDrop(d.id, kp.id, e)}
+						>
+							<DragHandle
+								ondragstart={(e) => keyPointDragReorder.handleDragStart(d.id, kp.id, e)}
+								ondragend={() => keyPointDragReorder.handleDragEnd()}
+								onkeydown={(e) => keyPointDragReorder.handleHandleKeydown(d.id, kp.id, e)}
+								disabled={loading || reordering || (kpLoading[d.id] ?? false)}
+								dragging={keyPointDragging != null &&
+									keyPointDragging.group === d.id &&
+									keyPointDragging.id === kp.id}
+								label="Reorder portfolio key point"
 							/>
+							<TextInput bind:value={kp.key_point} title="Key point text." />
 							{#if isKeyPointDirty(kp)}
 								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
 							{/if}
@@ -523,15 +592,30 @@
 					emptyText="No technologies."
 				>
 					{#each technologies[d.id] ?? [] as t (t.id)}
-						<FieldsWrap>
-							<TextInput bind:value={t.technology_name} title="Technology name." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={t.display_order}
-								title="Optional. Order for sorting (lower shows first)."
+						<FieldsWrap
+							role="group"
+							aria-label="Portfolio technology"
+							class={techDragging != null &&
+							techDragOver != null &&
+							techDragOver.group === d.id &&
+							techDragOver.id === t.id &&
+							!(techDragging.group === d.id && techDragging.id === t.id)
+								? 'dropOver'
+								: ''}
+							ondragover={(e) => techDragReorder.handleDragOver(d.id, t.id, e)}
+							ondrop={(e) => techDragReorder.handleDrop(d.id, t.id, e)}
+						>
+							<DragHandle
+								ondragstart={(e) => techDragReorder.handleDragStart(d.id, t.id, e)}
+								ondragend={() => techDragReorder.handleDragEnd()}
+								onkeydown={(e) => techDragReorder.handleHandleKeydown(d.id, t.id, e)}
+								disabled={loading || reordering || (techLoading[d.id] ?? false)}
+								dragging={techDragging != null &&
+									techDragging.group === d.id &&
+									techDragging.id === t.id}
+								label="Reorder portfolio technology"
 							/>
+							<TextInput bind:value={t.technology_name} title="Technology name." />
 							{#if isTechDirty(t)}
 								<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
 							{/if}

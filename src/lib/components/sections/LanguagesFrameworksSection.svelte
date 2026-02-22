@@ -7,6 +7,8 @@
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
+		createGroupedDisplayOrderReorder,
+		createGroupedDragReorder,
 		createCardDragReorder,
 		createDisplayOrderReorder
 	} from '$lib/components/sections/shared/displayOrderReorder';
@@ -62,6 +64,8 @@
 	let frameworks = $state<Record<number, FrameworkDraft[]>>({});
 	let frameworksLoading = $state<Record<number, boolean>>({});
 	let savedFrameworkSigById = $state<Record<number, string>>({});
+	let frameworkDragging = $state<{ group: number; id: number } | null>(null);
+	let frameworkDragOver = $state<{ group: number; id: number } | null>(null);
 
 	let newLanguageName = $state('');
 	let creatingLanguage = $state(false);
@@ -96,6 +100,29 @@
 		getReordering: () => reordering,
 		getOrderedIds: () => languages.map((d) => d.id),
 		reorderByIds: displayOrderReorder.reorderByIds
+	});
+
+	const frameworkDisplayOrderReorder = createGroupedDisplayOrderReorder<FrameworkDraft, number>({
+		getDrafts: (languageId) => frameworks[languageId] ?? [],
+		setDrafts: (languageId, next) => (frameworks = { ...frameworks, [languageId]: next }),
+		getSavedSigs: () => savedFrameworkSigById,
+		setSavedSigs: (next) => (savedFrameworkSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updateFramework(id, { display_order }),
+		orderStep: 10
+	});
+
+	const frameworkDragReorder = createGroupedDragReorder<number>({
+		getDragging: () => frameworkDragging,
+		setDragging: (item) => (frameworkDragging = item),
+		setDragOver: (item) => (frameworkDragOver = item),
+		getReordering: () => reordering,
+		getOrderedIds: (languageId) => (frameworks[languageId] ?? []).map((f) => f.id),
+		reorderByIds: frameworkDisplayOrderReorder.reorderByIds
 	});
 
 	function toLanguageDraft(l: Language): LanguageDraft {
@@ -162,7 +189,8 @@
 		frameworksLoading = { ...frameworksLoading, [languageId]: true };
 		try {
 			const items = await listFrameworks(resumeId, languageId);
-			const ds = items.map(toFrameworkDraft);
+			const sorted = [...items].sort(byDisplayOrder);
+			const ds = sorted.map(toFrameworkDraft);
 			frameworks = { ...frameworks, [languageId]: ds };
 			savedFrameworkSigById = {
 				...savedFrameworkSigById,
@@ -354,15 +382,30 @@
 					emptyText="No frameworks."
 				>
 					{#each frameworks[l.id] ?? [] as f (f.id)}
-						<FieldsWrap>
-							<TextInput bind:value={f.framework_name} title="Framework/library name." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={f.display_order}
-								title="Optional. Order for sorting (lower shows first)."
+						<FieldsWrap
+							role="group"
+							aria-label="Framework"
+							class={frameworkDragging != null &&
+							frameworkDragOver != null &&
+							frameworkDragOver.group === l.id &&
+							frameworkDragOver.id === f.id &&
+							!(frameworkDragging.group === l.id && frameworkDragging.id === f.id)
+								? 'dropOver'
+								: ''}
+							ondragover={(e) => frameworkDragReorder.handleDragOver(l.id, f.id, e)}
+							ondrop={(e) => frameworkDragReorder.handleDrop(l.id, f.id, e)}
+						>
+							<DragHandle
+								ondragstart={(e) => frameworkDragReorder.handleDragStart(l.id, f.id, e)}
+								ondragend={() => frameworkDragReorder.handleDragEnd()}
+								onkeydown={(e) => frameworkDragReorder.handleHandleKeydown(l.id, f.id, e)}
+								disabled={loading || reordering || (frameworksLoading[l.id] ?? false)}
+								dragging={frameworkDragging != null &&
+									frameworkDragging.group === l.id &&
+									frameworkDragging.id === f.id}
+								label="Reorder framework"
 							/>
+							<TextInput bind:value={f.framework_name} title="Framework/library name." />
 							{#if isFrameworkDirty(f)}
 								<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
 							{/if}
