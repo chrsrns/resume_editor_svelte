@@ -309,13 +309,6 @@
 				bind:value={newLanguageName}
 				title="Programming language name (e.g. TypeScript, Rust)."
 			/>
-			<TextInput
-				small
-				type="text"
-				disabled
-				value=""
-				title="Ordering is controlled by drag and drop."
-			/>
 			<Button
 				onclick={handleCreateLanguage}
 				disabled={creatingLanguage || newLanguageName.trim().length === 0}
