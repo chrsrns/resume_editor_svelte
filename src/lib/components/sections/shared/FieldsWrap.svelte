@@ -1,15 +1,23 @@
 <script lang="ts">
-	let { class: className = '', children } = $props<{
-		class?: string;
-		children: import('svelte').Snippet;
-	}>();
+	import type { HTMLAttributes } from 'svelte/elements';
+
+	let {
+		class: className = '',
+		children,
+		...rest
+	} = $props<
+		{
+			class?: string;
+			children: import('svelte').Snippet;
+		} & HTMLAttributes<HTMLDivElement>
+	>();
 
 	function classes() {
 		return ['fields', className].filter(Boolean).join(' ');
 	}
 </script>
 
-<div class={classes()}>
+<div {...rest} class={classes()}>
 	{@render children()}
 </div>
 
@@ -19,6 +27,12 @@
 		flex-wrap: wrap;
 		gap: 10px;
 		align-items: center;
+	}
+
+	.fields.dropOver {
+		outline: 2px dashed #0f172a;
+		outline-offset: 2px;
+		border-radius: 8px;
 	}
 
 	.fields :global(.input:not(.small)) {

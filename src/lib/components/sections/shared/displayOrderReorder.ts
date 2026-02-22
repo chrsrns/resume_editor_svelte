@@ -1,5 +1,10 @@
 export type OrderableDraft = { id: number; display_order: string };
 
+export type DragItem<TGroupKey extends string | number> = {
+	group: TGroupKey;
+	id: number;
+};
+
 export function byDisplayOrder(
 	a: { display_order: number | null; id: number },
 	b: { display_order: number | null; id: number }
@@ -103,6 +108,64 @@ export function createDisplayOrderReorder<TDraft extends OrderableDraft>(opts: {
 	};
 }
 
+export function createGroupedDisplayOrderReorder<
+	TDraft extends OrderableDraft,
+	TGroupKey extends string | number
+>(opts: {
+	getDrafts: (group: TGroupKey) => TDraft[];
+	setDrafts: (group: TGroupKey, drafts: TDraft[]) => void;
+	getSavedSigs: () => Record<number, string>;
+	setSavedSigs: (saved: Record<number, string>) => void;
+	getReordering: () => boolean;
+	setReordering: (reordering: boolean) => void;
+	setError: (message: string | null) => void;
+	getErrorMessage: (e: unknown) => string;
+	parseOrder: (value: string) => number | null;
+	updateDisplayOrder: (id: number, display_order: number) => Promise<unknown>;
+	orderStep?: number;
+}) {
+	const orderStep = opts.orderStep ?? 10;
+
+	async function reorderByIds(group: TGroupKey, fromId: number, toId: number) {
+		if (opts.getReordering()) return;
+		if (fromId === toId) return;
+
+		const drafts = opts.getDrafts(group);
+		const fromIndex = drafts.findIndex((d) => d.id === fromId);
+		const toIndex = drafts.findIndex((d) => d.id === toId);
+		if (fromIndex === -1 || toIndex === -1) return;
+
+		const prevDrafts = drafts.map((d) => ({ ...d }));
+		const prevSaved = { ...opts.getSavedSigs() };
+
+		let nextSaved = prevSaved;
+		const reordered = moveItem(drafts, fromIndex, toIndex).map((d, i) => {
+			const newOrder = (i + 1) * orderStep;
+			nextSaved = updateSavedSigDisplayOrder(nextSaved, d.id, newOrder);
+			return { ...d, display_order: String(newOrder) };
+		});
+
+		opts.setDrafts(group, reordered);
+		opts.setSavedSigs(nextSaved);
+
+		opts.setReordering(true);
+		opts.setError(null);
+		try {
+			await persistDisplayOrders(reordered, prevDrafts, opts.parseOrder, opts.updateDisplayOrder, orderStep);
+		} catch (e) {
+			opts.setError(opts.getErrorMessage(e));
+			opts.setDrafts(group, prevDrafts);
+			opts.setSavedSigs(prevSaved);
+		} finally {
+			opts.setReordering(false);
+		}
+	}
+
+	return {
+		reorderByIds
+	};
+}
+
 export function createCardDragReorder(opts: {
 	getDraggingId: () => number | null;
 	setDraggingId: (id: number | null) => void;
@@ -119,7 +182,7 @@ export function createCardDragReorder(opts: {
 			e.dataTransfer.effectAllowed = 'move';
 			try {
 				e.dataTransfer.setData('text/plain', String(id));
-			} catch {}
+			} catch { }
 		}
 	}
 
@@ -156,6 +219,73 @@ export function createCardDragReorder(opts: {
 		const nextIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
 		if (nextIndex < 0 || nextIndex >= ids.length) return;
 		await opts.reorderByIds(id, ids[nextIndex]);
+	}
+
+	return {
+		handleDragStart,
+		handleDragEnd,
+		handleDragOver,
+		handleDrop,
+		handleHandleKeydown
+	};
+}
+
+export function createGroupedDragReorder<TGroupKey extends string | number>(opts: {
+	getDragging: () => DragItem<TGroupKey> | null;
+	setDragging: (item: DragItem<TGroupKey> | null) => void;
+	setDragOver: (item: DragItem<TGroupKey> | null) => void;
+	getReordering: () => boolean;
+	getOrderedIds: (group: TGroupKey) => number[];
+	reorderByIds: (group: TGroupKey, fromId: number, toId: number) => Promise<void>;
+}) {
+	function handleDragStart(group: TGroupKey, id: number, e: DragEvent) {
+		if (opts.getReordering()) return;
+		opts.setDragging({ group, id });
+		opts.setDragOver(null);
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			try {
+				e.dataTransfer.setData('text/plain', String(id));
+			} catch { }
+		}
+	}
+
+	function handleDragEnd() {
+		opts.setDragging(null);
+		opts.setDragOver(null);
+	}
+
+	function handleDragOver(group: TGroupKey, overId: number, e: DragEvent) {
+		if (opts.getReordering()) return;
+		const dragging = opts.getDragging();
+		if (dragging == null) return;
+		if (dragging.group !== group) return;
+		e.preventDefault();
+		opts.setDragOver({ group, id: overId });
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+	}
+
+	async function handleDrop(group: TGroupKey, overId: number, e: DragEvent) {
+		if (opts.getReordering()) return;
+		e.preventDefault();
+		const dragging = opts.getDragging();
+		handleDragEnd();
+		if (dragging == null) return;
+		if (dragging.group !== group) return;
+		await opts.reorderByIds(group, dragging.id, overId);
+	}
+
+	async function handleHandleKeydown(group: TGroupKey, id: number, e: KeyboardEvent) {
+		if (opts.getReordering()) return;
+		if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+		e.preventDefault();
+
+		const ids = opts.getOrderedIds(group);
+		const index = ids.indexOf(id);
+		if (index === -1) return;
+		const nextIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
+		if (nextIndex < 0 || nextIndex >= ids.length) return;
+		await opts.reorderByIds(group, id, ids[nextIndex]);
 	}
 
 	return {
