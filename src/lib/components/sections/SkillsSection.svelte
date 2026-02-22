@@ -217,13 +217,11 @@
 						bind:value={d.confidence_percentage}
 						title="Confidence level (0–100)."
 					/>
-				</FieldsWrap>
-				<CardActions>
 					{#if isDirty(d)}
 						<Button onclick={() => handleSave(d)}>Save</Button>
 					{/if}
 					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
-				</CardActions>
+				</FieldsWrap>
 			</CardWithInner>
 		{/each}
 	</SectionMessage>
