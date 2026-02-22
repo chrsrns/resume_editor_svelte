@@ -440,25 +440,6 @@
 					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
 				</CardActions>
 
-				<FieldsWrap>
-					<TextInput
-						placeholder="Add key point"
-						title="Add a bullet point about this project."
-						value={newKeyPointText[d.id] ?? ''}
-						oninput={(e) =>
-							(newKeyPointText = {
-								...newKeyPointText,
-								[d.id]: (e.target as HTMLInputElement).value
-							})}
-					/>
-					<Button
-						onclick={() => handleAddKeyPoint(d.id)}
-						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
-					>
-						Add
-					</Button>
-				</FieldsWrap>
-
 				<NestedList
 					title="Key points"
 					loading={kpLoading[d.id] ?? false}
@@ -487,18 +468,18 @@
 
 				<FieldsWrap>
 					<TextInput
-						placeholder="Add technology"
-						title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
-						value={newTechText[d.id] ?? ''}
+						placeholder="Add key point"
+						title="Add a bullet point about this project."
+						value={newKeyPointText[d.id] ?? ''}
 						oninput={(e) =>
-							(newTechText = {
-								...newTechText,
+							(newKeyPointText = {
+								...newKeyPointText,
 								[d.id]: (e.target as HTMLInputElement).value
 							})}
 					/>
 					<Button
-						onclick={() => handleAddTechnology(d.id)}
-						disabled={(newTechText[d.id] ?? '').trim().length === 0}
+						onclick={() => handleAddKeyPoint(d.id)}
+						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
 					>
 						Add
 					</Button>
@@ -529,6 +510,25 @@
 						</FieldsWrap>
 					{/each}
 				</NestedList>
+
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add technology"
+						title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
+						value={newTechText[d.id] ?? ''}
+						oninput={(e) =>
+							(newTechText = {
+								...newTechText,
+								[d.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleAddTechnology(d.id)}
+						disabled={(newTechText[d.id] ?? '').trim().length === 0}
+					>
+						Add
+					</Button>
+				</FieldsWrap>
 			</Card>
 		{/each}
 	</SectionMessage>

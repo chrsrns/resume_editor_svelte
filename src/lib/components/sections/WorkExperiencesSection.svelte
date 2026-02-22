@@ -338,26 +338,6 @@
 					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
 				</CardActions>
 
-				<FieldsWrap>
-					<TextInput
-						placeholder="Add key point"
-						title="Add a bullet point for this work experience."
-						value={newKeyPointText[d.id] ?? ''}
-						oninput={(e) =>
-							(newKeyPointText = {
-								...newKeyPointText,
-								[d.id]: (e.target as HTMLInputElement).value
-							})}
-					/>
-					<Button
-						onclick={() => handleAddKeyPoint(d.id)}
-						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
-						title="Add key point"
-					>
-						Add
-					</Button>
-				</FieldsWrap>
-
 				<NestedList
 					title="Key points"
 					loading={keyPointLoading[d.id] ?? false}
@@ -383,6 +363,26 @@
 						</FieldsWrap>
 					{/each}
 				</NestedList>
+
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add key point"
+						title="Add a bullet point for this work experience."
+						value={newKeyPointText[d.id] ?? ''}
+						oninput={(e) =>
+							(newKeyPointText = {
+								...newKeyPointText,
+								[d.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleAddKeyPoint(d.id)}
+						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
+						title="Add key point"
+					>
+						Add
+					</Button>
+				</FieldsWrap>
 			</Card>
 		{/each}
 	</SectionMessage>
