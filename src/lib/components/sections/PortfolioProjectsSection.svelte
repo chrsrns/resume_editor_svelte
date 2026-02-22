@@ -3,6 +3,12 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
+	import {
+		byDisplayOrder,
+		createCardDragReorder,
+		createDisplayOrderReorder
+	} from '$lib/components/sections/shared/displayOrderReorder';
 	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
 	import NestedList from '$lib/components/sections/shared/NestedList.svelte';
 	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
@@ -55,6 +61,9 @@
 	let error = $state<string | null>(null);
 	let drafts = $state<ProjectDraft[]>([]);
 	let savedProjectSigById = $state<Record<number, string>>({});
+	let draggingId = $state<number | null>(null);
+	let dragOverId = $state<number | null>(null);
+	let reordering = $state(false);
 
 	let keyPoints = $state<Record<number, KeyPointDraft[]>>({});
 	let technologies = $state<Record<number, TechDraft[]>>({});
@@ -73,7 +82,29 @@
 	let newProjectLink = $state('');
 	let newSourceLink = $state('');
 	let newDescription = $state('');
-	let newDisplayOrder = $state('');
+
+	const displayOrderReorder = createDisplayOrderReorder<ProjectDraft>({
+		getDrafts: () => drafts,
+		setDrafts: (next) => (drafts = next),
+		getSavedSigs: () => savedProjectSigById,
+		setSavedSigs: (next) => (savedProjectSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updatePortfolioProject(id, { display_order }),
+		orderStep: 10
+	});
+
+	const dragReorder = createCardDragReorder({
+		getDraggingId: () => draggingId,
+		setDraggingId: (id) => (draggingId = id),
+		setDragOverId: (id) => (dragOverId = id),
+		getReordering: () => reordering,
+		getOrderedIds: () => drafts.map((d) => d.id),
+		reorderByIds: displayOrderReorder.reorderByIds
+	});
 
 	function toNullable(value: string): string | null {
 		const t = value.trim();
@@ -157,18 +188,19 @@
 		error = null;
 		try {
 			const items = await listPortfolioProjects(resumeId);
-			const ds = items.map(toDraft);
+			const sorted = [...items].sort(byDisplayOrder);
+			const ds = sorted.map(toDraft);
 			drafts = ds;
 			savedProjectSigById = Object.fromEntries(ds.map((d) => [d.id, sigProject(d)]));
 			const kpMap: Record<number, KeyPointDraft[]> = {};
 			const techMap: Record<number, TechDraft[]> = {};
-			for (const p of items) {
+			for (const p of sorted) {
 				kpMap[p.id] = [];
 				techMap[p.id] = [];
 			}
 			keyPoints = kpMap;
 			technologies = techMap;
-			for (const p of items) {
+			for (const p of sorted) {
 				void loadKeyPoints(p.id);
 				void loadTechnologies(p.id);
 			}
@@ -228,7 +260,7 @@
 				project_link: toNullable(newProjectLink),
 				source_code_link: toNullable(newSourceLink),
 				description: toNullable(newDescription),
-				display_order: toNumberOrNull(newDisplayOrder)
+				display_order: null
 			};
 			await createPortfolioProject(resumeId, payload);
 			newName = '';
@@ -236,7 +268,6 @@
 			newProjectLink = '';
 			newSourceLink = '';
 			newDescription = '';
-			newDisplayOrder = '';
 			await refresh();
 		} catch (e) {
 			const err = e as ApiError;
@@ -387,13 +418,6 @@
 				bind:value={newSourceLink}
 				title="Optional. Link to the source repository (e.g. GitHub)."
 			/>
-			<TextInput
-				small
-				type="number"
-				placeholder="#"
-				bind:value={newDisplayOrder}
-				title="Optional. Order for sorting (lower shows first)."
-			/>
 			<TextArea
 				placeholder="Description"
 				bind:value={newDescription}
@@ -416,120 +440,143 @@
 	>
 		{#each drafts as d (d.id)}
 			<Card>
-				<FieldsWrap>
-					<TextInput bind:value={d.project_name} title="Project name/title." />
-					<TextInput bind:value={d.image_url} title="Optional. Preview image URL." />
-					<TextInput bind:value={d.project_link} title="Optional. Live project/demo link." />
-					<TextInput
-						bind:value={d.source_code_link}
-						title="Optional. Source code repository link."
-					/>
-					<TextInput
-						small
-						type="number"
-						placeholder="#"
-						bind:value={d.display_order}
-						title="Optional. Order for sorting (lower shows first)."
-					/>
-					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
-				</FieldsWrap>
-				<CardActions>
-					{#if isProjectDirty(d)}
-						<Button onclick={() => handleSave(d)}>Save</Button>
-					{/if}
-					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
-				</CardActions>
-
-				<NestedList
-					title="Key points"
-					loading={kpLoading[d.id] ?? false}
-					empty={(keyPoints[d.id] ?? []).length === 0}
-					emptyText="No key points."
+				<div
+					class="cardInner"
+					role="group"
+					aria-label="Portfolio project"
+					class:dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
+					ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
+					ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 				>
-					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-						<FieldsWrap>
-							<TextInput bind:value={kp.key_point} title="Key point text." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={kp.display_order}
-								title="Optional. Order for sorting (lower shows first)."
-							/>
-							{#if isKeyPointDirty(kp)}
-								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
-							{/if}
-							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
-								Delete
-							</Button>
-						</FieldsWrap>
-					{/each}
-				</NestedList>
+					<FieldsWrap>
+						<DragHandle
+							ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+							ondragend={() => dragReorder.handleDragEnd()}
+							onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
+							disabled={loading || reordering}
+							dragging={draggingId === d.id}
+							label="Reorder portfolio project"
+						/>
+						<TextInput bind:value={d.project_name} title="Project name/title." />
+						<TextInput bind:value={d.image_url} title="Optional. Preview image URL." />
+						<TextInput bind:value={d.project_link} title="Optional. Live project/demo link." />
+						<TextInput
+							bind:value={d.source_code_link}
+							title="Optional. Source code repository link."
+						/>
+						<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
+					</FieldsWrap>
+					<CardActions>
+						{#if isProjectDirty(d)}
+							<Button onclick={() => handleSave(d)}>Save</Button>
+						{/if}
+						<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+					</CardActions>
 
-				<FieldsWrap>
-					<TextInput
-						placeholder="Add key point"
-						title="Add a bullet point about this project."
-						value={newKeyPointText[d.id] ?? ''}
-						oninput={(e) =>
-							(newKeyPointText = {
-								...newKeyPointText,
-								[d.id]: (e.target as HTMLInputElement).value
-							})}
-					/>
-					<Button
-						onclick={() => handleAddKeyPoint(d.id)}
-						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
+					<NestedList
+						title="Key points"
+						loading={kpLoading[d.id] ?? false}
+						empty={(keyPoints[d.id] ?? []).length === 0}
+						emptyText="No key points."
 					>
-						Add
-					</Button>
-				</FieldsWrap>
+						{#each keyPoints[d.id] ?? [] as kp (kp.id)}
+							<FieldsWrap>
+								<TextInput bind:value={kp.key_point} title="Key point text." />
+								<TextInput
+									small
+									type="number"
+									placeholder="#"
+									bind:value={kp.display_order}
+									title="Optional. Order for sorting (lower shows first)."
+								/>
+								{#if isKeyPointDirty(kp)}
+									<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+								{/if}
+								<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
+									Delete
+								</Button>
+							</FieldsWrap>
+						{/each}
+					</NestedList>
 
-				<NestedList
-					title="Technologies"
-					loading={techLoading[d.id] ?? false}
-					empty={(technologies[d.id] ?? []).length === 0}
-					emptyText="No technologies."
-				>
-					{#each technologies[d.id] ?? [] as t (t.id)}
-						<FieldsWrap>
-							<TextInput bind:value={t.technology_name} title="Technology name." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={t.display_order}
-								title="Optional. Order for sorting (lower shows first)."
-							/>
-							{#if isTechDirty(t)}
-								<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
-							{/if}
-							<Button variant="danger" onclick={() => handleDeleteTechnology(d.id, t.id)}>
-								Delete
-							</Button>
-						</FieldsWrap>
-					{/each}
-				</NestedList>
+					<FieldsWrap>
+						<TextInput
+							placeholder="Add key point"
+							title="Add a bullet point about this project."
+							value={newKeyPointText[d.id] ?? ''}
+							oninput={(e) =>
+								(newKeyPointText = {
+									...newKeyPointText,
+									[d.id]: (e.target as HTMLInputElement).value
+								})}
+						/>
+						<Button
+							onclick={() => handleAddKeyPoint(d.id)}
+							disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
+						>
+							Add
+						</Button>
+					</FieldsWrap>
 
-				<FieldsWrap>
-					<TextInput
-						placeholder="Add technology"
-						title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
-						value={newTechText[d.id] ?? ''}
-						oninput={(e) =>
-							(newTechText = {
-								...newTechText,
-								[d.id]: (e.target as HTMLInputElement).value
-							})}
-					/>
-					<Button
-						onclick={() => handleAddTechnology(d.id)}
-						disabled={(newTechText[d.id] ?? '').trim().length === 0}
+					<NestedList
+						title="Technologies"
+						loading={techLoading[d.id] ?? false}
+						empty={(technologies[d.id] ?? []).length === 0}
+						emptyText="No technologies."
 					>
-						Add
-					</Button>
-				</FieldsWrap>
+						{#each technologies[d.id] ?? [] as t (t.id)}
+							<FieldsWrap>
+								<TextInput bind:value={t.technology_name} title="Technology name." />
+								<TextInput
+									small
+									type="number"
+									placeholder="#"
+									bind:value={t.display_order}
+									title="Optional. Order for sorting (lower shows first)."
+								/>
+								{#if isTechDirty(t)}
+									<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
+								{/if}
+								<Button variant="danger" onclick={() => handleDeleteTechnology(d.id, t.id)}>
+									Delete
+								</Button>
+							</FieldsWrap>
+						{/each}
+					</NestedList>
+
+					<FieldsWrap>
+						<TextInput
+							placeholder="Add technology"
+							title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
+							value={newTechText[d.id] ?? ''}
+							oninput={(e) =>
+								(newTechText = {
+									...newTechText,
+									[d.id]: (e.target as HTMLInputElement).value
+								})}
+						/>
+						<Button
+							onclick={() => handleAddTechnology(d.id)}
+							disabled={(newTechText[d.id] ?? '').trim().length === 0}
+						>
+							Add
+						</Button>
+					</FieldsWrap>
+				</div>
 			</Card>
 		{/each}
 	</SectionMessage>
 </SectionShell>
+
+<style>
+	.cardInner {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.cardInner.dropOver {
+		outline: 2px dashed #0f172a;
+		outline-offset: 4px;
+	}
+</style>

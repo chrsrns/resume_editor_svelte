@@ -3,6 +3,12 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
+	import {
+		byDisplayOrder,
+		createCardDragReorder,
+		createDisplayOrderReorder
+	} from '$lib/components/sections/shared/displayOrderReorder';
 	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
 	import NestedList from '$lib/components/sections/shared/NestedList.svelte';
 	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
@@ -63,7 +69,10 @@
 	let newStart = $state('');
 	let newEnd = $state('');
 	let newDescription = $state('');
-	let newDisplayOrder = $state('');
+
+	let draggingId = $state<number | null>(null);
+	let dragOverId = $state<number | null>(null);
+	let reordering = $state(false);
 
 	let newKeyPointText = $state<Record<number, string>>({});
 
@@ -100,6 +109,29 @@
 		};
 	}
 
+	const displayOrderReorder = createDisplayOrderReorder<EducationDraft>({
+		getDrafts: () => drafts,
+		setDrafts: (next) => (drafts = next),
+		getSavedSigs: () => savedEduSigById,
+		setSavedSigs: (next) => (savedEduSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updateEducation(id, { display_order }),
+		orderStep: 10
+	});
+
+	const dragReorder = createCardDragReorder({
+		getDraggingId: () => draggingId,
+		setDraggingId: (id) => (draggingId = id),
+		setDragOverId: (id) => (dragOverId = id),
+		getReordering: () => reordering,
+		getOrderedIds: () => drafts.map((d) => d.id),
+		reorderByIds: displayOrderReorder.reorderByIds
+	});
+
 	function sigEdu(d: EducationDraft): string {
 		return JSON.stringify({
 			education_stage: d.education_stage.trim(),
@@ -132,7 +164,8 @@
 		error = null;
 		try {
 			const items = await listEducations(resumeId);
-			const ds = items.map(toDraft);
+			const sorted = [...items].sort(byDisplayOrder);
+			const ds = sorted.map(toDraft);
 			drafts = ds;
 			savedEduSigById = Object.fromEntries(ds.map((d) => [d.id, sigEdu(d)]));
 			const newMap: Record<number, KeyPointDraft[]> = {};
@@ -183,7 +216,7 @@
 				start_date: newStart,
 				end_date: toNullable(newEnd),
 				description: toNullable(newDescription),
-				display_order: toNumberOrNull(newDisplayOrder)
+				display_order: null
 			};
 			await createEducation(resumeId, payload);
 			newStage = '';
@@ -192,7 +225,6 @@
 			newStart = '';
 			newEnd = '';
 			newDescription = '';
-			newDisplayOrder = '';
 			await refresh();
 		} catch (e) {
 			const err = e as ApiError;
@@ -303,13 +335,6 @@
 				bind:value={newEnd}
 				title="Optional. End date (leave blank if ongoing)."
 			/>
-			<TextInput
-				small
-				type="number"
-				placeholder="#"
-				bind:value={newDisplayOrder}
-				title="Optional. Order for sorting (lower shows first)."
-			/>
 			<TextArea
 				placeholder="Description"
 				bind:value={newDescription}
@@ -338,77 +363,100 @@
 	>
 		{#each drafts as d (d.id)}
 			<Card>
-				<FieldsWrap>
-					<TextInput bind:value={d.education_stage} title="Education stage/level." />
-					<TextInput bind:value={d.institution_name} title="Institution name." />
-					<TextInput
-						placeholder="Degree"
-						bind:value={d.degree}
-						title="Optional. Degree/qualification name."
-					/>
-					<TextInput type="date" bind:value={d.start_date} title="Start date." />
-					<TextInput type="date" bind:value={d.end_date} title="Optional. End date." />
-					<TextInput
-						small
-						type="number"
-						placeholder="#"
-						bind:value={d.display_order}
-						title="Optional. Order for sorting (lower shows first)."
-					/>
-					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
-				</FieldsWrap>
-				<CardActions>
-					{#if isEduDirty(d)}
-						<Button onclick={() => handleSave(d)}>Save</Button>
-					{/if}
-					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
-				</CardActions>
-
-				<NestedList
-					title="Key points"
-					loading={keyPointLoading[d.id] ?? false}
-					empty={(keyPoints[d.id] ?? []).length === 0}
-					emptyText="No key points."
+				<div
+					class="cardInner"
+					role="group"
+					aria-label="Education entry"
+					class:dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
+					ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
+					ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 				>
-					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-						<FieldsWrap>
-							<TextInput bind:value={kp.key_point} title="Key point text." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={kp.display_order}
-								title="Optional. Order for sorting (lower shows first)."
-							/>
-							{#if isKeyPointDirty(kp)}
-								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
-							{/if}
-							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
-								Delete
-							</Button>
-						</FieldsWrap>
-					{/each}
-				</NestedList>
+					<FieldsWrap>
+						<DragHandle
+							ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+							ondragend={() => dragReorder.handleDragEnd()}
+							onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
+							disabled={loading || reordering}
+							dragging={draggingId === d.id}
+							label="Reorder education entry"
+						/>
+						<TextInput bind:value={d.education_stage} title="Education stage/level." />
+						<TextInput bind:value={d.institution_name} title="Institution name." />
+						<TextInput
+							placeholder="Degree"
+							bind:value={d.degree}
+							title="Optional. Degree/qualification name."
+						/>
+						<TextInput type="date" bind:value={d.start_date} title="Start date." />
+						<TextInput type="date" bind:value={d.end_date} title="Optional. End date." />
+						<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
+					</FieldsWrap>
+					<CardActions>
+						{#if isEduDirty(d)}
+							<Button onclick={() => handleSave(d)}>Save</Button>
+						{/if}
+						<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+					</CardActions>
 
-				<FieldsWrap>
-					<TextInput
-						placeholder="Add key point"
-						title="Add a bullet point for this education entry."
-						value={newKeyPointText[d.id] ?? ''}
-						oninput={(e) =>
-							(newKeyPointText = {
-								...newKeyPointText,
-								[d.id]: (e.target as HTMLInputElement).value
-							})}
-					/>
-					<Button
-						onclick={() => handleAddKeyPoint(d.id)}
-						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
+					<NestedList
+						title="Key points"
+						loading={keyPointLoading[d.id] ?? false}
+						empty={(keyPoints[d.id] ?? []).length === 0}
+						emptyText="No key points."
 					>
-						Add
-					</Button>
-				</FieldsWrap>
+						{#each keyPoints[d.id] ?? [] as kp (kp.id)}
+							<FieldsWrap>
+								<TextInput bind:value={kp.key_point} title="Key point text." />
+								<TextInput
+									small
+									type="number"
+									placeholder="#"
+									bind:value={kp.display_order}
+									title="Optional. Order for sorting (lower shows first)."
+								/>
+								{#if isKeyPointDirty(kp)}
+									<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+								{/if}
+								<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
+									Delete
+								</Button>
+							</FieldsWrap>
+						{/each}
+					</NestedList>
+
+					<FieldsWrap>
+						<TextInput
+							placeholder="Add key point"
+							title="Add a bullet point for this education entry."
+							value={newKeyPointText[d.id] ?? ''}
+							oninput={(e) =>
+								(newKeyPointText = {
+									...newKeyPointText,
+									[d.id]: (e.target as HTMLInputElement).value
+								})}
+						/>
+						<Button
+							onclick={() => handleAddKeyPoint(d.id)}
+							disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
+						>
+							Add
+						</Button>
+					</FieldsWrap>
+				</div>
 			</Card>
 		{/each}
 	</SectionMessage>
 </SectionShell>
+
+<style>
+	.cardInner {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.cardInner.dropOver {
+		outline: 2px dashed #0f172a;
+		outline-offset: 4px;
+	}
+</style>

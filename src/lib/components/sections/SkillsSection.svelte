@@ -3,6 +3,12 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
+	import {
+		byDisplayOrder,
+		createCardDragReorder,
+		createDisplayOrderReorder
+	} from '$lib/components/sections/shared/displayOrderReorder';
 	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
 	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
 	import { createSkill, deleteSkill, listSkills, updateSkill } from '$lib/api/skills';
@@ -24,11 +30,36 @@
 	let error = $state<string | null>(null);
 	let drafts = $state<SkillDraft[]>([]);
 	let savedSigById = $state<Record<number, string>>({});
+	let draggingId = $state<number | null>(null);
+	let dragOverId = $state<number | null>(null);
+	let reordering = $state(false);
 
 	let newSkillName = $state('');
 	let newConfidence = $state('80');
-	let newDisplayOrder = $state('');
 	let creating = $state(false);
+
+	const displayOrderReorder = createDisplayOrderReorder<SkillDraft>({
+		getDrafts: () => drafts,
+		setDrafts: (next) => (drafts = next),
+		getSavedSigs: () => savedSigById,
+		setSavedSigs: (next) => (savedSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updateSkill(id, { display_order }),
+		orderStep: 10
+	});
+
+	const dragReorder = createCardDragReorder({
+		getDraggingId: () => draggingId,
+		setDraggingId: (id) => (draggingId = id),
+		setDragOverId: (id) => (dragOverId = id),
+		getReordering: () => reordering,
+		getOrderedIds: () => drafts.map((d) => d.id),
+		reorderByIds: displayOrderReorder.reorderByIds
+	});
 
 	function toDraft(s: Skill): SkillDraft {
 		return {
@@ -56,7 +87,8 @@
 		error = null;
 		try {
 			const items = await listSkills(resumeId);
-			const ds = items.map(toDraft);
+			const sorted = [...items].sort(byDisplayOrder);
+			const ds = sorted.map(toDraft);
 			drafts = ds;
 			savedSigById = Object.fromEntries(ds.map((d) => [d.id, sig(d)]));
 		} catch (e) {
@@ -85,12 +117,11 @@
 			const payload: NewSkillRequest = {
 				skill_name: newSkillName.trim(),
 				confidence_percentage: Number(newConfidence),
-				display_order: toNumberOrNull(newDisplayOrder)
+				display_order: null
 			};
 			await createSkill(resumeId, payload);
 			newSkillName = '';
 			newConfidence = '80';
-			newDisplayOrder = '';
 			await refresh();
 		} catch (e) {
 			const err = e as ApiError;
@@ -147,13 +178,6 @@
 				bind:value={newConfidence}
 				title="Confidence level (0–100)."
 			/>
-			<TextInput
-				small
-				type="number"
-				placeholder="#"
-				bind:value={newDisplayOrder}
-				title="Optional. Order for sorting (lower shows first)."
-			/>
 			<Button onclick={handleCreate} disabled={creating || newSkillName.trim().length === 0}>
 				{creating ? 'Adding…' : 'Add'}
 			</Button>
@@ -168,32 +192,55 @@
 	>
 		{#each drafts as d (d.id)}
 			<Card>
-				<FieldsWrap>
-					<TextInput bind:value={d.skill_name} title="Skill name." />
-					<TextInput
-						small
-						type="number"
-						min={0}
-						max={100}
-						step={1}
-						bind:value={d.confidence_percentage}
-						title="Confidence level (0–100)."
-					/>
-					<TextInput
-						small
-						type="number"
-						placeholder="#"
-						bind:value={d.display_order}
-						title="Optional. Order for sorting (lower shows first)."
-					/>
-				</FieldsWrap>
-				<CardActions>
-					{#if isDirty(d)}
-						<Button onclick={() => handleSave(d)}>Save</Button>
-					{/if}
-					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
-				</CardActions>
+				<div
+					class="cardInner"
+					role="group"
+					aria-label="Skill"
+					class:dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
+					ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
+					ondrop={(e) => dragReorder.handleDrop(d.id, e)}
+				>
+					<FieldsWrap>
+						<DragHandle
+							ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+							ondragend={() => dragReorder.handleDragEnd()}
+							onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
+							disabled={loading || reordering}
+							dragging={draggingId === d.id}
+							label="Reorder skill"
+						/>
+						<TextInput bind:value={d.skill_name} title="Skill name." />
+						<TextInput
+							small
+							type="number"
+							min={0}
+							max={100}
+							step={1}
+							bind:value={d.confidence_percentage}
+							title="Confidence level (0–100)."
+						/>
+					</FieldsWrap>
+					<CardActions>
+						{#if isDirty(d)}
+							<Button onclick={() => handleSave(d)}>Save</Button>
+						{/if}
+						<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+					</CardActions>
+				</div>
 			</Card>
 		{/each}
 	</SectionMessage>
 </SectionShell>
+
+<style>
+	.cardInner {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.cardInner.dropOver {
+		outline: 2px dashed #0f172a;
+		outline-offset: 4px;
+	}
+</style>

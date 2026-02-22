@@ -3,6 +3,12 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
+	import {
+		byDisplayOrder,
+		createCardDragReorder,
+		createDisplayOrderReorder
+	} from '$lib/components/sections/shared/displayOrderReorder';
 	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
 	import NestedList from '$lib/components/sections/shared/NestedList.svelte';
 	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
@@ -48,13 +54,15 @@
 	let error = $state<string | null>(null);
 	let languages = $state<LanguageDraft[]>([]);
 	let savedLangSigById = $state<Record<number, string>>({});
+	let draggingId = $state<number | null>(null);
+	let dragOverId = $state<number | null>(null);
+	let reordering = $state(false);
 
 	let frameworks = $state<Record<number, FrameworkDraft[]>>({});
 	let frameworksLoading = $state<Record<number, boolean>>({});
 	let savedFrameworkSigById = $state<Record<number, string>>({});
 
 	let newLanguageName = $state('');
-	let newLanguageOrder = $state('');
 	let creatingLanguage = $state(false);
 
 	let newFrameworkText = $state<Record<number, string>>({});
@@ -65,6 +73,29 @@
 		const n = Number(t);
 		return Number.isFinite(n) ? n : null;
 	}
+
+	const displayOrderReorder = createDisplayOrderReorder<LanguageDraft>({
+		getDrafts: () => languages,
+		setDrafts: (next) => (languages = next),
+		getSavedSigs: () => savedLangSigById,
+		setSavedSigs: (next) => (savedLangSigById = next),
+		getReordering: () => reordering,
+		setReordering: (next) => (reordering = next),
+		setError: (message) => (error = message),
+		getErrorMessage: (e) => (e as ApiError).message,
+		parseOrder: toNumberOrNull,
+		updateDisplayOrder: (id, display_order) => updateLanguage(id, { display_order }),
+		orderStep: 10
+	});
+
+	const dragReorder = createCardDragReorder({
+		getDraggingId: () => draggingId,
+		setDraggingId: (id) => (draggingId = id),
+		setDragOverId: (id) => (dragOverId = id),
+		getReordering: () => reordering,
+		getOrderedIds: () => languages.map((d) => d.id),
+		reorderByIds: displayOrderReorder.reorderByIds
+	});
 
 	function toLanguageDraft(l: Language): LanguageDraft {
 		return {
@@ -109,14 +140,15 @@
 		error = null;
 		try {
 			const items = await listLanguages(resumeId);
-			const ds = items.map(toLanguageDraft);
+			const sorted = [...items].sort(byDisplayOrder);
+			const ds = sorted.map(toLanguageDraft);
 			languages = ds;
 			savedLangSigById = Object.fromEntries(ds.map((d) => [d.id, sigLanguage(d)]));
 
 			const map: Record<number, FrameworkDraft[]> = {};
-			for (const l of items) map[l.id] = [];
+			for (const l of sorted) map[l.id] = [];
 			frameworks = map;
-			for (const l of items) void loadFrameworks(l.id);
+			for (const l of sorted) void loadFrameworks(l.id);
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -152,11 +184,10 @@
 		try {
 			const payload: NewLanguageRequest = {
 				language_name: newLanguageName.trim(),
-				display_order: toNumberOrNull(newLanguageOrder)
+				display_order: null
 			};
 			await createLanguage(resumeId, payload);
 			newLanguageName = '';
-			newLanguageOrder = '';
 			await refresh();
 		} catch (e) {
 			const err = e as ApiError;
@@ -251,10 +282,10 @@
 			/>
 			<TextInput
 				small
-				type="number"
-				placeholder="#"
-				bind:value={newLanguageOrder}
-				title="Optional. Order for sorting (lower shows first)."
+				type="text"
+				disabled
+				value=""
+				title="Ordering is controlled by drag and drop."
 			/>
 			<Button
 				onclick={handleCreateLanguage}
@@ -273,68 +304,91 @@
 	>
 		{#each languages as l (l.id)}
 			<Card>
-				<FieldsWrap>
-					<TextInput bind:value={l.language_name} title="Language name." />
-					<TextInput
-						small
-						type="number"
-						placeholder="#"
-						bind:value={l.display_order}
-						title="Optional. Order for sorting (lower shows first)."
-					/>
-				</FieldsWrap>
-				<CardActions>
-					{#if isLanguageDirty(l)}
-						<Button onclick={() => handleSaveLanguage(l)}>Save</Button>
-					{/if}
-					<Button variant="danger" onclick={() => handleDeleteLanguage(l.id)}>Delete</Button>
-				</CardActions>
-
-				<FieldsWrap>
-					<TextInput
-						placeholder="Add framework"
-						title="Add a framework/library for this language (e.g. Svelte, Rocket)."
-						value={newFrameworkText[l.id] ?? ''}
-						oninput={(e) =>
-							(newFrameworkText = {
-								...newFrameworkText,
-								[l.id]: (e.target as HTMLInputElement).value
-							})}
-					/>
-					<Button
-						onclick={() => handleCreateFramework(l.id)}
-						disabled={(newFrameworkText[l.id] ?? '').trim().length === 0}
-					>
-						Add
-					</Button>
-				</FieldsWrap>
-
-				<NestedList
-					title="Frameworks"
-					loading={frameworksLoading[l.id] ?? false}
-					empty={(frameworks[l.id] ?? []).length === 0}
-					emptyText="No frameworks."
+				<div
+					class="cardInner"
+					role="group"
+					aria-label="Language"
+					class:dropOver={draggingId != null && dragOverId === l.id && draggingId !== l.id}
+					ondragover={(e) => dragReorder.handleDragOver(l.id, e)}
+					ondrop={(e) => dragReorder.handleDrop(l.id, e)}
 				>
-					{#each frameworks[l.id] ?? [] as f (f.id)}
-						<FieldsWrap>
-							<TextInput bind:value={f.framework_name} title="Framework/library name." />
-							<TextInput
-								small
-								type="number"
-								placeholder="#"
-								bind:value={f.display_order}
-								title="Optional. Order for sorting (lower shows first)."
-							/>
-							{#if isFrameworkDirty(f)}
-								<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
-							{/if}
-							<Button variant="danger" onclick={() => handleDeleteFramework(l.id, f.id)}>
-								Delete
-							</Button>
-						</FieldsWrap>
-					{/each}
-				</NestedList>
+					<FieldsWrap>
+						<DragHandle
+							ondragstart={(e) => dragReorder.handleDragStart(l.id, e)}
+							ondragend={() => dragReorder.handleDragEnd()}
+							onkeydown={(e) => dragReorder.handleHandleKeydown(l.id, e)}
+							disabled={loading || reordering}
+							dragging={draggingId === l.id}
+							label="Reorder language"
+						/>
+						<TextInput bind:value={l.language_name} title="Language name." />
+					</FieldsWrap>
+					<CardActions>
+						{#if isLanguageDirty(l)}
+							<Button onclick={() => handleSaveLanguage(l)}>Save</Button>
+						{/if}
+						<Button variant="danger" onclick={() => handleDeleteLanguage(l.id)}>Delete</Button>
+					</CardActions>
+
+					<FieldsWrap>
+						<TextInput
+							placeholder="Add framework"
+							title="Add a framework/library for this language (e.g. Svelte, Rocket)."
+							value={newFrameworkText[l.id] ?? ''}
+							oninput={(e) =>
+								(newFrameworkText = {
+									...newFrameworkText,
+									[l.id]: (e.target as HTMLInputElement).value
+								})}
+						/>
+						<Button
+							onclick={() => handleCreateFramework(l.id)}
+							disabled={(newFrameworkText[l.id] ?? '').trim().length === 0}
+						>
+							Add
+						</Button>
+					</FieldsWrap>
+
+					<NestedList
+						title="Frameworks"
+						loading={frameworksLoading[l.id] ?? false}
+						empty={(frameworks[l.id] ?? []).length === 0}
+						emptyText="No frameworks."
+					>
+						{#each frameworks[l.id] ?? [] as f (f.id)}
+							<FieldsWrap>
+								<TextInput bind:value={f.framework_name} title="Framework/library name." />
+								<TextInput
+									small
+									type="number"
+									placeholder="#"
+									bind:value={f.display_order}
+									title="Optional. Order for sorting (lower shows first)."
+								/>
+								{#if isFrameworkDirty(f)}
+									<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
+								{/if}
+								<Button variant="danger" onclick={() => handleDeleteFramework(l.id, f.id)}>
+									Delete
+								</Button>
+							</FieldsWrap>
+						{/each}
+					</NestedList>
+				</div>
 			</Card>
 		{/each}
 	</SectionMessage>
 </SectionShell>
+
+<style>
+	.cardInner {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.cardInner.dropOver {
+		outline: 2px dashed #0f172a;
+		outline-offset: 4px;
+	}
+</style>
