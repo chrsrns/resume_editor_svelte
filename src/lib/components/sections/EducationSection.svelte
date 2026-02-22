@@ -3,6 +3,7 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import CardWithInner from '$lib/components/sections/shared/CardWithInner.svelte';
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
@@ -362,101 +363,84 @@
 		emptyText="No education entries yet."
 	>
 		{#each drafts as d (d.id)}
-			<Card>
-				<div
-					class="cardInner"
-					role="group"
-					aria-label="Education entry"
-					class:dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
-					ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
-					ondrop={(e) => dragReorder.handleDrop(d.id, e)}
+			<CardWithInner
+				ariaLabel="Education entry"
+				dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
+				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
+				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
+			>
+				<FieldsWrap>
+					<DragHandle
+						ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+						ondragend={() => dragReorder.handleDragEnd()}
+						onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
+						disabled={loading || reordering}
+						dragging={draggingId === d.id}
+						label="Reorder education entry"
+					/>
+					<TextInput bind:value={d.education_stage} title="Education stage/level." />
+					<TextInput bind:value={d.institution_name} title="Institution name." />
+					<TextInput
+						placeholder="Degree"
+						bind:value={d.degree}
+						title="Optional. Degree/qualification name."
+					/>
+					<TextInput type="date" bind:value={d.start_date} title="Start date." />
+					<TextInput type="date" bind:value={d.end_date} title="Optional. End date." />
+					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
+				</FieldsWrap>
+				<CardActions>
+					{#if isEduDirty(d)}
+						<Button onclick={() => handleSave(d)}>Save</Button>
+					{/if}
+					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+				</CardActions>
+
+				<NestedList
+					title="Key points"
+					loading={keyPointLoading[d.id] ?? false}
+					empty={(keyPoints[d.id] ?? []).length === 0}
+					emptyText="No key points."
 				>
-					<FieldsWrap>
-						<DragHandle
-							ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
-							ondragend={() => dragReorder.handleDragEnd()}
-							onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
-							disabled={loading || reordering}
-							dragging={draggingId === d.id}
-							label="Reorder education entry"
-						/>
-						<TextInput bind:value={d.education_stage} title="Education stage/level." />
-						<TextInput bind:value={d.institution_name} title="Institution name." />
-						<TextInput
-							placeholder="Degree"
-							bind:value={d.degree}
-							title="Optional. Degree/qualification name."
-						/>
-						<TextInput type="date" bind:value={d.start_date} title="Start date." />
-						<TextInput type="date" bind:value={d.end_date} title="Optional. End date." />
-						<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
-					</FieldsWrap>
-					<CardActions>
-						{#if isEduDirty(d)}
-							<Button onclick={() => handleSave(d)}>Save</Button>
-						{/if}
-						<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
-					</CardActions>
+					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
+						<FieldsWrap>
+							<TextInput bind:value={kp.key_point} title="Key point text." />
+							<TextInput
+								small
+								type="number"
+								placeholder="#"
+								bind:value={kp.display_order}
+								title="Optional. Order for sorting (lower shows first)."
+							/>
+							{#if isKeyPointDirty(kp)}
+								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							{/if}
+							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
+								Delete
+							</Button>
+						</FieldsWrap>
+					{/each}
+				</NestedList>
 
-					<NestedList
-						title="Key points"
-						loading={keyPointLoading[d.id] ?? false}
-						empty={(keyPoints[d.id] ?? []).length === 0}
-						emptyText="No key points."
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add key point"
+						title="Add a bullet point for this education entry."
+						value={newKeyPointText[d.id] ?? ''}
+						oninput={(e) =>
+							(newKeyPointText = {
+								...newKeyPointText,
+								[d.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleAddKeyPoint(d.id)}
+						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
 					>
-						{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-							<FieldsWrap>
-								<TextInput bind:value={kp.key_point} title="Key point text." />
-								<TextInput
-									small
-									type="number"
-									placeholder="#"
-									bind:value={kp.display_order}
-									title="Optional. Order for sorting (lower shows first)."
-								/>
-								{#if isKeyPointDirty(kp)}
-									<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
-								{/if}
-								<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
-									Delete
-								</Button>
-							</FieldsWrap>
-						{/each}
-					</NestedList>
-
-					<FieldsWrap>
-						<TextInput
-							placeholder="Add key point"
-							title="Add a bullet point for this education entry."
-							value={newKeyPointText[d.id] ?? ''}
-							oninput={(e) =>
-								(newKeyPointText = {
-									...newKeyPointText,
-									[d.id]: (e.target as HTMLInputElement).value
-								})}
-						/>
-						<Button
-							onclick={() => handleAddKeyPoint(d.id)}
-							disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
-						>
-							Add
-						</Button>
-					</FieldsWrap>
-				</div>
-			</Card>
+						Add
+					</Button>
+				</FieldsWrap>
+			</CardWithInner>
 		{/each}
 	</SectionMessage>
 </SectionShell>
-
-<style>
-	.cardInner {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.cardInner.dropOver {
-		outline: 2px dashed #0f172a;
-		outline-offset: 4px;
-	}
-</style>

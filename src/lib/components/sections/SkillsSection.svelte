@@ -3,6 +3,7 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import CardWithInner from '$lib/components/sections/shared/CardWithInner.svelte';
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
@@ -191,56 +192,39 @@
 		emptyText="No skills yet."
 	>
 		{#each drafts as d (d.id)}
-			<Card>
-				<div
-					class="cardInner"
-					role="group"
-					aria-label="Skill"
-					class:dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
-					ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
-					ondrop={(e) => dragReorder.handleDrop(d.id, e)}
-				>
-					<FieldsWrap>
-						<DragHandle
-							ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
-							ondragend={() => dragReorder.handleDragEnd()}
-							onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
-							disabled={loading || reordering}
-							dragging={draggingId === d.id}
-							label="Reorder skill"
-						/>
-						<TextInput bind:value={d.skill_name} title="Skill name." />
-						<TextInput
-							small
-							type="number"
-							min={0}
-							max={100}
-							step={1}
-							bind:value={d.confidence_percentage}
-							title="Confidence level (0–100)."
-						/>
-					</FieldsWrap>
-					<CardActions>
-						{#if isDirty(d)}
-							<Button onclick={() => handleSave(d)}>Save</Button>
-						{/if}
-						<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
-					</CardActions>
-				</div>
-			</Card>
+			<CardWithInner
+				ariaLabel="Skill"
+				dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
+				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
+				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
+			>
+				<FieldsWrap>
+					<DragHandle
+						ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+						ondragend={() => dragReorder.handleDragEnd()}
+						onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
+						disabled={loading || reordering}
+						dragging={draggingId === d.id}
+						label="Reorder skill"
+					/>
+					<TextInput bind:value={d.skill_name} title="Skill name." />
+					<TextInput
+						small
+						type="number"
+						min={0}
+						max={100}
+						step={1}
+						bind:value={d.confidence_percentage}
+						title="Confidence level (0–100)."
+					/>
+				</FieldsWrap>
+				<CardActions>
+					{#if isDirty(d)}
+						<Button onclick={() => handleSave(d)}>Save</Button>
+					{/if}
+					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+				</CardActions>
+			</CardWithInner>
 		{/each}
 	</SectionMessage>
 </SectionShell>
-
-<style>
-	.cardInner {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.cardInner.dropOver {
-		outline: 2px dashed #0f172a;
-		outline-offset: 4px;
-	}
-</style>

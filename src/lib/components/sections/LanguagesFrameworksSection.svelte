@@ -3,6 +3,7 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import CardWithInner from '$lib/components/sections/shared/CardWithInner.svelte';
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
@@ -303,92 +304,75 @@
 		emptyText="No languages yet."
 	>
 		{#each languages as l (l.id)}
-			<Card>
-				<div
-					class="cardInner"
-					role="group"
-					aria-label="Language"
-					class:dropOver={draggingId != null && dragOverId === l.id && draggingId !== l.id}
-					ondragover={(e) => dragReorder.handleDragOver(l.id, e)}
-					ondrop={(e) => dragReorder.handleDrop(l.id, e)}
-				>
-					<FieldsWrap>
-						<DragHandle
-							ondragstart={(e) => dragReorder.handleDragStart(l.id, e)}
-							ondragend={() => dragReorder.handleDragEnd()}
-							onkeydown={(e) => dragReorder.handleHandleKeydown(l.id, e)}
-							disabled={loading || reordering}
-							dragging={draggingId === l.id}
-							label="Reorder language"
-						/>
-						<TextInput bind:value={l.language_name} title="Language name." />
-					</FieldsWrap>
-					<CardActions>
-						{#if isLanguageDirty(l)}
-							<Button onclick={() => handleSaveLanguage(l)}>Save</Button>
-						{/if}
-						<Button variant="danger" onclick={() => handleDeleteLanguage(l.id)}>Delete</Button>
-					</CardActions>
+			<CardWithInner
+				ariaLabel="Language"
+				dropOver={draggingId != null && dragOverId === l.id && draggingId !== l.id}
+				ondragover={(e) => dragReorder.handleDragOver(l.id, e)}
+				ondrop={(e) => dragReorder.handleDrop(l.id, e)}
+			>
+				<FieldsWrap>
+					<DragHandle
+						ondragstart={(e) => dragReorder.handleDragStart(l.id, e)}
+						ondragend={() => dragReorder.handleDragEnd()}
+						onkeydown={(e) => dragReorder.handleHandleKeydown(l.id, e)}
+						disabled={loading || reordering}
+						dragging={draggingId === l.id}
+						label="Reorder language"
+					/>
+					<TextInput bind:value={l.language_name} title="Language name." />
+				</FieldsWrap>
+				<CardActions>
+					{#if isLanguageDirty(l)}
+						<Button onclick={() => handleSaveLanguage(l)}>Save</Button>
+					{/if}
+					<Button variant="danger" onclick={() => handleDeleteLanguage(l.id)}>Delete</Button>
+				</CardActions>
 
-					<FieldsWrap>
-						<TextInput
-							placeholder="Add framework"
-							title="Add a framework/library for this language (e.g. Svelte, Rocket)."
-							value={newFrameworkText[l.id] ?? ''}
-							oninput={(e) =>
-								(newFrameworkText = {
-									...newFrameworkText,
-									[l.id]: (e.target as HTMLInputElement).value
-								})}
-						/>
-						<Button
-							onclick={() => handleCreateFramework(l.id)}
-							disabled={(newFrameworkText[l.id] ?? '').trim().length === 0}
-						>
-							Add
-						</Button>
-					</FieldsWrap>
-
-					<NestedList
-						title="Frameworks"
-						loading={frameworksLoading[l.id] ?? false}
-						empty={(frameworks[l.id] ?? []).length === 0}
-						emptyText="No frameworks."
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add framework"
+						title="Add a framework/library for this language (e.g. Svelte, Rocket)."
+						value={newFrameworkText[l.id] ?? ''}
+						oninput={(e) =>
+							(newFrameworkText = {
+								...newFrameworkText,
+								[l.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleCreateFramework(l.id)}
+						disabled={(newFrameworkText[l.id] ?? '').trim().length === 0}
 					>
-						{#each frameworks[l.id] ?? [] as f (f.id)}
-							<FieldsWrap>
-								<TextInput bind:value={f.framework_name} title="Framework/library name." />
-								<TextInput
-									small
-									type="number"
-									placeholder="#"
-									bind:value={f.display_order}
-									title="Optional. Order for sorting (lower shows first)."
-								/>
-								{#if isFrameworkDirty(f)}
-									<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
-								{/if}
-								<Button variant="danger" onclick={() => handleDeleteFramework(l.id, f.id)}>
-									Delete
-								</Button>
-							</FieldsWrap>
-						{/each}
-					</NestedList>
-				</div>
-			</Card>
+						Add
+					</Button>
+				</FieldsWrap>
+
+				<NestedList
+					title="Frameworks"
+					loading={frameworksLoading[l.id] ?? false}
+					empty={(frameworks[l.id] ?? []).length === 0}
+					emptyText="No frameworks."
+				>
+					{#each frameworks[l.id] ?? [] as f (f.id)}
+						<FieldsWrap>
+							<TextInput bind:value={f.framework_name} title="Framework/library name." />
+							<TextInput
+								small
+								type="number"
+								placeholder="#"
+								bind:value={f.display_order}
+								title="Optional. Order for sorting (lower shows first)."
+							/>
+							{#if isFrameworkDirty(f)}
+								<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
+							{/if}
+							<Button variant="danger" onclick={() => handleDeleteFramework(l.id, f.id)}>
+								Delete
+							</Button>
+						</FieldsWrap>
+					{/each}
+				</NestedList>
+			</CardWithInner>
 		{/each}
 	</SectionMessage>
 </SectionShell>
-
-<style>
-	.cardInner {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.cardInner.dropOver {
-		outline: 2px dashed #0f172a;
-		outline-offset: 4px;
-	}
-</style>

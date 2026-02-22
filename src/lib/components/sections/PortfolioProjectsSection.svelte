@@ -3,6 +3,7 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+	import CardWithInner from '$lib/components/sections/shared/CardWithInner.svelte';
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
@@ -439,144 +440,127 @@
 		emptyText="No portfolio projects yet."
 	>
 		{#each drafts as d (d.id)}
-			<Card>
-				<div
-					class="cardInner"
-					role="group"
-					aria-label="Portfolio project"
-					class:dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
-					ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
-					ondrop={(e) => dragReorder.handleDrop(d.id, e)}
+			<CardWithInner
+				ariaLabel="Portfolio project"
+				dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
+				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
+				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
+			>
+				<FieldsWrap>
+					<DragHandle
+						ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+						ondragend={() => dragReorder.handleDragEnd()}
+						onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
+						disabled={loading || reordering}
+						dragging={draggingId === d.id}
+						label="Reorder portfolio project"
+					/>
+					<TextInput bind:value={d.project_name} title="Project name/title." />
+					<TextInput bind:value={d.image_url} title="Optional. Preview image URL." />
+					<TextInput bind:value={d.project_link} title="Optional. Live project/demo link." />
+					<TextInput
+						bind:value={d.source_code_link}
+						title="Optional. Source code repository link."
+					/>
+					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
+				</FieldsWrap>
+				<CardActions>
+					{#if isProjectDirty(d)}
+						<Button onclick={() => handleSave(d)}>Save</Button>
+					{/if}
+					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+				</CardActions>
+
+				<NestedList
+					title="Key points"
+					loading={kpLoading[d.id] ?? false}
+					empty={(keyPoints[d.id] ?? []).length === 0}
+					emptyText="No key points."
 				>
-					<FieldsWrap>
-						<DragHandle
-							ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
-							ondragend={() => dragReorder.handleDragEnd()}
-							onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
-							disabled={loading || reordering}
-							dragging={draggingId === d.id}
-							label="Reorder portfolio project"
-						/>
-						<TextInput bind:value={d.project_name} title="Project name/title." />
-						<TextInput bind:value={d.image_url} title="Optional. Preview image URL." />
-						<TextInput bind:value={d.project_link} title="Optional. Live project/demo link." />
-						<TextInput
-							bind:value={d.source_code_link}
-							title="Optional. Source code repository link."
-						/>
-						<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
-					</FieldsWrap>
-					<CardActions>
-						{#if isProjectDirty(d)}
-							<Button onclick={() => handleSave(d)}>Save</Button>
-						{/if}
-						<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
-					</CardActions>
+					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
+						<FieldsWrap>
+							<TextInput bind:value={kp.key_point} title="Key point text." />
+							<TextInput
+								small
+								type="number"
+								placeholder="#"
+								bind:value={kp.display_order}
+								title="Optional. Order for sorting (lower shows first)."
+							/>
+							{#if isKeyPointDirty(kp)}
+								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+							{/if}
+							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
+								Delete
+							</Button>
+						</FieldsWrap>
+					{/each}
+				</NestedList>
 
-					<NestedList
-						title="Key points"
-						loading={kpLoading[d.id] ?? false}
-						empty={(keyPoints[d.id] ?? []).length === 0}
-						emptyText="No key points."
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add key point"
+						title="Add a bullet point about this project."
+						value={newKeyPointText[d.id] ?? ''}
+						oninput={(e) =>
+							(newKeyPointText = {
+								...newKeyPointText,
+								[d.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleAddKeyPoint(d.id)}
+						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
 					>
-						{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-							<FieldsWrap>
-								<TextInput bind:value={kp.key_point} title="Key point text." />
-								<TextInput
-									small
-									type="number"
-									placeholder="#"
-									bind:value={kp.display_order}
-									title="Optional. Order for sorting (lower shows first)."
-								/>
-								{#if isKeyPointDirty(kp)}
-									<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
-								{/if}
-								<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
-									Delete
-								</Button>
-							</FieldsWrap>
-						{/each}
-					</NestedList>
+						Add
+					</Button>
+				</FieldsWrap>
 
-					<FieldsWrap>
-						<TextInput
-							placeholder="Add key point"
-							title="Add a bullet point about this project."
-							value={newKeyPointText[d.id] ?? ''}
-							oninput={(e) =>
-								(newKeyPointText = {
-									...newKeyPointText,
-									[d.id]: (e.target as HTMLInputElement).value
-								})}
-						/>
-						<Button
-							onclick={() => handleAddKeyPoint(d.id)}
-							disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
-						>
-							Add
-						</Button>
-					</FieldsWrap>
+				<NestedList
+					title="Technologies"
+					loading={techLoading[d.id] ?? false}
+					empty={(technologies[d.id] ?? []).length === 0}
+					emptyText="No technologies."
+				>
+					{#each technologies[d.id] ?? [] as t (t.id)}
+						<FieldsWrap>
+							<TextInput bind:value={t.technology_name} title="Technology name." />
+							<TextInput
+								small
+								type="number"
+								placeholder="#"
+								bind:value={t.display_order}
+								title="Optional. Order for sorting (lower shows first)."
+							/>
+							{#if isTechDirty(t)}
+								<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
+							{/if}
+							<Button variant="danger" onclick={() => handleDeleteTechnology(d.id, t.id)}>
+								Delete
+							</Button>
+						</FieldsWrap>
+					{/each}
+				</NestedList>
 
-					<NestedList
-						title="Technologies"
-						loading={techLoading[d.id] ?? false}
-						empty={(technologies[d.id] ?? []).length === 0}
-						emptyText="No technologies."
+				<FieldsWrap>
+					<TextInput
+						placeholder="Add technology"
+						title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
+						value={newTechText[d.id] ?? ''}
+						oninput={(e) =>
+							(newTechText = {
+								...newTechText,
+								[d.id]: (e.target as HTMLInputElement).value
+							})}
+					/>
+					<Button
+						onclick={() => handleAddTechnology(d.id)}
+						disabled={(newTechText[d.id] ?? '').trim().length === 0}
 					>
-						{#each technologies[d.id] ?? [] as t (t.id)}
-							<FieldsWrap>
-								<TextInput bind:value={t.technology_name} title="Technology name." />
-								<TextInput
-									small
-									type="number"
-									placeholder="#"
-									bind:value={t.display_order}
-									title="Optional. Order for sorting (lower shows first)."
-								/>
-								{#if isTechDirty(t)}
-									<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
-								{/if}
-								<Button variant="danger" onclick={() => handleDeleteTechnology(d.id, t.id)}>
-									Delete
-								</Button>
-							</FieldsWrap>
-						{/each}
-					</NestedList>
-
-					<FieldsWrap>
-						<TextInput
-							placeholder="Add technology"
-							title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
-							value={newTechText[d.id] ?? ''}
-							oninput={(e) =>
-								(newTechText = {
-									...newTechText,
-									[d.id]: (e.target as HTMLInputElement).value
-								})}
-						/>
-						<Button
-							onclick={() => handleAddTechnology(d.id)}
-							disabled={(newTechText[d.id] ?? '').trim().length === 0}
-						>
-							Add
-						</Button>
-					</FieldsWrap>
-				</div>
-			</Card>
+						Add
+					</Button>
+				</FieldsWrap>
+			</CardWithInner>
 		{/each}
 	</SectionMessage>
 </SectionShell>
-
-<style>
-	.cardInner {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.cardInner.dropOver {
-		outline: 2px dashed #0f172a;
-		outline-offset: 4px;
-	}
-</style>
