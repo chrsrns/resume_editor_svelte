@@ -14,11 +14,91 @@
 	import { authToken } from '$lib/auth';
 	import { currentUser } from '$lib/session';
 
+	const tabs = [
+		{ id: 'basics', label: 'Basics' },
+		{ id: 'education', label: 'Education' },
+		{ id: 'work', label: 'Work' },
+		{ id: 'portfolio', label: 'Portfolio' },
+		{ id: 'skills', label: 'Skills' },
+		{ id: 'languages', label: 'Languages & Frameworks' }
+	] as const;
+
+	type TabId = (typeof tabs)[number]['id'];
+
+	function parseTabId(value: string | null): TabId {
+		const v = value ?? '';
+		const found = tabs.find((t) => t.id === v);
+		return found ? found.id : 'basics';
+	}
+
 	let resume = $state<Resume | null>(null);
 	let loading = $state(true);
 	let saving = $state(false);
 	let deleting = $state(false);
 	let error = $state<string | null>(null);
+	let activeTab = $state<TabId>('basics');
+
+	function onTabListKeydown(e: KeyboardEvent) {
+		const tablist = e.currentTarget as HTMLElement | null;
+		if (!tablist) return;
+
+		const buttons = Array.from(tablist.querySelectorAll<HTMLButtonElement>('button[role="tab"]'));
+		if (buttons.length === 0) return;
+
+		const focusedIndex = buttons.findIndex((b) => b === document.activeElement);
+		const activeIndex = Math.max(
+			0,
+			tabs.findIndex((t) => t.id === activeTab)
+		);
+		const idx = focusedIndex >= 0 ? focusedIndex : activeIndex;
+
+		function focusAt(nextIndex: number) {
+			const count = buttons.length;
+			const next = ((nextIndex % count) + count) % count;
+			buttons[next]?.focus();
+		}
+
+		switch (e.key) {
+			case 'ArrowLeft':
+				e.preventDefault();
+				focusAt(idx - 1);
+				break;
+			case 'ArrowRight':
+				e.preventDefault();
+				focusAt(idx + 1);
+				break;
+			case 'Home':
+				e.preventDefault();
+				focusAt(0);
+				break;
+			case 'End':
+				e.preventDefault();
+				focusAt(buttons.length - 1);
+				break;
+			case 'Enter':
+			case ' ': {
+				e.preventDefault();
+				const el = document.activeElement as HTMLButtonElement | null;
+				const raw = el?.dataset.tab ?? null;
+				selectTab(parseTabId(raw));
+				break;
+			}
+		}
+	}
+
+	function selectTab(id: TabId) {
+		const params = new URLSearchParams(page.url.searchParams);
+		params.set('tab', id);
+		void goto(`${page.url.pathname}?${params.toString()}`, {
+			replaceState: false,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
+
+	$effect(() => {
+		activeTab = parseTabId(page.url.searchParams.get('tab'));
+	});
 
 	async function load() {
 		loading = true;
@@ -97,17 +177,95 @@
 	{#if $currentUser && resume.created_by !== $currentUser.id}
 		<p class="error">Forbidden</p>
 	{:else}
-		<ResumeForm
-			initial={resume}
-			submitLabel={saving ? 'Saving…' : 'Save'}
-			onsubmit={handleSubmit}
-		/>
+		<div
+			class="tabs"
+			role="tablist"
+			aria-label="Resume sections"
+			tabindex="0"
+			onkeydown={onTabListKeydown}
+		>
+			{#each tabs as t, i}
+				<button
+					class="tab {activeTab === t.id ? 'active' : ''}"
+					type="button"
+					role="tab"
+					aria-selected={activeTab === t.id}
+					aria-controls={`panel-${t.id}`}
+					id={`tab-${t.id}`}
+					tabindex={activeTab === t.id ? 0 : -1}
+					onclick={() => selectTab(t.id)}
+					data-tab={t.id}
+				>
+					{t.label}
+				</button>
+			{/each}
+		</div>
 
-		<EducationSection resumeId={resume.id} />
-		<WorkExperiencesSection resumeId={resume.id} />
-		<PortfolioProjectsSection resumeId={resume.id} />
-		<SkillsSection resumeId={resume.id} />
-		<LanguagesFrameworksSection resumeId={resume.id} />
+		<div
+			class="panel"
+			hidden={activeTab !== 'basics'}
+			role="tabpanel"
+			id="panel-basics"
+			aria-labelledby="tab-basics"
+			tabindex="0"
+		>
+			<ResumeForm
+				initial={resume}
+				submitLabel={saving ? 'Saving…' : 'Save'}
+				onsubmit={handleSubmit}
+			/>
+		</div>
+
+		<div
+			class="panel"
+			hidden={activeTab !== 'education'}
+			role="tabpanel"
+			id="panel-education"
+			aria-labelledby="tab-education"
+			tabindex="0"
+		>
+			<EducationSection resumeId={resume.id} />
+		</div>
+		<div
+			class="panel"
+			hidden={activeTab !== 'work'}
+			role="tabpanel"
+			id="panel-work"
+			aria-labelledby="tab-work"
+			tabindex="0"
+		>
+			<WorkExperiencesSection resumeId={resume.id} />
+		</div>
+		<div
+			class="panel"
+			hidden={activeTab !== 'portfolio'}
+			role="tabpanel"
+			id="panel-portfolio"
+			aria-labelledby="tab-portfolio"
+			tabindex="0"
+		>
+			<PortfolioProjectsSection resumeId={resume.id} />
+		</div>
+		<div
+			class="panel"
+			hidden={activeTab !== 'skills'}
+			role="tabpanel"
+			id="panel-skills"
+			aria-labelledby="tab-skills"
+			tabindex="0"
+		>
+			<SkillsSection resumeId={resume.id} />
+		</div>
+		<div
+			class="panel"
+			hidden={activeTab !== 'languages'}
+			role="tabpanel"
+			id="panel-languages"
+			aria-labelledby="tab-languages"
+			tabindex="0"
+		>
+			<LanguagesFrameworksSection resumeId={resume.id} />
+		</div>
 	{/if}
 {/if}
 
@@ -157,5 +315,38 @@
 	.muted {
 		color: #475569;
 		margin: 0;
+	}
+
+	.tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 16px 0;
+		padding-bottom: 8px;
+		border-bottom: 1px solid #e2e8f0;
+	}
+
+	.tab {
+		padding: 8px 12px;
+		border: 1px solid #cbd5e1;
+		border-radius: 999px;
+		background: white;
+		color: #0f172a;
+		cursor: pointer;
+	}
+
+	.tab.active {
+		border-color: #0f172a;
+		background: #0f172a;
+		color: white;
+	}
+
+	.tab:focus {
+		outline: 2px solid #2563eb;
+		outline-offset: 2px;
+	}
+
+	.panel {
+		margin-top: 8px;
 	}
 </style>
