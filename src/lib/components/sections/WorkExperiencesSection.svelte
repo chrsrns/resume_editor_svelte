@@ -139,7 +139,7 @@
 		return {
 			id: w.id,
 			job_title: w.job_title,
-			company_name: w.company_name,
+			company_name: w.company_name ?? '',
 			start_date: w.start_date,
 			end_date: w.end_date ?? '',
 			description: w.description ?? '',
@@ -230,7 +230,7 @@
 		try {
 			const payload: NewWorkExperienceRequest = {
 				job_title: newTitle.trim(),
-				company_name: newCompany.trim(),
+				company_name: toNullable(newCompany),
 				start_date: newStart,
 				end_date: toNullable(newEnd),
 				description: toNullable(newDescription),
@@ -256,7 +256,7 @@
 		try {
 			const payload: UpdateWorkExperienceRequest = {
 				job_title: d.job_title.trim(),
-				company_name: d.company_name.trim(),
+				company_name: toNullable(d.company_name),
 				start_date: d.start_date,
 				end_date: toNullable(d.end_date),
 				description: toNullable(d.description),
@@ -352,10 +352,7 @@
 		<CardActions>
 			<Button
 				onclick={handleCreate}
-				disabled={creating ||
-					newTitle.trim().length === 0 ||
-					newCompany.trim().length === 0 ||
-					newStart.trim().length === 0}
+				disabled={creating || newTitle.trim().length === 0 || newStart.trim().length === 0}
 			>
 				{creating ? 'Adding…' : 'Add work experience'}
 			</Button>

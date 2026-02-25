@@ -230,7 +230,7 @@ export type WorkExperience = {
     id: number;
     resume_id: number;
     job_title: string;
-    company_name: string;
+    company_name: string | null;
     start_date: string;
     end_date: string | null;
     description: string | null;
@@ -240,7 +240,7 @@ export type WorkExperience = {
 
 export type NewWorkExperienceRequest = {
     job_title: string;
-    company_name: string;
+    company_name?: string | null;
     start_date: string;
     end_date?: string | null;
     description?: string | null;
