@@ -344,28 +344,34 @@
 	<Card variant="new">
 		<FieldsWrap>
 			<TextInput
-				placeholder="Stage (e.g. Bachelor)"
+				label="Stage (e.g. Bachelor)"
 				bind:value={newStage}
 				title="Education stage/level (e.g. High School, Diploma, Bachelor, Master)."
 			/>
 			<TextInput
-				placeholder="Institution"
+				label="Institution"
 				bind:value={newInstitution}
 				title="School/university/training provider name."
 			/>
 			<TextInput
-				placeholder="Degree"
+				label="Degree"
 				bind:value={newDegree}
 				title="Optional. Degree/qualification name."
 			/>
-			<TextInput type="date" bind:value={newStart} title="Start date for this education." />
 			<TextInput
+				label="Start date"
+				type="date"
+				bind:value={newStart}
+				title="Start date for this education."
+			/>
+			<TextInput
+				label="End date"
 				type="date"
 				bind:value={newEnd}
 				title="Optional. End date (leave blank if ongoing)."
 			/>
 			<TextArea
-				placeholder="Description"
+				label="Description"
 				bind:value={newDescription}
 				rows={2}
 				title="Optional. Additional details about the education."
@@ -406,16 +412,30 @@
 						dragging={draggingId === d.id}
 						label="Reorder education entry"
 					/>
-					<TextInput bind:value={d.education_stage} title="Education stage/level." />
-					<TextInput bind:value={d.institution_name} title="Institution name." />
+					<TextInput label="Stage" bind:value={d.education_stage} title="Education stage/level." />
 					<TextInput
-						placeholder="Degree"
+						label="Institution"
+						bind:value={d.institution_name}
+						title="Institution name."
+					/>
+					<TextInput
+						label="Degree"
 						bind:value={d.degree}
 						title="Optional. Degree/qualification name."
 					/>
-					<TextInput type="date" bind:value={d.start_date} title="Start date." />
-					<TextInput type="date" bind:value={d.end_date} title="Optional. End date." />
-					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
+					<TextInput label="Start date" type="date" bind:value={d.start_date} title="Start date." />
+					<TextInput
+						label="End date"
+						type="date"
+						bind:value={d.end_date}
+						title="Optional. End date."
+					/>
+					<TextArea
+						label="Description"
+						bind:value={d.description}
+						rows={2}
+						title="Optional. Description/details."
+					/>
 				</FieldsWrap>
 				<CardActions>
 					{#if isEduDirty(d)}
@@ -454,7 +474,7 @@
 									keyPointDragging.id === kp.id}
 								label="Reorder education key point"
 							/>
-							<TextInput bind:value={kp.key_point} title="Key point text." />
+							<TextInput label="Key point" bind:value={kp.key_point} title="Key point text." />
 							{#if isKeyPointDirty(kp)}
 								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
 							{/if}
@@ -467,7 +487,7 @@
 
 				<FieldsWrap>
 					<TextInput
-						placeholder="Add key point"
+						label="Add key point"
 						title="Add a bullet point for this education entry."
 						value={newKeyPointText[d.id] ?? ''}
 						oninput={(e) =>

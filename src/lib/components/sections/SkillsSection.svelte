@@ -166,11 +166,12 @@
 	<Card variant="new">
 		<FieldsWrap>
 			<TextInput
-				placeholder="Skill name"
+				label="Skill name"
 				bind:value={newSkillName}
 				title="Name of the skill (e.g. Rust, SQL, Communication)."
 			/>
 			<TextInput
+				label="Confidence"
 				small
 				type="number"
 				min={0}
@@ -207,8 +208,9 @@
 						dragging={draggingId === d.id}
 						label="Reorder skill"
 					/>
-					<TextInput bind:value={d.skill_name} title="Skill name." />
+					<TextInput label="Skill name" bind:value={d.skill_name} title="Skill name." />
 					<TextInput
+						label="Confidence"
 						small
 						type="number"
 						min={0}

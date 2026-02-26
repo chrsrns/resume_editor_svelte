@@ -457,24 +457,24 @@
 <SectionShell title="Portfolio" description="Projects with key points and technologies.">
 	<Card variant="new">
 		<FieldsWrap>
-			<TextInput placeholder="Project name" bind:value={newName} title="Project name/title." />
+			<TextInput label="Project name" bind:value={newName} title="Project name/title." />
 			<TextInput
-				placeholder="Image URL"
+				label="Image URL"
 				bind:value={newImage}
 				title="Optional. Link to a preview image for the project."
 			/>
 			<TextInput
-				placeholder="Project link"
+				label="Project link"
 				bind:value={newProjectLink}
 				title="Optional. Link to the live project/demo."
 			/>
 			<TextInput
-				placeholder="Source code link"
+				label="Source code link"
 				bind:value={newSourceLink}
 				title="Optional. Link to the source repository (e.g. GitHub)."
 			/>
 			<TextArea
-				placeholder="Description"
+				label="Description"
 				bind:value={newDescription}
 				rows={2}
 				title="Optional. Short summary of what you built and the impact."
@@ -509,14 +509,28 @@
 						dragging={draggingId === d.id}
 						label="Reorder portfolio project"
 					/>
-					<TextInput bind:value={d.project_name} title="Project name/title." />
-					<TextInput bind:value={d.image_url} title="Optional. Preview image URL." />
-					<TextInput bind:value={d.project_link} title="Optional. Live project/demo link." />
+					<TextInput label="Project name" bind:value={d.project_name} title="Project name/title." />
 					<TextInput
+						label="Image URL"
+						bind:value={d.image_url}
+						title="Optional. Preview image URL."
+					/>
+					<TextInput
+						label="Project link"
+						bind:value={d.project_link}
+						title="Optional. Live project/demo link."
+					/>
+					<TextInput
+						label="Source code link"
 						bind:value={d.source_code_link}
 						title="Optional. Source code repository link."
 					/>
-					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
+					<TextArea
+						label="Description"
+						bind:value={d.description}
+						rows={2}
+						title="Optional. Description/details."
+					/>
 				</FieldsWrap>
 				<CardActions>
 					{#if isProjectDirty(d)}
@@ -555,7 +569,7 @@
 									keyPointDragging.id === kp.id}
 								label="Reorder portfolio key point"
 							/>
-							<TextInput bind:value={kp.key_point} title="Key point text." />
+							<TextInput label="Key point" bind:value={kp.key_point} title="Key point text." />
 							{#if isKeyPointDirty(kp)}
 								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
 							{/if}
@@ -568,7 +582,7 @@
 
 				<FieldsWrap>
 					<TextInput
-						placeholder="Add key point"
+						label="Add key point"
 						title="Add a bullet point about this project."
 						value={newKeyPointText[d.id] ?? ''}
 						oninput={(e) =>
@@ -615,7 +629,11 @@
 									techDragging.id === t.id}
 								label="Reorder portfolio technology"
 							/>
-							<TextInput bind:value={t.technology_name} title="Technology name." />
+							<TextInput
+								label="Technology"
+								bind:value={t.technology_name}
+								title="Technology name."
+							/>
 							{#if isTechDirty(t)}
 								<Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
 							{/if}
@@ -628,7 +646,7 @@
 
 				<FieldsWrap>
 					<TextInput
-						placeholder="Add technology"
+						label="Add technology"
 						title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
 						value={newTechText[d.id] ?? ''}
 						oninput={(e) =>

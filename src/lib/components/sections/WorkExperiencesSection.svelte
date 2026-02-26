@@ -331,19 +331,20 @@
 	<Card variant="new">
 		<FieldsWrap>
 			<TextInput
-				placeholder="Job title"
+				label="Job title"
 				bind:value={newTitle}
 				title="Role/title (e.g. Software Engineer)."
 			/>
-			<TextInput placeholder="Company" bind:value={newCompany} title="Company/organization name." />
-			<TextInput type="date" bind:value={newStart} title="Start date." />
+			<TextInput label="Company" bind:value={newCompany} title="Company/organization name." />
+			<TextInput label="Start date" type="date" bind:value={newStart} title="Start date." />
 			<TextInput
+				label="End date"
 				type="date"
 				bind:value={newEnd}
 				title="Optional. End date (leave blank if current)."
 			/>
 			<TextArea
-				placeholder="Description"
+				label="Description"
 				bind:value={newDescription}
 				rows={2}
 				title="Optional. Summary of responsibilities/impact."
@@ -381,11 +382,21 @@
 						dragging={draggingId === d.id}
 						label="Reorder work experience"
 					/>
-					<TextInput bind:value={d.job_title} title="Job title/role." />
-					<TextInput bind:value={d.company_name} title="Company/organization." />
-					<TextInput type="date" bind:value={d.start_date} title="Start date." />
-					<TextInput type="date" bind:value={d.end_date} title="Optional. End date." />
-					<TextArea bind:value={d.description} rows={2} title="Optional. Description/details." />
+					<TextInput label="Job title" bind:value={d.job_title} title="Job title/role." />
+					<TextInput label="Company" bind:value={d.company_name} title="Company/organization." />
+					<TextInput label="Start date" type="date" bind:value={d.start_date} title="Start date." />
+					<TextInput
+						label="End date"
+						type="date"
+						bind:value={d.end_date}
+						title="Optional. End date."
+					/>
+					<TextArea
+						label="Description"
+						bind:value={d.description}
+						rows={2}
+						title="Optional. Description/details."
+					/>
 				</FieldsWrap>
 				<CardActions>
 					{#if isWorkDirty(d)}
@@ -424,7 +435,7 @@
 									keyPointDragging.id === kp.id}
 								label="Reorder work experience key point"
 							/>
-							<TextInput bind:value={kp.key_point} title="Key point text." />
+							<TextInput label="Key point" bind:value={kp.key_point} title="Key point text." />
 							{#if isKeyPointDirty(kp)}
 								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
 							{/if}
@@ -437,7 +448,7 @@
 
 				<FieldsWrap>
 					<TextInput
-						placeholder="Add key point"
+						label="Add key point"
 						title="Add a bullet point for this work experience."
 						value={newKeyPointText[d.id] ?? ''}
 						oninput={(e) =>

@@ -305,7 +305,7 @@
 	<Card variant="new">
 		<FieldsWrap>
 			<TextInput
-				placeholder="Language"
+				label="Language"
 				bind:value={newLanguageName}
 				title="Programming language name (e.g. TypeScript, Rust)."
 			/>
@@ -340,7 +340,7 @@
 						dragging={draggingId === l.id}
 						label="Reorder language"
 					/>
-					<TextInput bind:value={l.language_name} title="Language name." />
+					<TextInput label="Language" bind:value={l.language_name} title="Language name." />
 				</FieldsWrap>
 				<CardActions>
 					{#if isLanguageDirty(l)}
@@ -351,7 +351,7 @@
 
 				<FieldsWrap>
 					<TextInput
-						placeholder="Add framework"
+						label="Add framework"
 						title="Add a framework/library for this language (e.g. Svelte, Rocket)."
 						value={newFrameworkText[l.id] ?? ''}
 						oninput={(e) =>
@@ -398,7 +398,11 @@
 									frameworkDragging.id === f.id}
 								label="Reorder framework"
 							/>
-							<TextInput bind:value={f.framework_name} title="Framework/library name." />
+							<TextInput
+								label="Framework"
+								bind:value={f.framework_name}
+								title="Framework/library name."
+							/>
 							{#if isFrameworkDirty(f)}
 								<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
 							{/if}
