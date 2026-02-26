@@ -1,7 +1,13 @@
 <script lang="ts">
+	import type { HTMLInputAttributes } from 'svelte/elements';
+
+	type LabelVariant = 'floating' | 'above';
+
 	let {
 		value = $bindable(''),
 		type = 'text',
+		label,
+		labelVariant = 'floating',
 		placeholder,
 		title,
 		min,
@@ -10,23 +16,53 @@
 		oninput,
 		disabled = false,
 		small = false,
-		class: className = ''
-	} = $props<{
-		value?: string;
-		type?: string;
-		placeholder?: string;
-		title?: string;
-		min?: string | number;
-		max?: string | number;
-		step?: string | number;
-		oninput?: (event: Event) => void;
-		disabled?: boolean;
-		small?: boolean;
-		class?: string;
-	}>();
+		class: className = '',
+		...rest
+	} = $props<
+		{
+			value?: string;
+			type?: string;
+			label?: string;
+			labelVariant?: LabelVariant;
+			placeholder?: string;
+			title?: string;
+			min?: string | number;
+			max?: string | number;
+			step?: string | number;
+			oninput?: (event: Event) => void;
+			disabled?: boolean;
+			small?: boolean;
+			class?: string;
+		} & Omit<
+			HTMLInputAttributes,
+			| 'value'
+			| 'type'
+			| 'placeholder'
+			| 'title'
+			| 'min'
+			| 'max'
+			| 'step'
+			| 'oninput'
+			| 'disabled'
+			| 'class'
+		>
+	>();
 
-	function classes() {
+	function inputClasses() {
 		return ['input', small ? 'small' : '', className].filter(Boolean).join(' ');
+	}
+
+	function fieldClasses() {
+		const hasValue = value.trim().length > 0;
+		return [
+			'uiField',
+			labelVariant,
+			small ? 'small' : '',
+			type === 'date' ? 'date' : '',
+			hasValue ? 'hasValue' : ''
+		]
+			.filter(Boolean)
+			.join(' ');
 	}
 
 	function handleInput(event: Event) {
@@ -35,28 +71,130 @@
 	}
 </script>
 
-<input
-	class={classes()}
-	{value}
-	{type}
-	{placeholder}
-	{title}
-	{min}
-	{max}
-	{step}
-	{disabled}
-	oninput={handleInput}
-/>
+{#if label}
+	<label class={fieldClasses()}>
+		{#if labelVariant === 'above'}
+			<span class="label">{label}</span>
+		{/if}
+		<input
+			{...rest}
+			class={inputClasses()}
+			{value}
+			{type}
+			{placeholder}
+			{title}
+			{min}
+			{max}
+			{step}
+			{disabled}
+			oninput={handleInput}
+		/>
+		{#if labelVariant === 'floating'}
+			<span class="label">{label}</span>
+		{/if}
+	</label>
+{:else}
+	<input
+		{...rest}
+		class={inputClasses()}
+		{value}
+		{type}
+		{placeholder}
+		{title}
+		{min}
+		{max}
+		{step}
+		{disabled}
+		oninput={handleInput}
+	/>
+{/if}
 
 <style>
+	.uiField {
+		position: relative;
+		display: flex;
+		width: 100%;
+	}
+
+	.uiField.above {
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.uiField.floating {
+		flex-direction: column;
+	}
+
 	.input {
+		box-sizing: border-box;
 		padding: 10px 12px;
 		border: 1px solid #cbd5e1;
 		border-radius: 8px;
 		background: white;
 	}
 
+	.uiField.floating .input {
+		padding: 18px 12px 8px;
+	}
+
+	.uiField.floating.date .input {
+		padding: 10px 12px;
+	}
+
+	.label {
+		color: #334155;
+	}
+
+	.uiField.above .label {
+		position: static;
+		font-size: 12px;
+	}
+
+	.uiField.floating .label {
+		position: absolute;
+		left: 12px;
+		top: 50%;
+		transform: translateY(-50%);
+		font-size: 13px;
+		pointer-events: none;
+		transition:
+			top 140ms ease,
+			transform 140ms ease,
+			font-size 140ms ease,
+			color 140ms ease,
+			background-color 140ms ease;
+	}
+
+	.uiField.floating.date .label {
+		top: -8px;
+		transform: translateY(0);
+		font-size: 11px;
+		background: white;
+		padding: 0 4px;
+	}
+
+	.uiField.floating.hasValue .label,
+	.uiField.floating:focus-within .label {
+		top: -8px;
+		transform: translateY(0);
+		font-size: 11px;
+		background: white;
+		padding: 0 4px;
+	}
+
+	.uiField.floating:focus-within .label {
+		color: #2563eb;
+	}
+
 	.input.small {
+		padding: 10px 8px;
+	}
+
+	.uiField.floating .input.small {
+		padding: 18px 8px 8px;
+	}
+
+	.uiField.floating.date .input.small {
 		padding: 10px 8px;
 	}
 </style>
