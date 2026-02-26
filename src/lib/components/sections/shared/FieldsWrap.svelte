@@ -35,17 +35,20 @@
 		border-radius: 8px;
 	}
 
-	.fields :global(.input:not(.small)) {
+	.fields > :global(.uiField:not(.small):not(.date)),
+	.fields > :global(.input:not(.small)) {
 		flex: 1 1 240px;
 		min-width: 180px;
 	}
 
-	.fields :global(.input.small) {
+	.fields > :global(.uiField.small),
+	.fields > :global(.input.small) {
 		flex: 0 1 110px;
 		min-width: 90px;
 	}
 
-	.fields :global(input[type='date'].input) {
+	.fields > :global(.uiField.date),
+	.fields > :global(input[type='date'].input) {
 		flex: 0 1 170px;
 		min-width: 150px;
 	}
