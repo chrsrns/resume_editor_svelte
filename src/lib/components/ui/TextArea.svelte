@@ -188,7 +188,7 @@
 	}
 
 	.uiField.floating .textarea {
-		padding: 18px 12px 8px;
+		padding: 10px 12px;
 	}
 
 	.label {
