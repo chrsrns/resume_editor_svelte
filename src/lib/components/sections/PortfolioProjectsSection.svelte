@@ -473,13 +473,13 @@
 				bind:value={newSourceLink}
 				title="Optional. Link to the source repository (e.g. GitHub)."
 			/>
-			<TextArea
-				label="Description"
-				bind:value={newDescription}
-				rows={2}
-				title="Optional. Short summary of what you built and the impact."
-			/>
 		</FieldsWrap>
+		<TextArea
+			label="Description"
+			bind:value={newDescription}
+			rows={2}
+			title="Optional. Short summary of what you built and the impact."
+		/>
 		<CardActions>
 			<Button onclick={handleCreate} disabled={creating || newName.trim().length === 0}>
 				{creating ? 'Adding…' : 'Add project'}
@@ -525,13 +525,13 @@
 						bind:value={d.source_code_link}
 						title="Optional. Source code repository link."
 					/>
-					<TextArea
-						label="Description"
-						bind:value={d.description}
-						rows={2}
-						title="Optional. Description/details."
-					/>
 				</FieldsWrap>
+				<TextArea
+					label="Description"
+					bind:value={d.description}
+					rows={2}
+					title="Optional. Description/details."
+				/>
 				<CardActions>
 					{#if isProjectDirty(d)}
 						<Button onclick={() => handleSave(d)}>Save</Button>

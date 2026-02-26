@@ -370,13 +370,13 @@
 				bind:value={newEnd}
 				title="Optional. End date (leave blank if ongoing)."
 			/>
-			<TextArea
-				label="Description"
-				bind:value={newDescription}
-				rows={2}
-				title="Optional. Additional details about the education."
-			/>
 		</FieldsWrap>
+		<TextArea
+			label="Description"
+			bind:value={newDescription}
+			rows={2}
+			title="Optional. Additional details about the education."
+		/>
 		<CardActions>
 			<Button
 				onclick={handleCreate}
@@ -430,13 +430,13 @@
 						bind:value={d.end_date}
 						title="Optional. End date."
 					/>
-					<TextArea
-						label="Description"
-						bind:value={d.description}
-						rows={2}
-						title="Optional. Description/details."
-					/>
 				</FieldsWrap>
+				<TextArea
+					label="Description"
+					bind:value={d.description}
+					rows={2}
+					title="Optional. Description/details."
+				/>
 				<CardActions>
 					{#if isEduDirty(d)}
 						<Button onclick={() => handleSave(d)}>Save</Button>
