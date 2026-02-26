@@ -4,6 +4,7 @@
 	import { setAuthToken } from '$lib/auth';
 	import { refreshCurrentUser } from '$lib/session';
 	import type { ApiError } from '$lib/api/client';
+	import TextInput from '$lib/components/ui/TextInput.svelte';
 
 	let email = $state('');
 	let password = $state('');
@@ -33,21 +34,15 @@
 <h1>Register</h1>
 
 <form class="form" onsubmit={submit}>
-	<label class="field">
-		<span class="label">Email</span>
-		<input class="input" type="email" bind:value={email} required autocomplete="email" />
-	</label>
+	<TextInput label="Email" type="email" bind:value={email} required autocomplete="email" />
 
-	<label class="field">
-		<span class="label">Password</span>
-		<input
-			class="input"
-			type="password"
-			bind:value={password}
-			required
-			autocomplete="new-password"
-		/>
-	</label>
+	<TextInput
+		label="Password"
+		type="password"
+		bind:value={password}
+		required
+		autocomplete="new-password"
+	/>
 
 	{#if error}
 		<p class="error">{error}</p>
@@ -68,23 +63,6 @@
 		display: grid;
 		gap: 12px;
 		max-width: 420px;
-	}
-
-	.field {
-		display: grid;
-		gap: 6px;
-	}
-
-	.label {
-		font-size: 12px;
-		color: #334155;
-	}
-
-	.input {
-		padding: 10px 12px;
-		border: 1px solid #cbd5e1;
-		border-radius: 8px;
-		background: white;
 	}
 
 	.button {
