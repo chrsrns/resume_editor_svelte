@@ -31,4 +31,10 @@
 		background: #f8fafc;
 		margin-bottom: 12px;
 	}
+
+	.card.new {
+		background: #ffffff;
+		border-color: #94a3b8;
+		border-style: dashed;
+	}
 </style>
