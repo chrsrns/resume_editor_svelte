@@ -4,6 +4,7 @@
 		dragging = false,
 		label = 'Reorder',
 		class: className = '',
+		onclick,
 		ondragstart,
 		ondragend,
 		onkeydown
@@ -12,6 +13,7 @@
 		dragging?: boolean;
 		label?: string;
 		class?: string;
+		onclick?: (e: MouseEvent) => void;
 		ondragstart?: (e: DragEvent) => void;
 		ondragend?: (e: DragEvent) => void;
 		onkeydown?: (e: KeyboardEvent) => void;
@@ -30,6 +32,7 @@
 	tabindex={disabled ? -1 : 0}
 	aria-label={label}
 	draggable={!disabled}
+	{onclick}
 	{ondragstart}
 	{ondragend}
 	{onkeydown}
