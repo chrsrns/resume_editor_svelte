@@ -3,6 +3,7 @@
 		disabled = false,
 		dragging = false,
 		label = 'Reorder',
+		variant = 'default',
 		class: className = '',
 		onclick,
 		ondragstart,
@@ -12,6 +13,7 @@
 		disabled?: boolean;
 		dragging?: boolean;
 		label?: string;
+		variant?: 'default' | 'bare';
 		class?: string;
 		onclick?: (e: MouseEvent) => void;
 		ondragstart?: (e: DragEvent) => void;
@@ -20,7 +22,7 @@
 	}>();
 
 	function classes() {
-		return ['handle', dragging ? 'dragging' : '', disabled ? 'disabled' : '', className]
+		return ['handle', variant, dragging ? 'dragging' : '', disabled ? 'disabled' : '', className]
 			.filter(Boolean)
 			.join(' ');
 	}
@@ -37,7 +39,19 @@
 	{ondragend}
 	{onkeydown}
 >
-	<span class="grip" aria-hidden="true"></span>
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width="20"
+		height="20"
+		fill="currentColor"
+		class="grip"
+		viewBox="0 0 16 16"
+		aria-hidden="true"
+	>
+		<path
+			d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"
+		/>
+	</svg>
 </div>
 
 <style>
@@ -50,9 +64,17 @@
 		border: 1px solid #cbd5e1;
 		border-radius: 8px;
 		background: #ffffff;
+		color: #64748b;
 		cursor: grab;
 		user-select: none;
 		flex: 0 0 auto;
+	}
+
+	.handle.bare {
+		width: 20px;
+		border: none;
+		background: transparent;
+		color: #64748b;
 	}
 
 	.handle:focus-visible {
@@ -71,14 +93,8 @@
 	}
 
 	.grip {
-		width: 14px;
-		height: 14px;
-		background:
-			linear-gradient(#64748b 0 0) left 0 top 2px / 4px 2px no-repeat,
-			linear-gradient(#64748b 0 0) left 0 center / 4px 2px no-repeat,
-			linear-gradient(#64748b 0 0) left 0 bottom 2px / 4px 2px no-repeat,
-			linear-gradient(#64748b 0 0) right 0 top 2px / 4px 2px no-repeat,
-			linear-gradient(#64748b 0 0) right 0 center / 4px 2px no-repeat,
-			linear-gradient(#64748b 0 0) right 0 bottom 2px / 4px 2px no-repeat;
+		width: 20px;
+		height: 20px;
+		display: block;
 	}
 </style>
