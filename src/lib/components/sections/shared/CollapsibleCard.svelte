@@ -10,7 +10,9 @@
 		innerClass = '',
 		ariaLabel = 'Collapsible card',
 		collapsedTitle,
-		collapsed = $bindable(false),
+		collapsed,
+		defaultCollapsed = false,
+		oncollapsedchange,
 		draggable = false,
 		dragDisabled = false,
 		dragging = false,
@@ -29,6 +31,8 @@
 		ariaLabel?: string;
 		collapsedTitle: string;
 		collapsed?: boolean;
+		defaultCollapsed?: boolean;
+		oncollapsedchange?: (next: boolean) => void;
 		draggable?: boolean;
 		dragDisabled?: boolean;
 		dragging?: boolean;
@@ -42,9 +46,31 @@
 		children: import('svelte').Snippet;
 	}>();
 
+	let internalCollapsed = $state(false);
+	let didInitInternal = $state(false);
+	$effect(() => {
+		if (didInitInternal) return;
+		if (isControlled()) return;
+		internalCollapsed = defaultCollapsed;
+		didInitInternal = true;
+	});
+
+	function isControlled(): boolean {
+		return collapsed !== undefined;
+	}
+
+	function currentCollapsed(): boolean {
+		return isControlled() ? (collapsed as boolean) : internalCollapsed;
+	}
+
 	function toggle() {
 		if (draggable && (dragDisabled || dragging)) return;
-		collapsed = !collapsed;
+		const next = !currentCollapsed();
+		if (isControlled()) {
+			oncollapsedchange?.(next);
+		} else {
+			internalCollapsed = next;
+		}
 	}
 
 	function handleHandleKeydown(e: KeyboardEvent) {
@@ -86,16 +112,16 @@
 				<button
 					type="button"
 					class="toggle"
-					aria-label={collapsed ? 'Expand' : 'Collapse'}
+					aria-label={currentCollapsed() ? 'Expand' : 'Collapse'}
 					onclick={toggle}
 				>
-					{collapsed ? '▸' : '▾'}
+					{currentCollapsed() ? '▸' : '▾'}
 				</button>
 			{/if}
 			<strong class="title">{collapsedTitle}</strong>
 		</div>
 
-		{#if !collapsed}
+		{#if !currentCollapsed()}
 			<div class="body">{@render children()}</div>
 		{/if}
 	</div>
