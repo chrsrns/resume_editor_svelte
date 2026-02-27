@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount, untrack } from 'svelte';
+	import { fade, slide } from 'svelte/transition';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 
@@ -46,13 +48,21 @@
 		children: import('svelte').Snippet;
 	}>();
 
-	let internalCollapsed = $state(false);
-	let didInitInternal = $state(false);
-	$effect(() => {
-		if (didInitInternal) return;
-		if (isControlled()) return;
-		internalCollapsed = defaultCollapsed;
-		didInitInternal = true;
+	let internalCollapsed = $state(
+		untrack(() => (collapsed === undefined ? defaultCollapsed : false))
+	);
+	let enableAnimations = $state(false);
+	let prefersReducedMotion = $state(false);
+
+	onMount(() => {
+		enableAnimations = true;
+		const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+		prefersReducedMotion = mql.matches;
+		const onChange = (e: MediaQueryListEvent) => {
+			prefersReducedMotion = e.matches;
+		};
+		mql.addEventListener('change', onChange);
+		return () => mql.removeEventListener('change', onChange);
 	});
 
 	function isControlled(): boolean {
@@ -71,6 +81,18 @@
 		} else {
 			internalCollapsed = next;
 		}
+	}
+
+	function slideDurationMs(): number {
+		if (!enableAnimations) return 0;
+		if (prefersReducedMotion) return 0;
+		return 180;
+	}
+
+	function fadeDurationMs(): number {
+		if (!enableAnimations) return 0;
+		if (prefersReducedMotion) return 0;
+		return 120;
 	}
 
 	function handleHandleKeydown(e: KeyboardEvent) {
@@ -122,7 +144,11 @@
 		</div>
 
 		{#if !currentCollapsed()}
-			<div class="body">{@render children()}</div>
+			<div class="bodyWrap" transition:slide={{ duration: slideDurationMs() }}>
+				<div class="body" transition:fade={{ duration: fadeDurationMs() }}>
+					{@render children()}
+				</div>
+			</div>
 		{/if}
 	</div>
 </Card>
@@ -174,5 +200,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
+	}
+
+	.bodyWrap {
+		overflow: hidden;
 	}
 </style>
