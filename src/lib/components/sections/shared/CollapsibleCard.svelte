@@ -107,51 +107,108 @@
 	function innerClasses() {
 		return ['collapsible', innerClass].filter(Boolean).join(' ');
 	}
+
+	let dragPreviewRoot: HTMLDivElement | null = $state(null);
+	let dragImageEl: HTMLElement | null = $state(null);
+
+	function dragPreviewRootAttachment(node: HTMLDivElement) {
+		dragPreviewRoot = node;
+		return () => {
+			if (dragPreviewRoot === node) dragPreviewRoot = null;
+		};
+	}
+
+	function cleanupDragImage() {
+		dragImageEl?.remove();
+		dragImageEl = null;
+	}
+
+	function handleDragStart(e: DragEvent) {
+		cleanupDragImage();
+		if (!draggable || dragDisabled) {
+			ondragstart?.(e);
+			return;
+		}
+		if (!e.dataTransfer || !dragPreviewRoot) {
+			ondragstart?.(e);
+			return;
+		}
+
+		const rect = dragPreviewRoot.getBoundingClientRect();
+		const clone = dragPreviewRoot.cloneNode(true) as HTMLElement;
+		clone.style.width = `${rect.width}px`;
+		clone.style.height = `${rect.height}px`;
+		clone.style.position = 'fixed';
+		clone.style.top = '-10000px';
+		clone.style.left = '-10000px';
+		clone.style.pointerEvents = 'none';
+		clone.style.zIndex = '2147483647';
+		document.body.appendChild(clone);
+		dragImageEl = clone;
+
+		const hasPointerCoords = e.clientX !== 0 || e.clientY !== 0;
+		const offsetX = hasPointerCoords
+			? Math.max(0, Math.min(rect.width, e.clientX - rect.left))
+			: 16;
+		const offsetY = hasPointerCoords
+			? Math.max(0, Math.min(rect.height, e.clientY - rect.top))
+			: 16;
+
+		e.dataTransfer.setDragImage(clone, offsetX, offsetY);
+		ondragstart?.(e);
+	}
+
+	function handleDragEnd(e: DragEvent) {
+		cleanupDragImage();
+		ondragend?.(e);
+	}
 </script>
 
-<Card {variant} class={className}>
-	<div
-		class={innerClasses()}
-		role="group"
-		aria-label={ariaLabel}
-		class:dropOver
-		{ondragover}
-		{ondrop}
-	>
-		<div class="header">
-			{#if draggable}
-				<DragHandle
-					disabled={dragDisabled}
-					{dragging}
-					label={dragLabel}
-					variant="bare"
-					onclick={toggle}
-					{ondragstart}
-					{ondragend}
-					onkeydown={handleHandleKeydown}
-				/>
-			{:else}
-				<button
-					type="button"
-					class="toggle"
-					aria-label={currentCollapsed() ? 'Expand' : 'Collapse'}
-					onclick={toggle}
-				>
-					{currentCollapsed() ? '▸' : '▾'}
-				</button>
-			{/if}
-			<strong class="title">{collapsedTitle}</strong>
-		</div>
-
-		{#if !currentCollapsed()}
-			<div class="bodyWrap" transition:slide={{ duration: slideDurationMs() }}>
-				<div class="body" transition:fade={{ duration: fadeDurationMs() }}>
-					{@render children()}
-				</div>
+<div {@attach dragPreviewRootAttachment}>
+	<Card {variant} class={className}>
+		<div
+			class={innerClasses()}
+			role="group"
+			aria-label={ariaLabel}
+			class:dropOver
+			{ondragover}
+			{ondrop}
+		>
+			<div class="header">
+				{#if draggable}
+					<DragHandle
+						disabled={dragDisabled}
+						{dragging}
+						label={dragLabel}
+						variant="bare"
+						onclick={toggle}
+						ondragstart={handleDragStart}
+						ondragend={handleDragEnd}
+						onkeydown={handleHandleKeydown}
+					/>
+				{:else}
+					<button
+						type="button"
+						class="toggle"
+						aria-label={currentCollapsed() ? 'Expand' : 'Collapse'}
+						onclick={toggle}
+					>
+						{currentCollapsed() ? '▸' : '▾'}
+					</button>
+				{/if}
+				<strong class="title">{collapsedTitle}</strong>
 			</div>
-		{/if}
-	</div>
-</Card>
+
+			{#if !currentCollapsed()}
+				<div class="bodyWrap" transition:slide={{ duration: slideDurationMs() }}>
+					<div class="body" transition:fade={{ duration: fadeDurationMs() }}>
+						{@render children()}
+					</div>
+				</div>
+			{/if}
+		</div>
+	</Card>
+</div>
 
 <style>
 	.collapsible {
