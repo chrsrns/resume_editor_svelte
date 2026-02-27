@@ -3,7 +3,7 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
-	import CardWithInner from '$lib/components/sections/shared/CardWithInner.svelte';
+	import CollapsibleCard from '$lib/components/sections/shared/CollapsibleCard.svelte';
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
@@ -397,21 +397,24 @@
 		emptyText="No education entries yet."
 	>
 		{#each drafts as d (d.id)}
-			<CardWithInner
+			<CollapsibleCard
 				ariaLabel="Education entry"
+				collapsedTitle={[d.education_stage, d.institution_name]
+					.map((x) => x.trim())
+					.filter(Boolean)
+					.join(' — ')}
+				draggable
+				dragDisabled={loading || reordering}
+				dragging={draggingId === d.id}
+				dragLabel="Reorder education entry"
+				ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+				ondragend={() => dragReorder.handleDragEnd()}
+				onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
 				dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
 				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
 				<FieldsWrap>
-					<DragHandle
-						ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
-						ondragend={() => dragReorder.handleDragEnd()}
-						onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
-						disabled={loading || reordering}
-						dragging={draggingId === d.id}
-						label="Reorder education entry"
-					/>
 					<TextInput label="Stage" bind:value={d.education_stage} title="Education stage/level." />
 					<TextInput
 						label="Institution"
@@ -503,7 +506,7 @@
 						Add
 					</Button>
 				</FieldsWrap>
-			</CardWithInner>
+			</CollapsibleCard>
 		{/each}
 	</SectionMessage>
 </SectionShell>

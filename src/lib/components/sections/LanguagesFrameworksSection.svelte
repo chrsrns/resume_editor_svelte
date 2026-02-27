@@ -3,7 +3,7 @@
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
 	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
-	import CardWithInner from '$lib/components/sections/shared/CardWithInner.svelte';
+	import CollapsibleCard from '$lib/components/sections/shared/CollapsibleCard.svelte';
 	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
@@ -325,21 +325,21 @@
 		emptyText="No languages yet."
 	>
 		{#each languages as l (l.id)}
-			<CardWithInner
+			<CollapsibleCard
 				ariaLabel="Language"
+				collapsedTitle={l.language_name.trim()}
+				draggable
+				dragDisabled={loading || reordering}
+				dragging={draggingId === l.id}
+				dragLabel="Reorder language"
+				ondragstart={(e) => dragReorder.handleDragStart(l.id, e)}
+				ondragend={() => dragReorder.handleDragEnd()}
+				onkeydown={(e) => dragReorder.handleHandleKeydown(l.id, e)}
 				dropOver={draggingId != null && dragOverId === l.id && draggingId !== l.id}
 				ondragover={(e) => dragReorder.handleDragOver(l.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(l.id, e)}
 			>
 				<FieldsWrap>
-					<DragHandle
-						ondragstart={(e) => dragReorder.handleDragStart(l.id, e)}
-						ondragend={() => dragReorder.handleDragEnd()}
-						onkeydown={(e) => dragReorder.handleHandleKeydown(l.id, e)}
-						disabled={loading || reordering}
-						dragging={draggingId === l.id}
-						label="Reorder language"
-					/>
 					<TextInput label="Language" bind:value={l.language_name} title="Language name." />
 				</FieldsWrap>
 				<CardActions>
@@ -412,7 +412,7 @@
 						</FieldsWrap>
 					{/each}
 				</NestedList>
-			</CardWithInner>
+			</CollapsibleCard>
 		{/each}
 	</SectionMessage>
 </SectionShell>
