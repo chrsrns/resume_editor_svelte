@@ -61,6 +61,7 @@
 	let error = $state<string | null>(null);
 	let drafts = $state<EducationDraft[]>([]);
 	let savedEduSigById = $state<Record<number, string>>({});
+	let collapsedById = $state<Record<number, boolean>>({});
 	let keyPoints = $state<Record<number, KeyPointDraft[]>>({});
 	let keyPointLoading = $state<Record<number, boolean>>({});
 	let savedKeyPointSigById = $state<Record<number, string>>({});
@@ -196,6 +197,7 @@
 			const ds = sorted.map(toDraft);
 			drafts = ds;
 			savedEduSigById = Object.fromEntries(ds.map((d) => [d.id, sigEdu(d)]));
+			collapsedById = Object.fromEntries(ds.map((d) => [d.id, collapsedById[d.id] ?? true]));
 			const newMap: Record<number, KeyPointDraft[]> = {};
 			for (const e of items) {
 				newMap[e.id] = [];
@@ -403,6 +405,8 @@
 					.map((x) => x.trim())
 					.filter(Boolean)
 					.join(' — ')}
+				collapsed={collapsedById[d.id] ?? true}
+				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
 				draggable
 				dragDisabled={loading || reordering}
 				dragging={draggingId === d.id}

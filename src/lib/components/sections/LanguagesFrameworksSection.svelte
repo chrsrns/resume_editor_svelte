@@ -57,6 +57,7 @@
 	let error = $state<string | null>(null);
 	let languages = $state<LanguageDraft[]>([]);
 	let savedLangSigById = $state<Record<number, string>>({});
+	let collapsedById = $state<Record<number, boolean>>({});
 	let draggingId = $state<number | null>(null);
 	let dragOverId = $state<number | null>(null);
 	let reordering = $state(false);
@@ -172,6 +173,7 @@
 			const ds = sorted.map(toLanguageDraft);
 			languages = ds;
 			savedLangSigById = Object.fromEntries(ds.map((d) => [d.id, sigLanguage(d)]));
+			collapsedById = Object.fromEntries(ds.map((d) => [d.id, collapsedById[d.id] ?? true]));
 
 			const map: Record<number, FrameworkDraft[]> = {};
 			for (const l of sorted) map[l.id] = [];
@@ -328,6 +330,8 @@
 			<CollapsibleCard
 				ariaLabel="Language"
 				collapsedTitle={l.language_name.trim()}
+				collapsed={collapsedById[l.id] ?? true}
+				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [l.id]: next })}
 				draggable
 				dragDisabled={loading || reordering}
 				dragging={draggingId === l.id}

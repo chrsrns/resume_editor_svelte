@@ -64,6 +64,7 @@
 	let error = $state<string | null>(null);
 	let drafts = $state<ProjectDraft[]>([]);
 	let savedProjectSigById = $state<Record<number, string>>({});
+	let collapsedById = $state<Record<number, boolean>>({});
 	let draggingId = $state<number | null>(null);
 	let dragOverId = $state<number | null>(null);
 	let reordering = $state(false);
@@ -245,6 +246,7 @@
 			const ds = sorted.map(toDraft);
 			drafts = ds;
 			savedProjectSigById = Object.fromEntries(ds.map((d) => [d.id, sigProject(d)]));
+			collapsedById = Object.fromEntries(ds.map((d) => [d.id, collapsedById[d.id] ?? true]));
 			const kpMap: Record<number, KeyPointDraft[]> = {};
 			const techMap: Record<number, TechDraft[]> = {};
 			for (const p of sorted) {
@@ -497,6 +499,8 @@
 			<CollapsibleCard
 				ariaLabel="Portfolio project"
 				collapsedTitle={d.project_name.trim()}
+				collapsed={collapsedById[d.id] ?? true}
+				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
 				draggable
 				dragDisabled={loading || reordering}
 				dragging={draggingId === d.id}

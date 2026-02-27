@@ -30,6 +30,7 @@
 	let error = $state<string | null>(null);
 	let drafts = $state<SkillDraft[]>([]);
 	let savedSigById = $state<Record<number, string>>({});
+	let collapsedById = $state<Record<number, boolean>>({});
 	let draggingId = $state<number | null>(null);
 	let dragOverId = $state<number | null>(null);
 	let reordering = $state(false);
@@ -91,6 +92,7 @@
 			const ds = sorted.map(toDraft);
 			drafts = ds;
 			savedSigById = Object.fromEntries(ds.map((d) => [d.id, sig(d)]));
+			collapsedById = Object.fromEntries(ds.map((d) => [d.id, collapsedById[d.id] ?? true]));
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -195,6 +197,8 @@
 			<CollapsibleCard
 				ariaLabel="Skill"
 				collapsedTitle={d.skill_name.trim()}
+				collapsed={collapsedById[d.id] ?? true}
+				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
 				draggable
 				dragDisabled={loading || reordering}
 				dragging={draggingId === d.id}
