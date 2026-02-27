@@ -76,6 +76,7 @@
 					disabled={dragDisabled}
 					{dragging}
 					label={dragLabel}
+					variant="bare"
 					onclick={toggle}
 					{ondragstart}
 					{ondragend}
