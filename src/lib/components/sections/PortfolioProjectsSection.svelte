@@ -512,7 +512,7 @@
 				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
-				<FieldsWrap>
+				<FieldsWrap style="padding-top: 6px;">
 					<TextInput label="Project name" bind:value={d.project_name} title="Project name/title." />
 					<TextInput
 						label="Image URL"

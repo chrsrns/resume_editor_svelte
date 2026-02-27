@@ -210,7 +210,7 @@
 				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
-				<FieldsWrap>
+				<FieldsWrap style="padding-top: 6px;">
 					<TextInput label="Skill name" bind:value={d.skill_name} title="Skill name." />
 					<TextInput
 						label="Confidence"

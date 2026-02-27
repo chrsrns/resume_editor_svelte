@@ -343,7 +343,7 @@
 				ondragover={(e) => dragReorder.handleDragOver(l.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(l.id, e)}
 			>
-				<FieldsWrap>
+				<FieldsWrap style="padding-top: 6px;">
 					<TextInput label="Language" bind:value={l.language_name} title="Language name." />
 				</FieldsWrap>
 				<CardActions>
