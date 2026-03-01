@@ -196,7 +196,9 @@
 						{currentCollapsed() ? '▸' : '▾'}
 					</button>
 				{/if}
-				<strong class="title">{collapsedTitle}</strong>
+				<button type="button" class="title" onclick={toggle}>
+					{collapsedTitle}
+				</button>
 			</div>
 
 			{#if !currentCollapsed()}
@@ -230,7 +232,13 @@
 
 	.title {
 		font-size: 14px;
+		font-weight: 600;
 		margin: 0;
+		padding: 0;
+		border: none;
+		background: transparent;
+		cursor: pointer;
+		text-align: left;
 	}
 
 	.toggle {
