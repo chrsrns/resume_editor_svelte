@@ -170,6 +170,11 @@
 				label="Skill name"
 				bind:value={newSkillName}
 				title="Name of the skill (e.g. Rust, SQL, Communication)."
+				onkeydown={(e) => {
+					if (e.key === 'Enter' && newSkillName.trim().length > 0) {
+						handleCreate();
+					}
+				}}
 			/>
 			<TextInput
 				label="Confidence"
@@ -180,6 +185,11 @@
 				step={1}
 				bind:value={newConfidence}
 				title="Confidence level (0–100)."
+				onkeydown={(e) => {
+					if (e.key === 'Enter' && newSkillName.trim().length > 0) {
+						handleCreate();
+					}
+				}}
 			/>
 			<Button onclick={handleCreate} disabled={creating || newSkillName.trim().length === 0}>
 				{creating ? 'Adding…' : 'Add'}
@@ -211,7 +221,16 @@
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
 				<FieldsWrap style="padding-top: 6px;">
-					<TextInput label="Skill name" bind:value={d.skill_name} title="Skill name." />
+					<TextInput
+						label="Skill name"
+						bind:value={d.skill_name}
+						title="Skill name."
+						onkeydown={(e) => {
+							if (e.key === 'Enter' && d.skill_name.trim().length > 0) {
+								handleSave(d);
+							}
+						}}
+					/>
 					<TextInput
 						label="Confidence"
 						small
@@ -221,6 +240,11 @@
 						step={1}
 						bind:value={d.confidence_percentage}
 						title="Confidence level (0–100)."
+						onkeydown={(e) => {
+							if (e.key === 'Enter' && d.skill_name.trim().length > 0) {
+								handleSave(d);
+							}
+						}}
 					/>
 					{#if isDirty(d)}
 						<Button onclick={() => handleSave(d)}>Save</Button>

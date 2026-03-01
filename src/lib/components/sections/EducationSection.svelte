@@ -481,7 +481,16 @@
 									keyPointDragging.id === kp.id}
 								label="Reorder education key point"
 							/>
-							<TextInput label="Key point" bind:value={kp.key_point} title="Key point text." />
+							<TextInput
+								label="Key point"
+								bind:value={kp.key_point}
+								title="Key point text."
+								onkeydown={(e) => {
+									if (e.key === 'Enter' && (kp.key_point ?? '').trim().length > 0) {
+										handleSaveKeyPoint(d.id, kp);
+									}
+								}}
+							/>
 							{#if isKeyPointDirty(kp)}
 								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
 							{/if}
@@ -502,6 +511,11 @@
 								...newKeyPointText,
 								[d.id]: (e.target as HTMLInputElement).value
 							})}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' && (newKeyPointText[d.id] ?? '').trim().length > 0) {
+								handleAddKeyPoint(d.id);
+							}
+						}}
 					/>
 					<Button
 						onclick={() => handleAddKeyPoint(d.id)}

@@ -310,6 +310,11 @@
 				label="Language"
 				bind:value={newLanguageName}
 				title="Programming language name (e.g. TypeScript, Rust)."
+				onkeydown={(e) => {
+					if (e.key === 'Enter' && newLanguageName.trim().length > 0) {
+						handleCreateLanguage();
+					}
+				}}
 			/>
 			<Button
 				onclick={handleCreateLanguage}
@@ -344,7 +349,16 @@
 				ondrop={(e) => dragReorder.handleDrop(l.id, e)}
 			>
 				<FieldsWrap style="padding-top: 6px;">
-					<TextInput label="Language" bind:value={l.language_name} title="Language name." />
+					<TextInput
+						label="Language"
+						bind:value={l.language_name}
+						title="Language name."
+						onkeydown={(e) => {
+							if (e.key === 'Enter' && l.language_name.trim().length > 0) {
+								handleSaveLanguage(l);
+							}
+						}}
+					/>
 				</FieldsWrap>
 				<CardActions>
 					{#if isLanguageDirty(l)}
@@ -363,6 +377,11 @@
 								...newFrameworkText,
 								[l.id]: (e.target as HTMLInputElement).value
 							})}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' && (newFrameworkText[l.id] ?? '').trim().length > 0) {
+								handleCreateFramework(l.id);
+							}
+						}}
 					/>
 					<Button
 						onclick={() => handleCreateFramework(l.id)}
@@ -406,6 +425,11 @@
 								label="Framework"
 								bind:value={f.framework_name}
 								title="Framework/library name."
+								onkeydown={(e) => {
+									if (e.key === 'Enter' && f.framework_name.trim().length > 0) {
+										handleSaveFramework(l.id, f);
+									}
+								}}
 							/>
 							{#if isFrameworkDirty(f)}
 								<Button onclick={() => handleSaveFramework(l.id, f)}>Save</Button>
