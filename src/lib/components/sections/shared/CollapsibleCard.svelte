@@ -241,6 +241,12 @@
 		text-align: left;
 	}
 
+	.title:focus-visible {
+		outline: 2px solid #0f172a;
+		outline-offset: 6px;
+		border-radius: 6px;
+	}
+
 	.toggle {
 		width: 30px;
 		height: 30px;
