@@ -2,14 +2,14 @@
 	import { onMount } from 'svelte';
 	import SectionShell from '$lib/components/sections/SectionShell.svelte';
 	import Card from '$lib/components/sections/shared/Card.svelte';
-	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
-	import CollapsibleCard from '$lib/components/sections/shared/CollapsibleCard.svelte';
+	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
 	import {
 		byDisplayOrder,
 		createCardDragReorder,
 		createDisplayOrderReorder
 	} from '$lib/components/sections/shared/displayOrderReorder';
 	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
+	import NestedList from '$lib/components/sections/shared/NestedList.svelte';
 	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
 	import { createSkill, deleteSkill, listSkills, updateSkill } from '$lib/api/skills';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -30,7 +30,6 @@
 	let error = $state<string | null>(null);
 	let drafts = $state<SkillDraft[]>([]);
 	let savedSigById = $state<Record<number, string>>({});
-	let collapsedById = $state<Record<number, boolean>>({});
 	let draggingId = $state<number | null>(null);
 	let dragOverId = $state<number | null>(null);
 	let reordering = $state(false);
@@ -92,7 +91,6 @@
 			const ds = sorted.map(toDraft);
 			drafts = ds;
 			savedSigById = Object.fromEntries(ds.map((d) => [d.id, sig(d)]));
-			collapsedById = Object.fromEntries(ds.map((d) => [d.id, collapsedById[d.id] ?? true]));
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -197,30 +195,29 @@
 		</FieldsWrap>
 	</Card>
 
-	<SectionMessage
-		{error}
-		{loading}
-		empty={!loading && drafts.length === 0}
-		emptyText="No skills yet."
-	>
-		{#each drafts as d (d.id)}
-			<CollapsibleCard
-				ariaLabel="Skill"
-				collapsedTitle={d.skill_name.trim()}
-				collapsed={collapsedById[d.id] ?? true}
-				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
-				draggable
-				dragDisabled={loading || reordering}
-				dragging={draggingId === d.id}
-				dragLabel="Reorder skill"
-				ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
-				ondragend={() => dragReorder.handleDragEnd()}
-				onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
-				dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
-				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
-				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
-			>
-				<FieldsWrap style="padding-top: 6px;">
+	<SectionMessage {error} {loading} empty={false}>
+		<NestedList
+			title="Skills"
+			loading={false}
+			empty={drafts.length === 0}
+			emptyText="No skills yet."
+		>
+			{#each drafts as d (d.id)}
+				<FieldsWrap
+					role="group"
+					aria-label="Skill"
+					class={draggingId != null && dragOverId === d.id && draggingId !== d.id ? 'dropOver' : ''}
+					ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
+					ondrop={(e) => dragReorder.handleDrop(d.id, e)}
+				>
+					<DragHandle
+						ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+						ondragend={() => dragReorder.handleDragEnd()}
+						onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
+						disabled={loading || reordering}
+						dragging={draggingId === d.id}
+						label="Reorder skill"
+					/>
 					<TextInput
 						label="Skill name"
 						bind:value={d.skill_name}
@@ -251,7 +248,7 @@
 					{/if}
 					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
 				</FieldsWrap>
-			</CollapsibleCard>
-		{/each}
+			{/each}
+		</NestedList>
 	</SectionMessage>
 </SectionShell>
