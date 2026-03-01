@@ -165,7 +165,7 @@
 </script>
 
 <div {@attach dragPreviewRootAttachment}>
-	<Card {variant} class={className}>
+	<Card {variant} class={className + ' no-padding'}>
 		<div
 			class={innerClasses()}
 			role="group"
@@ -228,6 +228,7 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
+		padding: 12px 12px 0;
 	}
 
 	.title {
@@ -271,6 +272,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
+		padding: 0 12px 12px;
 	}
 
 	.bodyWrap {
