@@ -1,5 +1,5 @@
 <script lang="ts">
-	type Variant = 'card' | 'new';
+	type Variant = 'card' | 'new' | 'no-padding';
 
 	let {
 		variant = 'card',
@@ -36,5 +36,9 @@
 		background: #ffffff;
 		border-color: #94a3b8;
 		border-style: dashed;
+	}
+
+	.card.no-padding {
+		padding: 0;
 	}
 </style>
