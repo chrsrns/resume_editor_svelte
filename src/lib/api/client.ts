@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
 import { authToken, clearAuthToken } from '$lib/auth';
-import type { ApiResponse, ApiResponseBody, ApiResponseBodyKey, ApiResponseBodyValue } from '$lib/types';
+import type { ApiResponse } from '$lib/types';
 
 const DEFAULT_API_BASE_URL = '/api';
 
@@ -19,31 +19,23 @@ export class ApiError extends Error {
     }
 }
 
-export function unwrapBody<K extends ApiResponseBodyKey>(
-    body: ApiResponseBody,
-    key: K
-): ApiResponseBodyValue<K> {
-    if (key in body) return (body as unknown as Record<K, ApiResponseBodyValue<K>>)[key];
-    throw new ApiError(500, 'Unexpected response shape');
-}
-
-async function parseJsonResponse(res: Response): Promise<ApiResponse> {
+async function parseJsonResponse<T>(res: Response): Promise<ApiResponse<T>> {
     const text = await res.text();
     try {
-        return JSON.parse(text) as ApiResponse;
+        return JSON.parse(text) as ApiResponse<T>;
     } catch {
         throw new ApiError(res.status, 'Failed to parse response', text);
     }
 }
 
-export async function apiRequest(
+export async function apiRequest<T = unknown>(
     path: string,
     options: {
         method?: string;
         body?: unknown;
         auth?: boolean;
     } = {}
-): Promise<{ res: Response; body?: ApiResponseBody }> {
+): Promise<{ res: Response; body?: T }> {
     const url = `${getApiBaseUrl()}${path}`;
     const token = get(authToken);
 
@@ -69,7 +61,7 @@ export async function apiRequest(
         return { res };
     }
 
-    const parsed = await parseJsonResponse(res);
+    const parsed = await parseJsonResponse<T>(res);
     const body = parsed.body;
 
     if (res.status === 401 && options.auth) {
@@ -77,9 +69,10 @@ export async function apiRequest(
     }
 
     if (!res.ok) {
-        if ('Message' in body) {
-            throw new ApiError(res.status, body.Message);
+        if (typeof body === 'string') {
+            throw new ApiError(res.status, body);
         }
+
         throw new ApiError(res.status, 'Request failed');
     }
 

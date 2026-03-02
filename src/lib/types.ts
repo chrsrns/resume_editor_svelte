@@ -1,66 +1,6 @@
-export type ApiResponse = {
-    body: ApiResponseBody;
+export type ApiResponse<T> = {
+    body: T;
 };
-
-export type ApiResponseBody =
-    | { Message: string }
-    | { Resume: Resume }
-    | { Resumes: Resume[] }
-    | { Skill: Skill }
-    | { Skills: Skill[] }
-    | { Language: Language }
-    | { Languages: Language[] }
-    | { Framework: Framework }
-    | { Frameworks: Framework[] }
-    | { Education: Education }
-    | { Educations: Education[] }
-    | { EducationKeyPoint: EducationKeyPoint }
-    | { EducationKeyPoints: EducationKeyPoint[] }
-    | { WorkExperience: WorkExperience }
-    | { WorkExperiences: WorkExperience[] }
-    | { WorkExperienceKeyPoint: WorkExperienceKeyPoint }
-    | { WorkExperienceKeyPoints: WorkExperienceKeyPoint[] }
-    | { PortfolioProject: PortfolioProject }
-    | { PortfolioProjects: PortfolioProject[] }
-    | { PortfolioKeyPoint: PortfolioKeyPoint }
-    | { PortfolioKeyPoints: PortfolioKeyPoint[] }
-    | { PortfolioTechnology: PortfolioTechnology }
-    | { PortfolioTechnologies: PortfolioTechnology[] }
-    | { User: User }
-    | { AuthToken: AuthTokenResponse };
-
-export type ApiResponseBodyKey = keyof ({
-    Message: string;
-    Resume: Resume;
-    Resumes: Resume[];
-    Skill: Skill;
-    Skills: Skill[];
-    Language: Language;
-    Languages: Language[];
-    Framework: Framework;
-    Frameworks: Framework[];
-    Education: Education;
-    Educations: Education[];
-    EducationKeyPoint: EducationKeyPoint;
-    EducationKeyPoints: EducationKeyPoint[];
-    WorkExperience: WorkExperience;
-    WorkExperiences: WorkExperience[];
-    WorkExperienceKeyPoint: WorkExperienceKeyPoint;
-    WorkExperienceKeyPoints: WorkExperienceKeyPoint[];
-    PortfolioProject: PortfolioProject;
-    PortfolioProjects: PortfolioProject[];
-    PortfolioKeyPoint: PortfolioKeyPoint;
-    PortfolioKeyPoints: PortfolioKeyPoint[];
-    PortfolioTechnology: PortfolioTechnology;
-    PortfolioTechnologies: PortfolioTechnology[];
-    User: User;
-    AuthToken: AuthTokenResponse;
-});
-
-export type ApiResponseBodyValue<K extends ApiResponseBodyKey> = Extract<
-    ApiResponseBody,
-    Record<K, unknown>
->[K];
 
 export type AuthTokenResponse = {
     token: string;
