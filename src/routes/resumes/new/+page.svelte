@@ -32,6 +32,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>New resume - Resume Editor</title>
+</svelte:head>
+
 <h1>New resume</h1>
 
 {#if error}

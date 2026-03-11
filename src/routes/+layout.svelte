@@ -27,6 +27,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<title>Resume Editor</title>
 </svelte:head>
 
 <div class="shell">

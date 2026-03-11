@@ -28,6 +28,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Resumes - Resume Editor</title>
+</svelte:head>
+
 <div class="header">
 	<div>
 		<h1>Resumes</h1>

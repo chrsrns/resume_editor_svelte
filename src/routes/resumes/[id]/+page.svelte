@@ -29,6 +29,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{resume?.name} - Resume Editor</title>
+</svelte:head>
+
 {#if loading}
 	<p>Loading…</p>
 {:else if error}
