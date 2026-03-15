@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { login } from '$lib/api/auth';
 	import { setAuthToken } from '$lib/auth';
 	import { refreshCurrentUser } from '$lib/session';
@@ -20,7 +21,7 @@
 			const token = await login({ email, password });
 			setAuthToken(token.token);
 			await refreshCurrentUser();
-			await goto('/resumes');
+			await goto(`${base}/resumes`);
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -54,7 +55,7 @@
 
 <p class="muted">
 	No account?
-	<a href="/auth/register">Register</a>
+	<a href={`${base}/auth/register`}>Register</a>
 </p>
 
 <style>

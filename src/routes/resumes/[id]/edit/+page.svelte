@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import { base } from '$app/paths';
 	import { deleteResume, getResume, updateResume } from '$lib/api/resumes';
 	import type { ApiError } from '$lib/api/client';
 	import ResumeForm from '$lib/components/ResumeForm.svelte';
@@ -116,7 +117,7 @@
 
 	onMount(() => {
 		if (!$authToken) {
-			void goto('/auth/login');
+			void goto(`${base}/auth/login`);
 			return;
 		}
 		void load();
@@ -128,7 +129,7 @@
 		saving = true;
 		try {
 			const updated = await updateResume(resume.id, payload);
-			await goto(`/resumes/${updated.id}`);
+			await goto(`${base}/resumes/${updated.id}`);
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -146,7 +147,7 @@
 		deleting = true;
 		try {
 			await deleteResume(resume.id);
-			await goto('/resumes');
+			await goto(`${base}/resumes`);
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -171,7 +172,7 @@
 			<p class="muted">{resume.name}</p>
 		</div>
 		<div class="actions">
-			<a class="button secondary" href={`/resumes/${resume.id}`}>Cancel</a>
+			<a class="button secondary" href={`${base}/resumes/${resume.id}`}>Cancel</a>
 			<button class="button danger" type="button" onclick={handleDelete} disabled={deleting}>
 				{deleting ? 'Deleting…' : 'Delete'}
 			</button>

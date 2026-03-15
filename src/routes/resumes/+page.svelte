@@ -3,6 +3,7 @@
 	import { listResumes } from '$lib/api/resumes';
 	import type { ApiError } from '$lib/api/client';
 	import type { Resume } from '$lib/types';
+	import { base } from '$app/paths';
 	import { authToken } from '$lib/auth';
 	import { currentUser } from '$lib/session';
 
@@ -39,9 +40,9 @@
 	</div>
 	<div class="actions">
 		{#if $authToken}
-			<a class="button" href="/resumes/new">New resume</a>
+			<a class="button" href={`${base}/resumes/new`}>New resume</a>
 		{:else}
-			<a class="button" href="/auth/login">Login to create</a>
+			<a class="button" href={`${base}/auth/login`}>Login to create</a>
 		{/if}
 	</div>
 </div>
@@ -56,7 +57,7 @@
 	<ul class="list">
 		{#each resumes as r}
 			<li class="item">
-				<a class="itemLink" href={`/resumes/${r.id}`}>
+				<a class="itemLink" href={`${base}/resumes/${r.id}`}>
 					<div class="titleRow">
 						<strong>{r.name}</strong>
 						{#if r.is_public}

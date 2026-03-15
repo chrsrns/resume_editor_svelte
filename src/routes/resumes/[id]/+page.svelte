@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import { base } from '$app/paths';
 	import { getResume } from '$lib/api/resumes';
 	import type { ApiError } from '$lib/api/client';
 	import type { Resume } from '$lib/types';
@@ -45,9 +46,9 @@
 		</div>
 		<div class="actions">
 			{#if $currentUser && resume.created_by === $currentUser.id}
-				<a class="button" href={`/resumes/${resume.id}/edit`}>Edit</a>
+				<a class="button" href={`${base}/resumes/${resume.id}/edit`}>Edit</a>
 			{/if}
-			<a class="button secondary" href="/resumes">Back</a>
+			<a class="button secondary" href={`${base}/resumes`}>Back</a>
 		</div>
 	</div>
 
