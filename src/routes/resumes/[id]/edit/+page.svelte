@@ -280,6 +280,12 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 16px;
+		margin-top: 2.5rem;
+		margin-bottom: 1rem;
+	}
+
+	h1 {
+		margin: 0;
 	}
 
 	.actions {
@@ -327,8 +333,6 @@
 		flex-wrap: wrap;
 		gap: 8px;
 		margin: 16px 0;
-		padding-bottom: 8px;
-		border-bottom: 1px solid #e2e8f0;
 	}
 
 	.tab {
