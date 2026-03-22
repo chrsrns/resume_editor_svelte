@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { createResume } from '$lib/api/resumes';
 	import { authToken } from '$lib/auth';
 	import ResumeForm from '$lib/components/ResumeForm.svelte';
@@ -13,7 +13,7 @@
 
 	onMount(() => {
 		if (!$authToken) {
-			void goto(`${base}/auth/login`);
+			void goto(resolve('/auth/login'));
 		}
 	});
 
@@ -23,7 +23,7 @@
 
 		try {
 			const created = await createResume(payload);
-			await goto(`${base}/resumes/${created.id}`);
+			await goto(resolve(`/resumes/${created.id}`));
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;

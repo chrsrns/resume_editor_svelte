@@ -1,8 +1,8 @@
 <script lang="ts">
 	import favicon from '$lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
+	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 	import { authToken, clearAuthToken } from '$lib/auth';
 	import { logout } from '$lib/api/auth';
 	import { currentUser, refreshCurrentUser, clearCurrentUser } from '$lib/session';
@@ -21,7 +21,7 @@
 		} finally {
 			clearAuthToken();
 			clearCurrentUser();
-			await goto(`${base}/auth/login`);
+			await goto(resolve('/auth/login'));
 		}
 	}
 </script>
@@ -33,15 +33,15 @@
 
 <div class="shell">
 	<header class="header">
-		<div class="brand"><a class="brandLink" href={`${base}/resumes`}>Resume Editor</a></div>
+		<div class="brand"><a class="brandLink" href={resolve('/resumes')}>Resume Editor</a></div>
 		<nav class="nav">
-			<a class="navLink" href={`${base}/resumes`}>Resumes</a>
+			<a class="navLink" href={resolve('/resumes')}>Resumes</a>
 			{#if $authToken}
 				<span class="user">{$currentUser ? $currentUser.email : 'Signed in'}</span>
 				<button class="navButton" type="button" onclick={handleLogout}>Logout</button>
 			{:else}
-				<a class="navLink" href={`${base}/auth/login`}>Login</a>
-				<a class="navLink" href={`${base}/auth/register`}>Register</a>
+				<a class="navLink" href={resolve('/auth/login')}>Login</a>
+				<a class="navLink" href={resolve('/auth/register')}>Register</a>
 			{/if}
 		</nav>
 	</header>

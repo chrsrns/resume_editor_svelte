@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { page } from '$app/state';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { listEducations, listEducationKeyPoints } from '$lib/api/education';
 	import { listFrameworks } from '$lib/api/frameworks';
 	import { listLanguages } from '$lib/api/languages';
@@ -120,9 +121,9 @@
 	}
 
 	function selectTab(id: TabId) {
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 		params.set('tab', id);
-		void goto(`${page.url.pathname}?${params.toString()}`, {
+		void goto(resolve(`/resumes/${page.params.id}?${params.toString()}`), {
 			replaceState: false,
 			noScroll: true,
 			keepFocus: true
@@ -236,9 +237,9 @@
 		</div>
 		<div class="actions">
 			{#if $currentUser && resume.created_by === $currentUser.id}
-				<a class="button" href={`${base}/resumes/${resume.id}/edit`}>Edit</a>
+				<a class="button" href={resolve(`/resumes/${resume.id}/edit`)}>Edit</a>
 			{/if}
-			<a class="button secondary" href={`${base}/resumes`}>Back</a>
+			<a class="button secondary" href={resolve('/resumes')}>Back</a>
 		</div>
 	</div>
 
@@ -299,7 +300,7 @@
 						<span class="k">Profile image URL</span>
 						<span class="v">
 							{#if resume.profile_image_url}
-								<a class="link" href={resume.profile_image_url} target="_blank" rel="noreferrer">
+								<a class="link" href={resume.profile_image_url} target="_blank" rel="external">
 									{resume.profile_image_url}
 								</a>
 							{:else}
@@ -314,7 +315,7 @@
 						<span class="k">GitHub</span>
 						<span class="v">
 							{#if resume.github_url}
-								<a class="link" href={resume.github_url} target="_blank" rel="noreferrer">
+								<a class="link" href={resume.github_url} target="_blank" rel="external">
 									{resume.github_url}
 								</a>
 							{:else}
@@ -430,7 +431,7 @@
 									</div>
 									<div class="link-group">
 										{#if project.project_link}
-											<a class="link" href={project.project_link} target="_blank" rel="noreferrer">
+											<a class="link" href={project.project_link} target="_blank" rel="external">
 												Preview
 											</a>
 										{/if}
@@ -439,7 +440,7 @@
 												class="link"
 												href={project.source_code_link}
 												target="_blank"
-												rel="noreferrer"
+												rel="external"
 											>
 												Source
 											</a>

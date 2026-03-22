@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
-import { base } from '$app/paths';
+import { resolve } from '$app/paths';
 
 export const load = async () => {
-    throw redirect(302, `${base}/resumes`);
+	throw redirect(302, resolve(`/resumes`));
 };

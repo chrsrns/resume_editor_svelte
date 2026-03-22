@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { page } from '$app/state';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { deleteResume, getResume, updateResume } from '$lib/api/resumes';
 	import type { ApiError } from '$lib/api/client';
 	import ResumeForm from '$lib/components/ResumeForm.svelte';
@@ -37,7 +38,7 @@
 	let saving = $state(false);
 	let deleting = $state(false);
 	let error = $state<string | null>(null);
-	let activeTab = $state<TabId>('basics');
+	let activeTab = $derived(parseTabId(page.url.searchParams.get('tab')));
 
 	function onTabListKeydown(e: KeyboardEvent) {
 		const tablist = e.currentTarget as HTMLElement | null;
@@ -88,9 +89,9 @@
 	}
 
 	function selectTab(id: TabId) {
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 		params.set('tab', id);
-		void goto(`${page.url.pathname}?${params.toString()}`, {
+		void goto(resolve(`/resumes/${page.params.id}/edit?${params.toString()}`), {
 			replaceState: false,
 			noScroll: true,
 			keepFocus: true
@@ -117,7 +118,7 @@
 
 	onMount(() => {
 		if (!$authToken) {
-			void goto(`${base}/auth/login`);
+			void goto(resolve('/auth/login'));
 			return;
 		}
 		void load();
@@ -129,7 +130,7 @@
 		saving = true;
 		try {
 			const updated = await updateResume(resume.id, payload);
-			await goto(`${base}/resumes/${updated.id}`);
+			await goto(resolve(`/resumes/${updated.id}`));
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -147,7 +148,7 @@
 		deleting = true;
 		try {
 			await deleteResume(resume.id);
-			await goto(`${base}/resumes`);
+			await goto(resolve('/resumes'));
 		} catch (e) {
 			const err = e as ApiError;
 			error = err.message;
@@ -172,7 +173,7 @@
 			<p class="muted">{resume.name}</p>
 		</div>
 		<div class="actions">
-			<a class="button secondary" href={`${base}/resumes/${resume.id}`}>Cancel</a>
+			<a class="button secondary" href={resolve(`/resumes/${resume.id}`)}>Cancel</a>
 			<button class="button danger" type="button" onclick={handleDelete} disabled={deleting}>
 				{deleting ? 'Deleting…' : 'Delete'}
 			</button>
@@ -189,7 +190,7 @@
 			tabindex="0"
 			onkeydown={onTabListKeydown}
 		>
-			{#each tabs as t, i}
+			{#each tabs as t (t.id)}
 				<button
 					class="tab {activeTab === t.id ? 'active' : ''}"
 					type="button"
