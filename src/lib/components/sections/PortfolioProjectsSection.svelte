@@ -498,7 +498,6 @@
 		{#each drafts as d (d.id)}
 			<CollapsibleCard
 				ariaLabel="Portfolio project"
-				collapsedTitle={d.project_name.trim()}
 				collapsed={collapsedById[d.id] ?? true}
 				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
 				draggable
@@ -512,6 +511,9 @@
 				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
+				{#snippet titleHeader()}
+					<div>{d.project_name.trim()}</div>
+				{/snippet}
 				<FieldsWrap style="padding-top: 6px;">
 					<TextInput label="Project name" bind:value={d.project_name} title="Project name/title." />
 					<TextInput

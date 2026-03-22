@@ -334,7 +334,6 @@
 		{#each languages as l (l.id)}
 			<CollapsibleCard
 				ariaLabel="Language"
-				collapsedTitle={l.language_name.trim()}
 				collapsed={collapsedById[l.id] ?? true}
 				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [l.id]: next })}
 				draggable
@@ -348,6 +347,9 @@
 				ondragover={(e) => dragReorder.handleDragOver(l.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(l.id, e)}
 			>
+				{#snippet titleHeader()}
+					<div>{l.language_name.trim()}</div>
+				{/snippet}
 				<FieldsWrap style="padding-top: 6px;">
 					<TextInput
 						label="Language"

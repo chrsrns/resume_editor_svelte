@@ -371,10 +371,6 @@
 		{#each drafts as d (d.id)}
 			<CollapsibleCard
 				ariaLabel="Work experience"
-				collapsedTitle={[d.job_title, d.company_name]
-					.map((x) => x.trim())
-					.filter(Boolean)
-					.join(' — ')}
 				collapsed={collapsedById[d.id] ?? true}
 				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
 				draggable
@@ -388,6 +384,14 @@
 				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
+				{#snippet titleHeader()}
+					<div>
+						{[d.job_title, d.company_name]
+							.map((x) => x.trim())
+							.filter(Boolean)
+							.join(' — ')}
+					</div>
+				{/snippet}
 				<FieldsWrap style="padding-top: 6px;">
 					<TextInput label="Job title" bind:value={d.job_title} title="Job title/role." />
 					<TextInput label="Company" bind:value={d.company_name} title="Company/organization." />

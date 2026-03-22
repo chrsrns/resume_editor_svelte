@@ -401,10 +401,6 @@
 		{#each drafts as d (d.id)}
 			<CollapsibleCard
 				ariaLabel="Education entry"
-				collapsedTitle={[d.education_stage, d.institution_name]
-					.map((x) => x.trim())
-					.filter(Boolean)
-					.join(' — ')}
 				collapsed={collapsedById[d.id] ?? true}
 				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
 				draggable
@@ -418,6 +414,14 @@
 				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
+				{#snippet titleHeader()}
+					<div>
+						{[d.education_stage, d.institution_name]
+							.map((x) => x.trim())
+							.filter(Boolean)
+							.join(' — ')}
+					</div>
+				{/snippet}
 				<FieldsWrap style="padding-top: 6px;">
 					<TextInput label="Stage" bind:value={d.education_stage} title="Education stage/level." />
 					<TextInput

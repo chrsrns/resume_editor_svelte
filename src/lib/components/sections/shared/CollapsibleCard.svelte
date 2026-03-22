@@ -11,7 +11,6 @@
 		class: className = '',
 		innerClass = '',
 		ariaLabel = 'Collapsible card',
-		collapsedTitle,
 		collapsed,
 		defaultCollapsed = false,
 		oncollapsedchange,
@@ -25,13 +24,13 @@
 		dropOver = false,
 		ondragover,
 		ondrop,
-		children
+		children,
+		titleHeader
 	} = $props<{
 		variant?: Variant;
 		class?: string;
 		innerClass?: string;
 		ariaLabel?: string;
-		collapsedTitle: string;
 		collapsed?: boolean;
 		defaultCollapsed?: boolean;
 		oncollapsedchange?: (next: boolean) => void;
@@ -46,6 +45,7 @@
 		ondragover?: (e: DragEvent) => void;
 		ondrop?: (e: DragEvent) => void;
 		children: import('svelte').Snippet;
+		titleHeader: import('svelte').Snippet;
 	}>();
 
 	let internalCollapsed = $state(
@@ -197,7 +197,7 @@
 					</button>
 				{/if}
 				<button type="button" class="title" onclick={toggle}>
-					{collapsedTitle}
+					{@render titleHeader()}
 				</button>
 			</div>
 
