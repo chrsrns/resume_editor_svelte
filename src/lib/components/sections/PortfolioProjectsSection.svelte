@@ -44,6 +44,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import TextArea from '$lib/components/ui/TextArea.svelte';
 	import TextInput from '$lib/components/ui/TextInput.svelte';
+	import ActiveStatus from '../ui/ActiveStatus.svelte';
 
 	let { resumeId } = $props<{ resumeId: number }>();
 
@@ -63,6 +64,7 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let drafts = $state<ProjectDraft[]>([]);
+	let activeById = $state<Record<number, boolean>>({});
 	let savedProjectSigById = $state<Record<number, string>>({});
 	let collapsedById = $state<Record<number, boolean>>({});
 	let draggingId = $state<number | null>(null);
@@ -242,6 +244,7 @@
 		error = null;
 		try {
 			const items = await listPortfolioProjects(resumeId);
+			activeById = Object.fromEntries(items.map((p) => [p.id, p.active]));
 			const sorted = [...items].sort(byDisplayOrder);
 			const ds = sorted.map(toDraft);
 			drafts = ds;
@@ -454,6 +457,18 @@
 			error = err.message;
 		}
 	}
+
+	async function handleToggleActive(projectId: number) {
+		error = null;
+		try {
+			const next = !(activeById[projectId] ?? true);
+			await updatePortfolioProject(projectId, { active: next });
+			await refresh();
+		} catch (e) {
+			const err = e as ApiError;
+			error = err.message;
+		}
+	}
 </script>
 
 <SectionShell title="Portfolio" description="Projects with key points and technologies.">
@@ -512,7 +527,10 @@
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
 				{#snippet titleHeader()}
-					<div>{d.project_name.trim()}</div>
+					<div style="display: flex; flex-direction: row; gap: 1em">
+						<ActiveStatus style="width: 4em" active={activeById[d.id]} size="sm" />
+						<div>{d.project_name.trim()}</div>
+					</div>
 				{/snippet}
 				<FieldsWrap style="padding-top: 6px;">
 					<TextInput label="Project name" bind:value={d.project_name} title="Project name/title." />
@@ -539,6 +557,15 @@
 					title="Optional. Description/details."
 				/>
 				<CardActions>
+					<Button
+						variant="secondary"
+						onclick={() => handleToggleActive(d.id)}
+						title={(activeById[d.id] ?? true)
+							? 'Hide this project from non-owners'
+							: 'Show this project to non-owners'}
+					>
+						{(activeById[d.id] ?? true) ? 'Deactivate' : 'Activate'}
+					</Button>
 					{#if isProjectDirty(d)}
 						<Button onclick={() => handleSave(d)}>Save</Button>
 					{/if}

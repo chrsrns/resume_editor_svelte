@@ -37,6 +37,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import TextArea from '$lib/components/ui/TextArea.svelte';
 	import TextInput from '$lib/components/ui/TextInput.svelte';
+	import ActiveStatus from '../ui/ActiveStatus.svelte';
 
 	let { resumeId } = $props<{ resumeId: number }>();
 
@@ -59,6 +60,7 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let drafts = $state<WorkDraft[]>([]);
+	let activeById = $state<Record<number, boolean>>({});
 	let savedWorkSigById = $state<Record<number, string>>({});
 	let collapsedById = $state<Record<number, boolean>>({});
 	let draggingId = $state<number | null>(null);
@@ -187,6 +189,7 @@
 		error = null;
 		try {
 			const items = await listWorkExperiences(resumeId);
+			activeById = Object.fromEntries(items.map((w) => [w.id, w.active]));
 			const sorted = [...items].sort(byDisplayOrder);
 			const ds = sorted.map(toDraft);
 			drafts = ds;
@@ -327,6 +330,18 @@
 			error = err.message;
 		}
 	}
+
+	async function handleToggleActive(workId: number) {
+		error = null;
+		try {
+			const next = !(activeById[workId] ?? true);
+			await updateWorkExperience(workId, { active: next });
+			await refresh();
+		} catch (e) {
+			const err = e as ApiError;
+			error = err.message;
+		}
+	}
 </script>
 
 <SectionShell title="Work experience" description="Work experiences and key points.">
@@ -385,11 +400,14 @@
 				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
 			>
 				{#snippet titleHeader()}
-					<div>
-						{[d.job_title, d.company_name]
-							.map((x) => x.trim())
-							.filter(Boolean)
-							.join(' — ')}
+					<div style="display: flex; flex-direction: row; gap: 1em">
+						<ActiveStatus style="width: 4em" active={activeById[d.id]} size="sm" />
+						<div>
+							{[d.job_title, d.company_name]
+								.map((x) => x.trim())
+								.filter(Boolean)
+								.join(' — ')}
+						</div>
 					</div>
 				{/snippet}
 				<FieldsWrap style="padding-top: 6px;">
@@ -410,6 +428,15 @@
 					title="Optional. Description/details."
 				/>
 				<CardActions>
+					<Button
+						variant="secondary"
+						onclick={() => handleToggleActive(d.id)}
+						title={(activeById[d.id] ?? true)
+							? 'Hide this entry from non-owners'
+							: 'Show this entry to non-owners'}
+					>
+						{(activeById[d.id] ?? true) ? 'Deactivate' : 'Activate'}
+					</Button>
 					{#if isWorkDirty(d)}
 						<Button onclick={() => handleSave(d)}>Save</Button>
 					{/if}

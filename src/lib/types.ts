@@ -125,6 +125,7 @@ export type Education = {
     end_date: string | null;
     description: string | null;
     display_order: number | null;
+    active: boolean;
     created_at: string;
 };
 
@@ -146,6 +147,7 @@ export type UpdateEducationRequest = {
     end_date?: string | null;
     description?: string | null;
     display_order?: number | null;
+    active?: boolean;
 };
 
 export type EducationKeyPoint = {
@@ -175,6 +177,7 @@ export type WorkExperience = {
     end_date: string | null;
     description: string | null;
     display_order: number | null;
+    active: boolean;
     created_at: string;
 };
 
@@ -194,6 +197,7 @@ export type UpdateWorkExperienceRequest = {
     end_date?: string | null;
     description?: string | null;
     display_order?: number | null;
+    active?: boolean;
 };
 
 export type WorkExperienceKeyPoint = {
@@ -201,6 +205,7 @@ export type WorkExperienceKeyPoint = {
     work_experience_id: number;
     key_point: string;
     display_order: number | null;
+    active: boolean;
     created_at: string;
 };
 
@@ -212,6 +217,7 @@ export type NewWorkExperienceKeyPointRequest = {
 export type UpdateWorkExperienceKeyPointRequest = {
     key_point?: string | null;
     display_order?: number | null;
+    active?: boolean;
 };
 
 export type PortfolioProject = {
@@ -223,6 +229,7 @@ export type PortfolioProject = {
     source_code_link: string | null;
     description: string | null;
     display_order: number | null;
+    active: boolean;
     created_at: string;
 };
 
@@ -242,6 +249,7 @@ export type UpdatePortfolioProjectRequest = {
     source_code_link?: string | null;
     description?: string | null;
     display_order?: number | null;
+    active?: boolean;
 };
 
 export type PortfolioKeyPoint = {
