@@ -98,10 +98,6 @@
 		});
 	}
 
-	$effect(() => {
-		activeTab = parseTabId(page.url.searchParams.get('tab'));
-	});
-
 	async function load() {
 		loading = true;
 		error = null;
