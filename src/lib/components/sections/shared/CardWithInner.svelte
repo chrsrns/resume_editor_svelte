@@ -40,11 +40,11 @@
     .cardInner {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: var(--space-3);
     }
 
     .cardInner.dropOver {
-        outline: 2px dashed #0f172a;
+        outline: 2px dashed var(--color-primary);
         outline-offset: 4px;
     }
 </style>

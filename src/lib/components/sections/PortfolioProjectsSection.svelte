@@ -45,6 +45,9 @@
     import TextArea from '$lib/components/ui/TextArea.svelte';
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import ActiveStatus from '../ui/ActiveStatus.svelte';
+    import Plus from '@lucide/svelte/icons/plus';
+    import Check from '@lucide/svelte/icons/check';
+    import Trash2 from '@lucide/svelte/icons/trash-2';
 
     let { resumeId } = $props<{ resumeId: number }>();
 
@@ -499,6 +502,7 @@
         />
         <CardActions>
             <Button onclick={handleCreate} disabled={creating || newName.trim().length === 0}>
+                {#snippet icon()}<Plus size={16} />{/snippet}
                 {creating ? 'Adding…' : 'Add project'}
             </Button>
         </CardActions>
@@ -571,9 +575,15 @@
                         {(activeById[d.id] ?? true) ? 'Deactivate' : 'Activate'}
                     </Button>
                     {#if isProjectDirty(d)}
-                        <Button onclick={() => handleSave(d)}>Save</Button>
+                        <Button onclick={() => handleSave(d)}>
+                            {#snippet icon()}<Check size={16} />{/snippet}
+                            Save
+                        </Button>
                     {/if}
-                    <Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+                    <Button variant="danger" onclick={() => handleDelete(d.id)}>
+                        {#snippet icon()}<Trash2 size={16} />{/snippet}
+                        Delete
+                    </Button>
                 </CardActions>
 
                 <NestedList
@@ -622,12 +632,16 @@
                                 }}
                             />
                             {#if isKeyPointDirty(kp)}
-                                <Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+                                <Button onclick={() => handleSaveKeyPoint(d.id, kp)}>
+                                    {#snippet icon()}<Check size={16} />{/snippet}
+                                    Save
+                                </Button>
                             {/if}
                             <Button
                                 variant="danger"
                                 onclick={() => handleDeleteKeyPoint(d.id, kp.id)}
                             >
+                                {#snippet icon()}<Trash2 size={16} />{/snippet}
                                 Delete
                             </Button>
                         </FieldsWrap>
@@ -657,6 +671,7 @@
                         onclick={() => handleAddKeyPoint(d.id)}
                         disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
                     >
+                        {#snippet icon()}<Plus size={16} />{/snippet}
                         Add
                     </Button>
                 </FieldsWrap>
@@ -706,12 +721,16 @@
                                 }}
                             />
                             {#if isTechDirty(t)}
-                                <Button onclick={() => handleSaveTechnology(d.id, t)}>Save</Button>
+                                <Button onclick={() => handleSaveTechnology(d.id, t)}>
+                                    {#snippet icon()}<Check size={16} />{/snippet}
+                                    Save
+                                </Button>
                             {/if}
                             <Button
                                 variant="danger"
                                 onclick={() => handleDeleteTechnology(d.id, t.id)}
                             >
+                                {#snippet icon()}<Trash2 size={16} />{/snippet}
                                 Delete
                             </Button>
                         </FieldsWrap>
@@ -738,6 +757,7 @@
                         onclick={() => handleAddTechnology(d.id)}
                         disabled={(newTechText[d.id] ?? '').trim().length === 0}
                     >
+                        {#snippet icon()}<Plus size={16} />{/snippet}
                         Add
                     </Button>
                 </FieldsWrap>

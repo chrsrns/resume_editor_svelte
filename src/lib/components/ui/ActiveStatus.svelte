@@ -45,7 +45,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         padding: 4px 10px;
         font-size: 12px;
         line-height: 1;
@@ -70,9 +70,9 @@
     }
 
     .activeStatus.inactive {
-        background: #f1f5f9;
-        border-color: #94a3b8;
-        color: #334155;
+        background: var(--color-background);
+        border-color: var(--color-border);
+        color: var(--color-muted);
     }
 
     .activeStatus.unknown {

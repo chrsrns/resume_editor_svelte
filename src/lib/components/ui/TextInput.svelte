@@ -128,9 +128,9 @@
     .input {
         box-sizing: border-box;
         padding: 10px 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        background: white;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
     }
 
     .uiField.floating .input {
@@ -142,7 +142,7 @@
     }
 
     .label {
-        color: #334155;
+        color: var(--color-muted);
     }
 
     .uiField.above .label {
@@ -183,7 +183,7 @@
     }
 
     .uiField.floating:focus-within .label {
-        color: #2563eb;
+        color: var(--color-primary);
     }
 
     .input.small {

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import GripVertical from '@lucide/svelte/icons/grip-vertical';
+
     let {
         disabled = false,
         dragging = false,
@@ -45,19 +47,7 @@
     {ondragend}
     {onkeydown}
 >
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        fill="currentColor"
-        class="grip"
-        viewBox="0 0 16 16"
-        aria-hidden="true"
-    >
-        <path
-            d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"
-        />
-    </svg>
+    <GripVertical size={20} aria-hidden="true" />
 </div>
 
 <style>
@@ -67,10 +57,10 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #64748b;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+        color: var(--color-muted);
         cursor: grab;
         user-select: none;
         flex: 0 0 auto;
@@ -80,11 +70,11 @@
         width: 20px;
         border: none;
         background: transparent;
-        color: #64748b;
+        color: var(--color-muted);
     }
 
     .handle:focus-visible {
-        outline: 2px solid #0f172a;
+        outline: 2px solid var(--color-primary);
         outline-offset: 2px;
     }
 
@@ -96,11 +86,5 @@
     .handle.disabled {
         opacity: 0.5;
         cursor: not-allowed;
-    }
-
-    .grip {
-        width: 20px;
-        height: 20px;
-        display: block;
     }
 </style>

@@ -15,6 +15,17 @@
     import type { Resume, UpdateResumeRequest } from '$lib/types';
     import { authToken } from '$lib/auth';
     import { currentUser } from '$lib/session';
+    import IconTabBar from '$lib/components/IconTabBar.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
+    import User from '@lucide/svelte/icons/user';
+    import GraduationCap from '@lucide/svelte/icons/graduation-cap';
+    import Briefcase from '@lucide/svelte/icons/briefcase';
+    import Folder from '@lucide/svelte/icons/folder';
+    import Star from '@lucide/svelte/icons/star';
+    import Globe from '@lucide/svelte/icons/globe';
+    import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+    import Trash2 from '@lucide/svelte/icons/trash-2';
+    import Save from '@lucide/svelte/icons/save';
 
     const tabs = [
         { id: 'basics', label: 'Basics' },
@@ -23,6 +34,15 @@
         { id: 'portfolio', label: 'Portfolio' },
         { id: 'skills', label: 'Skills' },
         { id: 'languages', label: 'Languages & Frameworks' }
+    ] as const;
+
+    const tabIcons = [
+        { id: 'basics', label: 'Basics', Icon: User },
+        { id: 'education', label: 'Education', Icon: GraduationCap },
+        { id: 'work', label: 'Work', Icon: Briefcase },
+        { id: 'portfolio', label: 'Portfolio', Icon: Folder },
+        { id: 'skills', label: 'Skills', Icon: Star },
+        { id: 'languages', label: 'Languages & Frameworks', Icon: Globe }
     ] as const;
 
     type TabId = (typeof tabs)[number]['id'];
@@ -90,7 +110,7 @@
         }
     }
 
-    function selectTab(id: TabId) {
+    function selectTab(id: string) {
         const params = new SvelteURLSearchParams(page.url.searchParams);
         params.set('tab', id);
         void goto(resolve(`/resumes/${page.params.id}/edit?${params.toString()}`), {
@@ -161,9 +181,9 @@
 </svelte:head>
 
 {#if loading}
-    <p>Loading…</p>
+    <p class="stateText">Loading…</p>
 {:else if error}
-    <p class="error">{error}</p>
+    <p class="stateText error">{error}</p>
 {:else if resume}
     <div class="header">
         <div>
@@ -171,39 +191,34 @@
             <p class="muted">{resume.name}</p>
         </div>
         <div class="actions">
-            <a class="button secondary" href={resolve(`/resumes/${resume.id}`)}>Cancel</a>
-            <button class="button danger" type="button" onclick={handleDelete} disabled={deleting}>
+            <Button variant="secondary" onclick={() => goto(resolve(`/resumes/${resume!.id}`))}>
+                {#snippet icon()}<ChevronLeft size={16} />{/snippet}
+                Cancel
+            </Button>
+            <Button
+                variant="primary"
+                disabled={saving}
+                onclick={() =>
+                    (
+                        document.getElementById('resume-form') as HTMLFormElement | null
+                    )?.requestSubmit()}
+            >
+                {#snippet icon()}<Save size={16} />{/snippet}
+                {saving ? 'Saving…' : 'Save'}
+            </Button>
+            <Button variant="danger" onclick={handleDelete} disabled={deleting}>
+                {#snippet icon()}<Trash2 size={16} />{/snippet}
                 {deleting ? 'Deleting…' : 'Delete'}
-            </button>
+            </Button>
         </div>
     </div>
 
     {#if $currentUser && resume.created_by !== $currentUser.id}
-        <p class="error">Forbidden</p>
-    {:else}
-        <div
-            class="tabs"
-            role="tablist"
-            aria-label="Resume sections"
-            tabindex="0"
-            onkeydown={onTabListKeydown}
-        >
-            {#each tabs as t (t.id)}
-                <button
-                    class="tab {activeTab === t.id ? 'active' : ''}"
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab === t.id}
-                    aria-controls={`panel-${t.id}`}
-                    id={`tab-${t.id}`}
-                    tabindex={activeTab === t.id ? 0 : -1}
-                    onclick={() => selectTab(t.id)}
-                    data-tab={t.id}
-                >
-                    {t.label}
-                </button>
-            {/each}
+        <div class="card errorCard">
+            <p class="error">Forbidden</p>
         </div>
+    {:else}
+        <IconTabBar tabs={tabIcons} {activeTab} onselect={selectTab} onkeydown={onTabListKeydown} />
 
         <div
             class="panel"
@@ -217,6 +232,8 @@
                 initial={resume}
                 submitLabel={saving ? 'Saving…' : 'Save'}
                 onsubmit={handleSubmit}
+                showSubmitButton={false}
+                formId="resume-form"
             />
         </div>
 
@@ -278,83 +295,54 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 16px;
-        margin-top: 2.5rem;
-        margin-bottom: 1rem;
+        gap: var(--space-4);
+        margin-top: var(--space-8);
+        margin-bottom: var(--space-4);
     }
 
     h1 {
         margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--color-text);
     }
 
     .actions {
         display: flex;
-        gap: 10px;
+        gap: var(--space-2);
         flex-wrap: wrap;
-    }
-
-    .button {
-        padding: 10px 14px;
-        border: 1px solid #0f172a;
-        border-radius: 8px;
-        background: #0f172a;
-        color: white;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-    .button.secondary {
-        background: white;
-        color: #0f172a;
-    }
-
-    .button.danger {
-        border-color: #b91c1c;
-        background: #b91c1c;
-    }
-
-    .button[disabled] {
-        opacity: 0.7;
-        cursor: not-allowed;
-    }
-
-    .error {
-        color: #b91c1c;
     }
 
     .muted {
-        color: #475569;
+        color: var(--color-muted);
+        margin: var(--space-1) 0 0;
+        font-size: 14px;
+    }
+
+    .stateText {
+        color: var(--color-muted);
+        margin: var(--space-8) 0;
+        text-align: center;
+    }
+
+    .stateText.error {
+        color: var(--color-danger);
+    }
+
+    .error {
+        color: var(--color-danger);
         margin: 0;
     }
 
-    .tabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin: 16px 0;
-    }
-
-    .tab {
-        padding: 8px 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 999px;
-        background: white;
-        color: #0f172a;
-        cursor: pointer;
-    }
-
-    .tab.active {
-        border-color: #0f172a;
-        background: #0f172a;
-        color: white;
-    }
-
-    .tab:focus {
-        outline: 2px solid #2563eb;
-        outline-offset: 2px;
+    .card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        padding: var(--space-4);
     }
 
     .panel {
-        margin-top: 8px;
+        margin-top: var(--space-2);
     }
 </style>

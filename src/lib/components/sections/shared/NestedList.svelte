@@ -31,26 +31,26 @@
 
 <style>
     .nested {
-        padding-top: 10px;
-        border-top: 1px solid #e2e8f0;
+        padding-top: var(--space-2);
+        border-top: 1px solid var(--color-border);
     }
 
     .nestedHead {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
+        gap: var(--space-2);
+        margin-bottom: var(--space-2);
     }
 
     .nestedBody {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: var(--space-2);
     }
 
     .muted {
-        color: #475569;
+        color: var(--color-muted);
         margin: 0;
     }
 </style>

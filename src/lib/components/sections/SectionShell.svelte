@@ -20,11 +20,12 @@
 
 <style>
     .section {
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        background: white;
-        padding: 14px;
-        margin-top: 16px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+        padding: var(--space-3);
+        margin-top: var(--space-4);
+        box-shadow: var(--shadow-card);
     }
 
     .head {
@@ -40,8 +41,8 @@
     }
 
     .desc {
-        margin: 6px 0 0;
-        color: #475569;
+        margin: var(--space-1) 0 0;
+        color: var(--color-muted);
         font-size: 13px;
     }
 

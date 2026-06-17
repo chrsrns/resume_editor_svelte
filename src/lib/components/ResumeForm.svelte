@@ -2,13 +2,24 @@
     import { untrack } from 'svelte';
     import type { NewResumeRequest } from '$lib/types';
     import TextInput from '$lib/components/ui/TextInput.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
+    import Save from '@lucide/svelte/icons/save';
+    import Image from '@lucide/svelte/icons/image';
 
     type ResumeFormSubmit = NewResumeRequest & { is_public: boolean };
 
-    let { initial, submitLabel, onsubmit } = $props<{
+    let {
+        initial,
+        submitLabel,
+        onsubmit,
+        showSubmitButton = true,
+        formId
+    } = $props<{
         initial?: Partial<NewResumeRequest> & { is_public?: boolean | null };
         submitLabel?: string;
         onsubmit?: (payload: ResumeFormSubmit) => void;
+        showSubmitButton?: boolean;
+        formId?: string;
     }>();
 
     let name = $state(untrack(() => initial?.name ?? ''));
@@ -40,7 +51,7 @@
 </script>
 
 <div class="form-container">
-    <form class="form" onsubmit={submit}>
+    <form class="form" id={formId} onsubmit={submit}>
         <TextInput label="Name" bind:value={name} required title="Full name shown on the resume." />
 
         <TextInput
@@ -84,7 +95,12 @@
             <span>Public</span>
         </label>
 
-        <button class="button" type="submit">{submitLabel ?? 'Save'}</button>
+        {#if showSubmitButton}
+            <Button type="submit">
+                {#snippet icon()}<Save size={16} />{/snippet}
+                {submitLabel ?? 'Save'}
+            </Button>
+        {/if}
     </form>
     <div>
         <div class="preview-card">
@@ -97,7 +113,10 @@
                     />
                 </div>
             {:else}
-                <div class="preview-empty">Add a profile image URL to preview it here.</div>
+                <div class="preview-empty">
+                    <Image size={32} aria-hidden="true" />
+                    <span>Add a profile image URL to preview it here.</span>
+                </div>
             {/if}
         </div>
     </div>
@@ -106,7 +125,7 @@
 <style>
     .form {
         display: grid;
-        gap: 12px;
+        gap: var(--space-3);
         max-width: 520px;
     }
 
@@ -114,32 +133,48 @@
         display: grid;
         width: 100%;
         grid-template-columns: 1fr 1fr;
-        gap: 3rem;
+        gap: var(--space-8);
+    }
+
+    @media (max-width: 900px) {
+        .form-container {
+            grid-template-columns: 1fr;
+        }
     }
 
     .preview-card {
         display: grid;
-        gap: 10px;
+        gap: var(--space-3);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        padding: var(--space-5);
+        align-content: start;
+        justify-items: center;
     }
 
     .preview-label {
         margin: 0;
         font-size: 14px;
         font-weight: 600;
-        color: #0f172a;
+        color: var(--color-text);
+        justify-self: start;
     }
 
     .preview-frame,
     .preview-empty {
-        width: min(100%, 220px);
-        height: 220px;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        background: #f8fafc;
+        width: min(100%, 200px);
+        height: 200px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        background: var(--color-background);
+        margin: 0 auto;
     }
 
     .preview-frame {
         overflow: hidden;
+        box-shadow: var(--shadow-card);
     }
 
     .preview-frame img {
@@ -151,27 +186,28 @@
 
     .preview-empty {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 16px;
+        gap: var(--space-2);
+        padding: var(--space-4);
         text-align: center;
-        color: #64748b;
-        font-size: 14px;
+        color: var(--color-muted);
+        font-size: 13px;
     }
 
     .checkbox {
         display: flex;
-        gap: 8px;
+        gap: var(--space-2);
         align-items: center;
+        color: var(--color-text);
+        font-size: 14px;
     }
 
-    .button {
-        justify-self: start;
-        padding: 10px 14px;
-        border: 1px solid #0f172a;
-        border-radius: 8px;
-        background: #0f172a;
-        color: white;
+    .checkbox input[type='checkbox'] {
+        accent-color: var(--color-primary);
+        width: 18px;
+        height: 18px;
         cursor: pointer;
     }
 </style>

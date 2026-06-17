@@ -14,6 +14,9 @@
     import { createSkill, deleteSkill, listSkills, updateSkill } from '$lib/api/skills';
     import Button from '$lib/components/ui/Button.svelte';
     import TextInput from '$lib/components/ui/TextInput.svelte';
+    import Plus from '@lucide/svelte/icons/plus';
+    import Check from '@lucide/svelte/icons/check';
+    import Trash2 from '@lucide/svelte/icons/trash-2';
     import type { ApiError } from '$lib/api/client';
     import type { NewSkillRequest, Skill, UpdateSkillRequest } from '$lib/types';
 
@@ -190,6 +193,7 @@
                 }}
             />
             <Button onclick={handleCreate} disabled={creating || newSkillName.trim().length === 0}>
+                {#snippet icon()}<Plus size={16} />{/snippet}
                 {creating ? 'Adding…' : 'Add'}
             </Button>
         </FieldsWrap>
@@ -246,9 +250,15 @@
                         }}
                     />
                     {#if isDirty(d)}
-                        <Button onclick={() => handleSave(d)}>Save</Button>
+                        <Button onclick={() => handleSave(d)}>
+                            {#snippet icon()}<Check size={16} />{/snippet}
+                            Save
+                        </Button>
                     {/if}
-                    <Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+                    <Button variant="danger" onclick={() => handleDelete(d.id)}>
+                        {#snippet icon()}<Trash2 size={16} />{/snippet}
+                        Delete
+                    </Button>
                 </FieldsWrap>
             {/each}
         </NestedList>

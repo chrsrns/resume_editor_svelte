@@ -30,12 +30,12 @@
 
 <style>
     .error {
-        color: #b91c1c;
-        margin: 0 0 10px;
+        color: var(--color-danger);
+        margin: 0 0 var(--space-2);
     }
 
     .muted {
-        color: #475569;
+        color: var(--color-muted);
         margin: 0;
     }
 </style>

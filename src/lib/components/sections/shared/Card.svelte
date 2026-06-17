@@ -24,17 +24,17 @@
     .card {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 12px;
-        background: #f8fafc;
-        margin-bottom: 12px;
+        gap: var(--space-3);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-3);
+        background: var(--color-background);
+        margin-bottom: var(--space-3);
     }
 
     .card.new {
-        background: #ffffff;
-        border-color: #94a3b8;
+        background: var(--color-surface);
+        border-color: var(--color-muted);
         border-style: dashed;
     }
 

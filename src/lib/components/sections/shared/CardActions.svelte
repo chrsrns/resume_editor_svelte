@@ -22,7 +22,7 @@
     .actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: var(--space-2);
     }
 
     .actions.compact {

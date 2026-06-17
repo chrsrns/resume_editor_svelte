@@ -25,14 +25,14 @@
     .fields {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: var(--space-2);
         align-items: center;
     }
 
     .fields.dropOver {
-        outline: 2px dashed #0f172a;
+        outline: 2px dashed var(--color-primary);
         outline-offset: 2px;
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
     }
 
     .fields > :global(.uiField:not(.small):not(.date)),

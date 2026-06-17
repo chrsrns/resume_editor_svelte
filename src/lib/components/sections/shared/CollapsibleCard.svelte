@@ -3,6 +3,8 @@
     import { fade, slide } from 'svelte/transition';
     import Card from '$lib/components/sections/shared/Card.svelte';
     import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
+    import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import ChevronDown from '@lucide/svelte/icons/chevron-down';
 
     type Variant = 'card' | 'new';
 
@@ -193,7 +195,11 @@
                         aria-label={currentCollapsed() ? 'Expand' : 'Collapse'}
                         onclick={toggle}
                     >
-                        {currentCollapsed() ? '▸' : '▾'}
+                        {#if currentCollapsed()}
+                            <ChevronRight size={16} />
+                        {:else}
+                            <ChevronDown size={16} />
+                        {/if}
                     </button>
                 {/if}
                 <button type="button" class="title" onclick={toggle}>
@@ -219,15 +225,15 @@
     }
 
     .collapsible.dropOver {
-        outline: 2px dashed #0f172a;
+        outline: 2px dashed var(--color-primary);
         outline-offset: 4px;
     }
 
     .header {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px;
+        gap: var(--space-2);
+        padding: var(--space-3);
     }
 
     .title {
@@ -239,12 +245,13 @@
         background: transparent;
         cursor: pointer;
         text-align: left;
+        color: var(--color-text);
     }
 
     .title:focus-visible {
-        outline: 2px solid #0f172a;
+        outline: 2px solid var(--color-primary);
         outline-offset: 6px;
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
     }
 
     .toggle {
@@ -253,9 +260,10 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        background: #ffffff;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+        color: var(--color-muted);
         cursor: pointer;
         user-select: none;
         flex: 0 0 auto;
@@ -263,15 +271,15 @@
     }
 
     .toggle:focus-visible {
-        outline: 2px solid #0f172a;
+        outline: 2px solid var(--color-primary);
         outline-offset: 2px;
     }
 
     .body {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        padding: 0 12px 12px;
+        gap: var(--space-3);
+        padding: 0 var(--space-3) var(--space-3);
     }
 
     .bodyWrap {
