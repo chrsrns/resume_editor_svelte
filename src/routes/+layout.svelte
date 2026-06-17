@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
@@ -6,6 +7,8 @@
 	import { authToken, clearAuthToken } from '$lib/auth';
 	import { logout } from '$lib/api/auth';
 	import { currentUser, refreshCurrentUser, clearCurrentUser } from '$lib/session';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import LogOut from '@lucide/svelte/icons/log-out';
 
 	let { children } = $props();
 
@@ -33,12 +36,22 @@
 
 <div class="shell">
 	<header class="header">
-		<div class="brand"><a class="brandLink" href={resolve('/resumes')}>Resume Editor</a></div>
+		<div class="brand">
+			<a class="brandLink" href={resolve('/resumes')}>
+				<span class="brandIcon">
+					<FileText size={20} />
+				</span>
+				Resume Editor
+			</a>
+		</div>
 		<nav class="nav">
 			<a class="navLink" href={resolve('/resumes')}>Resumes</a>
 			{#if $authToken}
 				<span class="user">{$currentUser ? $currentUser.email : 'Signed in'}</span>
-				<button class="navButton" type="button" onclick={handleLogout}>Logout</button>
+				<button class="navButton" type="button" onclick={handleLogout}>
+					<LogOut size={16} />
+					Logout
+				</button>
 			{:else}
 				<a class="navLink" href={resolve('/auth/login')}>Login</a>
 				<a class="navLink" href={resolve('/auth/register')}>Register</a>
@@ -51,8 +64,8 @@
 <style>
 	.shell {
 		min-height: 100vh;
-		background: #f8fafc;
-		color: #0f172a;
+		background: var(--color-background);
+		color: var(--color-text);
 	}
 
 	.header {
@@ -61,56 +74,85 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 16px;
+		gap: var(--space-4);
 		padding: 14px 18px;
-		border-bottom: 1px solid #e2e8f0;
-		background: white;
+		border-bottom: 1px solid var(--color-border);
+		background: var(--color-surface);
+		z-index: 50;
 	}
 
 	.brandLink {
 		font-weight: 700;
 		text-decoration: none;
 		color: inherit;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.brandIcon {
+		color: var(--color-primary);
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius-sm);
+		background: var(--color-primary-light);
 	}
 
 	.nav {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 		flex-wrap: wrap;
 	}
 
 	.navLink {
-		color: #0f172a;
+		color: var(--color-text);
 		text-decoration: none;
 		padding: 6px 8px;
-		border-radius: 8px;
+		border-radius: var(--radius-sm);
+		font-weight: 500;
+		font-size: 14px;
 	}
 
 	.navLink:hover {
-		background: #f1f5f9;
+		background: var(--color-primary-light);
+		color: var(--color-primary);
 	}
 
 	.user {
-		color: #475569;
+		color: var(--color-muted);
 		font-size: 13px;
-		padding: 6px 8px;
-		border: 1px solid #e2e8f0;
-		border-radius: 999px;
+		padding: 6px 10px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-pill);
+		background: var(--color-background);
 	}
 
 	.navButton {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
 		padding: 8px 12px;
-		border: 1px solid #0f172a;
-		border-radius: 8px;
-		background: #0f172a;
-		color: white;
+		border: 1px solid var(--color-text);
+		border-radius: var(--radius-sm);
+		background: var(--color-text);
+		color: var(--color-surface);
 		cursor: pointer;
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.navButton:hover {
+		background: var(--color-primary);
+		border-color: var(--color-primary);
 	}
 
 	.main {
 		max-width: 960px;
 		margin: 0 auto;
-		padding: 20px 18px;
+		padding: var(--space-5) 18px;
 	}
 </style>

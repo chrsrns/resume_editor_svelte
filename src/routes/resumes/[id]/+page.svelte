@@ -30,6 +30,21 @@
 		WorkExperienceKeyPoint
 	} from '$lib/types';
 	import { currentUser } from '$lib/session';
+	import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
+	import IconTabBar from '$lib/components/IconTabBar.svelte';
+	import FieldRow from '$lib/components/FieldRow.svelte';
+	import Eye from '@lucide/svelte/icons/eye';
+	import Mail from '@lucide/svelte/icons/mail';
+	import Image from '@lucide/svelte/icons/image';
+	import MapPin from '@lucide/svelte/icons/map-pin';
+	import Link from '@lucide/svelte/icons/link';
+	import Phone from '@lucide/svelte/icons/phone';
+	import User from '@lucide/svelte/icons/user';
+	import GraduationCap from '@lucide/svelte/icons/graduation-cap';
+	import Briefcase from '@lucide/svelte/icons/briefcase';
+	import Folder from '@lucide/svelte/icons/folder';
+	import Star from '@lucide/svelte/icons/star';
+	import Globe from '@lucide/svelte/icons/globe';
 
 	const tabs = [
 		{ id: 'basics', label: 'Basics' },
@@ -38,6 +53,15 @@
 		{ id: 'portfolio', label: 'Portfolio' },
 		{ id: 'skills', label: 'Skills' },
 		{ id: 'languages', label: 'Languages & Frameworks' }
+	] as const;
+
+	const tabIcons = [
+		{ id: 'basics', label: 'Basics', Icon: User },
+		{ id: 'education', label: 'Education', Icon: GraduationCap },
+		{ id: 'work', label: 'Work', Icon: Briefcase },
+		{ id: 'portfolio', label: 'Portfolio', Icon: Folder },
+		{ id: 'skills', label: 'Skills', Icon: Star },
+		{ id: 'languages', label: 'Languages & Frameworks', Icon: Globe }
 	] as const;
 
 	type TabId = (typeof tabs)[number]['id'];
@@ -120,7 +144,7 @@
 		}
 	}
 
-	function selectTab(id: TabId) {
+	function selectTab(id: string) {
 		const params = new SvelteURLSearchParams(page.url.searchParams);
 		params.set('tab', id);
 		void goto(resolve(`/resumes/${page.params.id}?${params.toString()}`), {
@@ -227,585 +251,453 @@
 </svelte:head>
 
 {#if loading}
-	<p>Loading…</p>
+	<p class="stateText">Loading…</p>
 {:else if error}
-	<p class="error">{error}</p>
+	<p class="stateText error">{error}</p>
 {:else if resume}
-	<div class="header">
-		<div>
-			<h1>{resume.name}</h1>
-		</div>
-		<div class="actions">
-			{#if $currentUser && resume.created_by === $currentUser.id}
-				<a class="button" href={resolve(`/resumes/${resume.id}/edit`)}>Edit</a>
-			{/if}
-			<a class="button secondary" href={resolve('/resumes')}>Back</a>
+	<ResumeViewHeader
+		{resume}
+		canEdit={$currentUser !== null && resume.created_by === $currentUser.id}
+	/>
+
+	<IconTabBar tabs={tabIcons} {activeTab} onselect={selectTab} onkeydown={onTabListKeydown} />
+
+	{#if sectionError}
+		<p class="sectionError">{sectionError}</p>
+	{/if}
+
+	<div
+		class="panel"
+		hidden={activeTab !== 'basics'}
+		role="tabpanel"
+		id="panel-basics"
+		aria-labelledby="tab-basics"
+		tabindex="0"
+	>
+		<div class="card">
+			<FieldRow Icon={Eye} label="Visibility" value={resume.is_public ? 'Public' : 'Private'} />
+			<FieldRow Icon={Mail} label="Email" value={resume.email} />
+			<FieldRow
+				Icon={Image}
+				label="Profile Image URL"
+				value={resume.profile_image_url ?? '-'}
+				href={resume.profile_image_url ?? undefined}
+				copyable={!!resume.profile_image_url}
+			/>
+			<FieldRow Icon={MapPin} label="Location" value={resume.location ?? '-'} />
+			<FieldRow
+				Icon={Link}
+				label="GitHub"
+				value={resume.github_url ?? '-'}
+				href={resume.github_url ?? undefined}
+				copyable={!!resume.github_url}
+			/>
+			<FieldRow Icon={Phone} label="Mobile" value={resume.mobile_number ?? '-'} />
 		</div>
 	</div>
 
-	<div class="grid">
-		{#if resume.profile_image_url}
-			<div class="profile-image">
-				<img src={resume.profile_image_url} alt={`Profile of ${resume.name}`} />
-			</div>
-		{/if}
-
-		<div class="content">
-			<div
-				class="tabs"
-				role="tablist"
-				aria-label="Resume sections"
-				tabindex="0"
-				onkeydown={onTabListKeydown}
-			>
-				{#each tabs as t (t.id)}
-					<button
-						class="tab {activeTab === t.id ? 'active' : ''}"
-						type="button"
-						role="tab"
-						aria-selected={activeTab === t.id}
-						aria-controls={`panel-${t.id}`}
-						id={`tab-${t.id}`}
-						tabindex={activeTab === t.id ? 0 : -1}
-						onclick={() => selectTab(t.id)}
-						data-tab={t.id}
-					>
-						{t.label}
-					</button>
+	<div
+		class="panel"
+		hidden={activeTab !== 'education'}
+		role="tabpanel"
+		id="panel-education"
+		aria-labelledby="tab-education"
+		tabindex="0"
+	>
+		{#if educations.length === 0}
+			<div class="card empty">No education entries yet.</div>
+		{:else}
+			<div class="stack">
+				{#each educations as education (education.id)}
+					<div class="card sectionCard">
+						<div class="sectionHead">
+							<div>
+								<h2>{education.education_stage}</h2>
+								<p class="meta">{education.institution_name}</p>
+							</div>
+							<p class="date">{formatDateRange(education.start_date, education.end_date)}</p>
+						</div>
+						{#if education.degree}
+							<p class="bodyText">{education.degree}</p>
+						{/if}
+						{#if education.description}
+							<p class="bodyText muted">{education.description}</p>
+						{/if}
+						{#if (educationKeyPoints[education.id] ?? []).length > 0}
+							<ul class="bulletList">
+								{#each educationKeyPoints[education.id] ?? [] as keyPoint (keyPoint.id)}
+									<li>{keyPoint.key_point}</li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
 				{/each}
 			</div>
+		{/if}
+	</div>
 
-			{#if sectionError}
-				<p class="error section-error">{sectionError}</p>
-			{/if}
+	<div
+		class="panel"
+		hidden={activeTab !== 'work'}
+		role="tabpanel"
+		id="panel-work"
+		aria-labelledby="tab-work"
+		tabindex="0"
+	>
+		{#if workExperiences.length === 0}
+			<div class="card empty">No work experience entries yet.</div>
+		{:else}
+			<div class="stack">
+				{#each workExperiences as workExperience (workExperience.id)}
+					<div class="card sectionCard">
+						<div class="sectionHead">
+							<div>
+								<h2>{workExperience.job_title}</h2>
+								<p class="meta">{workExperience.company_name ?? '-'}</p>
+							</div>
+							<p class="date">
+								{formatDateRange(workExperience.start_date, workExperience.end_date)}
+							</p>
+						</div>
+						{#if workExperience.description}
+							<p class="bodyText muted">{workExperience.description}</p>
+						{/if}
+						{#if (workExperienceKeyPoints[workExperience.id] ?? []).length > 0}
+							<ul class="bulletList">
+								{#each workExperienceKeyPoints[workExperience.id] ?? [] as keyPoint (keyPoint.id)}
+									<li>{keyPoint.key_point}</li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
 
-			<div
-				class="panel"
-				hidden={activeTab !== 'basics'}
-				role="tabpanel"
-				id="panel-basics"
-				aria-labelledby="tab-basics"
-				tabindex="0"
-			>
-				<div class="card">
-					<div class="row">
-						<span class="k">Visibility</span><span class="v"
-							>{resume.is_public ? 'Public' : 'Private'}</span
-						>
+	<div
+		class="panel"
+		hidden={activeTab !== 'portfolio'}
+		role="tabpanel"
+		id="panel-portfolio"
+		aria-labelledby="tab-portfolio"
+		tabindex="0"
+	>
+		{#if portfolioProjects.length === 0}
+			<div class="card empty">No portfolio projects yet.</div>
+		{:else}
+			<div class="stack">
+				{#each portfolioProjects as project (project.id)}
+					<div class="card sectionCard">
+						<div class="sectionHead">
+							<div>
+								<h2>{project.project_name}</h2>
+								{#if project.description}
+									<p class="bodyText muted">{project.description}</p>
+								{/if}
+							</div>
+							<div class="linkGroup">
+								{#if project.project_link}
+									<a class="link" href={project.project_link} target="_blank" rel="external">
+										Preview
+									</a>
+								{/if}
+								{#if project.source_code_link}
+									<a class="link" href={project.source_code_link} target="_blank" rel="external">
+										Source
+									</a>
+								{/if}
+							</div>
+						</div>
+						{#if project.image_url}
+							<img
+								class="projectImage"
+								src={project.image_url}
+								alt={`Preview of ${project.project_name}`}
+							/>
+						{/if}
+						{#if (portfolioTechnologies[project.id] ?? []).length > 0}
+							<div class="chips">
+								{#each portfolioTechnologies[project.id] ?? [] as technology (technology.id)}
+									<span class="chip">{technology.technology_name}</span>
+								{/each}
+							</div>
+						{/if}
+						{#if (portfolioKeyPoints[project.id] ?? []).length > 0}
+							<ul class="bulletList">
+								{#each portfolioKeyPoints[project.id] ?? [] as keyPoint (keyPoint.id)}
+									<li>{keyPoint.key_point}</li>
+								{/each}
+							</ul>
+						{/if}
 					</div>
-					<div class="row">
-						<span class="k">Email</span><span class="v">{resume.email}</span>
-					</div>
-					<div class="row">
-						<span class="k">Profile image URL</span>
-						<span class="v">
-							{#if resume.profile_image_url}
-								<a class="link" href={resume.profile_image_url} target="_blank" rel="external">
-									{resume.profile_image_url}
-								</a>
-							{:else}
-								-
-							{/if}
-						</span>
-					</div>
-					<div class="row">
-						<span class="k">Location</span><span class="v">{resume.location ?? '-'}</span>
-					</div>
-					<div class="row">
-						<span class="k">GitHub</span>
-						<span class="v">
-							{#if resume.github_url}
-								<a class="link" href={resume.github_url} target="_blank" rel="external">
-									{resume.github_url}
-								</a>
-							{:else}
-								-
-							{/if}
-						</span>
-					</div>
-					<div class="row">
-						<span class="k">Mobile</span><span class="v">{resume.mobile_number ?? '-'}</span>
-					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
+
+	<div
+		class="panel"
+		hidden={activeTab !== 'skills'}
+		role="tabpanel"
+		id="panel-skills"
+		aria-labelledby="tab-skills"
+		tabindex="0"
+	>
+		{#if skills.length === 0}
+			<div class="card empty">No skills added yet.</div>
+		{:else}
+			<div class="card">
+				<div class="skillStack">
+					{#each skills as skill (skill.id)}
+						<div class="skillRow">
+							<div>
+								<p class="skillName">{skill.skill_name}</p>
+								<p class="skillMeta">{skill.confidence_percentage}% confidence</p>
+							</div>
+							<div class="skillTrack" aria-hidden="true">
+								<div class="skillBar" style={`width: ${skill.confidence_percentage}%`}></div>
+							</div>
+						</div>
+					{/each}
 				</div>
 			</div>
+		{/if}
+	</div>
 
-			<div
-				class="panel"
-				hidden={activeTab !== 'education'}
-				role="tabpanel"
-				id="panel-education"
-				aria-labelledby="tab-education"
-				tabindex="0"
-			>
-				{#if educations.length === 0}
-					<div class="card empty-state">No education entries yet.</div>
-				{:else}
-					<div class="stack">
-						{#each educations as education (education.id)}
-							<div class="card section-card">
-								<div class="section-head">
-									<div>
-										<h2>{education.education_stage}</h2>
-										<p class="muted">{education.institution_name}</p>
-									</div>
-									<p class="meta">{formatDateRange(education.start_date, education.end_date)}</p>
-								</div>
-								{#if education.degree}
-									<p>{education.degree}</p>
-								{/if}
-								{#if education.description}
-									<p class="subtle">{education.description}</p>
-								{/if}
-								{#if (educationKeyPoints[education.id] ?? []).length > 0}
-									<ul class="list">
-										{#each educationKeyPoints[education.id] ?? [] as keyPoint (keyPoint.id)}
-											<li>{keyPoint.key_point}</li>
-										{/each}
-									</ul>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
-
-			<div
-				class="panel"
-				hidden={activeTab !== 'work'}
-				role="tabpanel"
-				id="panel-work"
-				aria-labelledby="tab-work"
-				tabindex="0"
-			>
-				{#if workExperiences.length === 0}
-					<div class="card empty-state">No work experience entries yet.</div>
-				{:else}
-					<div class="stack">
-						{#each workExperiences as workExperience (workExperience.id)}
-							<div class="card section-card">
-								<div class="section-head">
-									<div>
-										<h2>{workExperience.job_title}</h2>
-										<p class="muted">{workExperience.company_name ?? '-'}</p>
-									</div>
-									<p class="meta">
-										{formatDateRange(workExperience.start_date, workExperience.end_date)}
-									</p>
-								</div>
-								{#if workExperience.description}
-									<p class="subtle">{workExperience.description}</p>
-								{/if}
-								{#if (workExperienceKeyPoints[workExperience.id] ?? []).length > 0}
-									<ul class="list">
-										{#each workExperienceKeyPoints[workExperience.id] ?? [] as keyPoint (keyPoint.id)}
-											<li>{keyPoint.key_point}</li>
-										{/each}
-									</ul>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
-
-			<div
-				class="panel"
-				hidden={activeTab !== 'portfolio'}
-				role="tabpanel"
-				id="panel-portfolio"
-				aria-labelledby="tab-portfolio"
-				tabindex="0"
-			>
-				{#if portfolioProjects.length === 0}
-					<div class="card empty-state">No portfolio projects yet.</div>
-				{:else}
-					<div class="stack">
-						{#each portfolioProjects as project (project.id)}
-							<div class="card section-card">
-								<div class="section-head">
-									<div>
-										<h2>{project.project_name}</h2>
-										{#if project.description}
-											<p class="subtle">{project.description}</p>
-										{/if}
-									</div>
-									<div class="link-group">
-										{#if project.project_link}
-											<a class="link" href={project.project_link} target="_blank" rel="external">
-												Preview
-											</a>
-										{/if}
-										{#if project.source_code_link}
-											<a
-												class="link"
-												href={project.source_code_link}
-												target="_blank"
-												rel="external"
-											>
-												Source
-											</a>
-										{/if}
-									</div>
-								</div>
-								{#if (portfolioTechnologies[project.id] ?? []).length > 0}
-									<div class="chips">
-										{#each portfolioTechnologies[project.id] ?? [] as technology (technology.id)}
-											<span class="chip">{technology.technology_name}</span>
-										{/each}
-									</div>
-								{/if}
-								{#if (portfolioKeyPoints[project.id] ?? []).length > 0}
-									<ul class="list">
-										{#each portfolioKeyPoints[project.id] ?? [] as keyPoint (keyPoint.id)}
-											<li>{keyPoint.key_point}</li>
-										{/each}
-									</ul>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
-
-			<div
-				class="panel"
-				hidden={activeTab !== 'skills'}
-				role="tabpanel"
-				id="panel-skills"
-				aria-labelledby="tab-skills"
-				tabindex="0"
-			>
-				{#if skills.length === 0}
-					<div class="card empty-state">No skills added yet.</div>
-				{:else}
-					<div class="card">
-						<div class="stack compact">
-							{#each skills as skill (skill.id)}
-								<div class="skill-row">
-									<div>
-										<p class="skill-name">{skill.skill_name}</p>
-										<p class="meta">{skill.confidence_percentage}% confidence</p>
-									</div>
-									<div class="skill-track" aria-hidden="true">
-										<div class="skill-bar" style={`width: ${skill.confidence_percentage}%`}></div>
-									</div>
-								</div>
-							{/each}
+	<div
+		class="panel"
+		hidden={activeTab !== 'languages'}
+		role="tabpanel"
+		id="panel-languages"
+		aria-labelledby="tab-languages"
+		tabindex="0"
+	>
+		{#if languages.length === 0}
+			<div class="card empty">No languages or frameworks added yet.</div>
+		{:else}
+			<div class="stack">
+				{#each languages as language (language.id)}
+					<div class="card sectionCard">
+						<div class="sectionHead languageHead">
+							<h2>{language.language_name}</h2>
+							<p class="date">
+								{(frameworks[language.id] ?? []).length}
+								{(frameworks[language.id] ?? []).length === 1 ? 'framework' : 'frameworks'}
+							</p>
 						</div>
-					</div>
-				{/if}
-			</div>
-
-			<div
-				class="panel"
-				hidden={activeTab !== 'languages'}
-				role="tabpanel"
-				id="panel-languages"
-				aria-labelledby="tab-languages"
-				tabindex="0"
-			>
-				{#if languages.length === 0}
-					<div class="card empty-state">No languages or frameworks added yet.</div>
-				{:else}
-					<div class="stack">
-						{#each languages as language (language.id)}
-							<div class="card section-card">
-								<div class="section-head language-head">
-									<h2>{language.language_name}</h2>
-									<p class="meta">
-										{(frameworks[language.id] ?? []).length}
-										{(frameworks[language.id] ?? []).length === 1 ? 'framework' : 'frameworks'}
-									</p>
-								</div>
-								{#if (frameworks[language.id] ?? []).length > 0}
-									<div class="chips">
-										{#each frameworks[language.id] ?? [] as framework (framework.id)}
-											<span class="chip">{framework.framework_name}</span>
-										{/each}
-									</div>
-								{:else}
-									<p class="subtle">No frameworks listed.</p>
-								{/if}
+						{#if (frameworks[language.id] ?? []).length > 0}
+							<div class="chips">
+								{#each frameworks[language.id] ?? [] as framework (framework.id)}
+									<span class="chip">{framework.framework_name}</span>
+								{/each}
 							</div>
-						{/each}
+						{:else}
+							<p class="bodyText muted">No frameworks listed.</p>
+						{/if}
 					</div>
-				{/if}
+				{/each}
 			</div>
-		</div>
+		{/if}
 	</div>
 {/if}
 
 <style>
-	.header {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 16px;
-		margin-top: 2.5rem;
-		margin-bottom: 2rem;
+	.stateText {
+		margin: var(--space-6) 0;
+		color: var(--color-muted);
 	}
 
-	h1 {
-		margin: 0;
+	.error {
+		color: var(--color-danger);
 	}
 
-	.actions {
-		display: flex;
-		gap: 10px;
-		flex-wrap: wrap;
-	}
-
-	.button {
-		padding: 10px 14px;
-		border: 1px solid #0f172a;
-		border-radius: 8px;
-		background: #0f172a;
-		color: white;
-		text-decoration: none;
-	}
-
-	.button.secondary {
-		background: white;
-		color: #0f172a;
-	}
-
-	.grid {
-		display: grid;
-		gap: 16px;
-		margin-top: 16px;
-	}
-
-	.content {
-		min-width: 0;
-	}
-
-	.card {
-		border: 1px solid #e2e8f0;
-		border-radius: 10px;
-		background: white;
-		padding: 14px;
-	}
-
-	.profile-image {
-		border: 1px solid #e2e8f0;
-		border-radius: 12px;
-		background: white;
-		padding: 6px;
-		width: 14em;
-		height: 14em;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.profile-image img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		border-radius: 8px;
-	}
-
-	.tabs {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		margin-bottom: 16px;
-	}
-
-	.tab {
-		padding: 8px 12px;
-		border: 1px solid #cbd5e1;
-		border-radius: 999px;
-		background: white;
-		color: #0f172a;
-		cursor: pointer;
-	}
-
-	.tab.active {
-		border-color: #0f172a;
-		background: #0f172a;
-		color: white;
-	}
-
-	.tab:focus {
-		outline: 2px solid #2563eb;
-		outline-offset: 2px;
+	.sectionError {
+		color: var(--color-danger);
+		margin: 0 0 var(--space-4);
 	}
 
 	.panel {
-		margin-top: 8px;
+		margin-top: var(--space-2);
+	}
+
+	.card {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		box-shadow: var(--shadow-card);
+		overflow: hidden;
+	}
+
+	.empty {
+		padding: var(--space-5);
+		color: var(--color-muted);
+		font-size: 14px;
 	}
 
 	.stack {
-		display: grid;
-		gap: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
 	}
 
-	.stack.compact {
-		gap: 16px;
+	.sectionCard {
+		padding: var(--space-5);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
 	}
 
-	.section-card {
-		display: grid;
-		gap: 12px;
-	}
-
-	.section-head {
+	.sectionHead {
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--space-2);
 		align-items: flex-start;
 	}
 
-	.language-head {
+	.languageHead {
+		flex-direction: row;
 		align-items: center;
 	}
 
-	.section-head h2 {
+	.sectionHead h2 {
 		margin: 0;
 		font-size: 18px;
+		font-weight: 700;
+		color: var(--color-text);
 	}
 
-	.meta {
+	.date {
 		margin: 0;
-		color: #64748b;
+		color: var(--color-muted);
 		font-size: 13px;
 		white-space: nowrap;
 	}
 
-	.subtle {
+	.meta {
 		margin: 0;
-		color: #334155;
-		line-height: 1.5;
+		color: var(--color-muted);
+		font-size: 13px;
 	}
 
-	.list {
+	.bodyText {
+		margin: 0;
+		color: var(--color-text);
+		font-size: 14px;
+		line-height: 1.6;
+	}
+
+	.bodyText.muted {
+		color: var(--color-muted);
+	}
+
+	.bulletList {
 		margin: 0;
 		padding-left: 18px;
-		color: #0f172a;
-		display: grid;
-		gap: 8px;
+		color: var(--color-text);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		font-size: 14px;
 	}
 
 	.chips {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 
 	.chip {
 		padding: 6px 10px;
-		border-radius: 999px;
-		background: #eff6ff;
-		color: #1d4ed8;
+		border-radius: var(--radius-pill);
+		background: var(--color-primary-light);
+		color: var(--color-primary);
 		font-size: 13px;
+		font-weight: 500;
 	}
 
 	.link {
-		color: #2563eb;
+		color: var(--color-primary);
 		text-decoration: none;
 		word-break: break-word;
+		font-size: 14px;
+		font-weight: 500;
 	}
 
 	.link:hover {
 		text-decoration: underline;
 	}
 
-	.link-group {
+	.linkGroup {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 12px;
+		gap: var(--space-3);
 		justify-content: flex-end;
 	}
 
-	.empty-state {
-		color: #64748b;
+	.projectImage {
+		width: 100%;
+		max-height: 260px;
+		object-fit: cover;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--color-border);
 	}
 
-	.section-error {
-		margin: 0 0 12px;
+	.skillStack {
+		padding: var(--space-5);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
 	}
 
-	.skill-row {
+	.skillRow {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(120px, 240px);
-		gap: 16px;
+		gap: var(--space-4);
 		align-items: center;
 	}
 
-	.skill-name {
+	.skillName {
 		margin: 0;
 		font-weight: 600;
-		color: #0f172a;
+		color: var(--color-text);
+		font-size: 14px;
 	}
 
-	.skill-track {
+	.skillMeta {
+		margin: 4px 0 0;
+		color: var(--color-muted);
+		font-size: 13px;
+	}
+
+	.skillTrack {
 		height: 10px;
-		border-radius: 999px;
-		background: #e2e8f0;
+		border-radius: var(--radius-pill);
+		background: var(--color-border);
 		overflow: hidden;
 	}
 
-	.skill-bar {
+	.skillBar {
 		height: 100%;
 		border-radius: inherit;
-		background: linear-gradient(90deg, #2563eb, #0f172a);
-	}
-
-	.row {
-		display: flex;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 8px 0;
-		border-bottom: 1px solid #f1f5f9;
-	}
-
-	.row:last-child {
-		border-bottom: 0;
-	}
-
-	.k {
-		color: #475569;
-		font-size: 13px;
-	}
-
-	.v {
-		color: #0f172a;
-		font-size: 13px;
-		text-align: right;
-	}
-
-	.error {
-		color: #b91c1c;
-	}
-
-	.muted {
-		color: #475569;
-		margin: 0;
-	}
-
-	@media (min-width: 900px) {
-		.grid {
-			grid-template-columns: auto minmax(0, 1fr);
-			align-items: start;
-		}
+		background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
 	}
 
 	@media (max-width: 640px) {
-		.section-head,
-		.skill-row {
+		.sectionHead,
+		.skillRow {
 			grid-template-columns: 1fr;
-			display: grid;
+			display: flex;
+			flex-direction: column;
 		}
 
-		.link-group {
+		.languageHead {
+			flex-direction: row;
+		}
+
+		.linkGroup {
 			justify-content: flex-start;
-		}
-
-		.meta,
-		.v {
-			white-space: normal;
 		}
 	}
 </style>
