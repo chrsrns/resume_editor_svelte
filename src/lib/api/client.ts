@@ -40,14 +40,19 @@ export async function apiRequest<T = unknown>(
         return new Promise((resolve) => setTimeout(resolve, delay));
     }
 
-    async function fetchRetry(url: string, initDelay: number, tries: number, fetchOptions = {}): Promise<Response> {
+    async function fetchRetry(
+        url: string,
+        initDelay: number,
+        tries: number,
+        fetchOptions = {}
+    ): Promise<Response> {
         const delayMultiplier = 2;
         let currentDelay = initDelay;
         let triesLeft = tries;
 
         while (triesLeft > 0) {
             const res = await fetch(url, fetchOptions).catch(async (e) => {
-                console.log("Retrying from exception: ", e);
+                console.log('Retrying from exception: ', e);
                 triesLeft--;
                 if (triesLeft === 0) {
                     throw new ApiError(500, 'Failed to fetch');
@@ -62,7 +67,7 @@ export async function apiRequest<T = unknown>(
             }
 
             if (res.status === 500 && !res.body) {
-                console.log("Retrying from 500 error");
+                console.log('Retrying from 500 error');
                 triesLeft--;
                 if (triesLeft === 0) {
                     throw new ApiError(500, 'Failed to fetch');
@@ -96,7 +101,7 @@ export async function apiRequest<T = unknown>(
         headers,
         body: options.body === undefined ? undefined : JSON.stringify(options.body)
     }).catch((error) => {
-        console.log("Failed to fetch: ", error);
+        console.log('Failed to fetch: ', error);
         throw error;
     });
 

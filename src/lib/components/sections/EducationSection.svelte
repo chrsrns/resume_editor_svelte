@@ -1,561 +1,581 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import SectionShell from '$lib/components/sections/SectionShell.svelte';
-	import Card from '$lib/components/sections/shared/Card.svelte';
-	import CardActions from '$lib/components/sections/shared/CardActions.svelte';
-	import CollapsibleCard from '$lib/components/sections/shared/CollapsibleCard.svelte';
-	import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
-	import {
-		byDisplayOrder,
-		createGroupedDisplayOrderReorder,
-		createGroupedDragReorder,
-		createCardDragReorder,
-		createDisplayOrderReorder
-	} from '$lib/components/sections/shared/displayOrderReorder';
-	import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
-	import NestedList from '$lib/components/sections/shared/NestedList.svelte';
-	import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
-	import {
-		createEducation,
-		createEducationKeyPoint,
-		deleteEducation,
-		deleteEducationKeyPoint,
-		listEducationKeyPoints,
-		listEducations,
-		updateEducation,
-		updateEducationKeyPoint
-	} from '$lib/api/education';
-	import type { ApiError } from '$lib/api/client';
-	import type {
-		Education,
-		EducationKeyPoint,
-		NewEducationKeyPointRequest,
-		NewEducationRequest,
-		UpdateEducationKeyPointRequest,
-		UpdateEducationRequest
-	} from '$lib/types';
-	import Button from '$lib/components/ui/Button.svelte';
-	import TextArea from '$lib/components/ui/TextArea.svelte';
-	import TextInput from '$lib/components/ui/TextInput.svelte';
-	import ActiveStatus from '../ui/ActiveStatus.svelte';
+    import { onMount } from 'svelte';
+    import SectionShell from '$lib/components/sections/SectionShell.svelte';
+    import Card from '$lib/components/sections/shared/Card.svelte';
+    import CardActions from '$lib/components/sections/shared/CardActions.svelte';
+    import CollapsibleCard from '$lib/components/sections/shared/CollapsibleCard.svelte';
+    import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
+    import {
+        byDisplayOrder,
+        createGroupedDisplayOrderReorder,
+        createGroupedDragReorder,
+        createCardDragReorder,
+        createDisplayOrderReorder
+    } from '$lib/components/sections/shared/displayOrderReorder';
+    import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
+    import NestedList from '$lib/components/sections/shared/NestedList.svelte';
+    import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
+    import {
+        createEducation,
+        createEducationKeyPoint,
+        deleteEducation,
+        deleteEducationKeyPoint,
+        listEducationKeyPoints,
+        listEducations,
+        updateEducation,
+        updateEducationKeyPoint
+    } from '$lib/api/education';
+    import type { ApiError } from '$lib/api/client';
+    import type {
+        Education,
+        EducationKeyPoint,
+        NewEducationKeyPointRequest,
+        NewEducationRequest,
+        UpdateEducationKeyPointRequest,
+        UpdateEducationRequest
+    } from '$lib/types';
+    import Button from '$lib/components/ui/Button.svelte';
+    import TextArea from '$lib/components/ui/TextArea.svelte';
+    import TextInput from '$lib/components/ui/TextInput.svelte';
+    import ActiveStatus from '../ui/ActiveStatus.svelte';
 
-	let { resumeId } = $props<{ resumeId: number }>();
+    let { resumeId } = $props<{ resumeId: number }>();
 
-	type EducationDraft = {
-		id: number;
-		education_stage: string;
-		institution_name: string;
-		degree: string;
-		start_date: string;
-		end_date: string;
-		description: string;
-		display_order: string;
-	};
+    type EducationDraft = {
+        id: number;
+        education_stage: string;
+        institution_name: string;
+        degree: string;
+        start_date: string;
+        end_date: string;
+        description: string;
+        display_order: string;
+    };
 
-	type KeyPointDraft = {
-		id: number;
-		key_point: string;
-		display_order: string;
-	};
+    type KeyPointDraft = {
+        id: number;
+        key_point: string;
+        display_order: string;
+    };
 
-	let loading = $state(true);
-	let error = $state<string | null>(null);
-	let drafts = $state<EducationDraft[]>([]);
-	let activeById = $state<Record<number, boolean>>({});
-	let savedEduSigById = $state<Record<number, string>>({});
-	let collapsedById = $state<Record<number, boolean>>({});
-	let keyPoints = $state<Record<number, KeyPointDraft[]>>({});
-	let keyPointLoading = $state<Record<number, boolean>>({});
-	let savedKeyPointSigById = $state<Record<number, string>>({});
+    let loading = $state(true);
+    let error = $state<string | null>(null);
+    let drafts = $state<EducationDraft[]>([]);
+    let activeById = $state<Record<number, boolean>>({});
+    let savedEduSigById = $state<Record<number, string>>({});
+    let collapsedById = $state<Record<number, boolean>>({});
+    let keyPoints = $state<Record<number, KeyPointDraft[]>>({});
+    let keyPointLoading = $state<Record<number, boolean>>({});
+    let savedKeyPointSigById = $state<Record<number, string>>({});
 
-	let creating = $state(false);
-	let newStage = $state('');
-	let newInstitution = $state('');
-	let newDegree = $state('');
-	let newStart = $state('');
-	let newEnd = $state('');
-	let newDescription = $state('');
+    let creating = $state(false);
+    let newStage = $state('');
+    let newInstitution = $state('');
+    let newDegree = $state('');
+    let newStart = $state('');
+    let newEnd = $state('');
+    let newDescription = $state('');
 
-	let draggingId = $state<number | null>(null);
-	let dragOverId = $state<number | null>(null);
-	let reordering = $state(false);
-	let keyPointDragging = $state<{ group: number; id: number } | null>(null);
-	let keyPointDragOver = $state<{ group: number; id: number } | null>(null);
+    let draggingId = $state<number | null>(null);
+    let dragOverId = $state<number | null>(null);
+    let reordering = $state(false);
+    let keyPointDragging = $state<{ group: number; id: number } | null>(null);
+    let keyPointDragOver = $state<{ group: number; id: number } | null>(null);
 
-	let newKeyPointText = $state<Record<number, string>>({});
+    let newKeyPointText = $state<Record<number, string>>({});
 
-	function toNullable(value: string): string | null {
-		const t = value.trim();
-		return t.length === 0 ? null : t;
-	}
+    function toNullable(value: string): string | null {
+        const t = value.trim();
+        return t.length === 0 ? null : t;
+    }
 
-	function toNumberOrNull(value: string): number | null {
-		const t = value.trim();
-		if (t.length === 0) return null;
-		const n = Number(t);
-		return Number.isFinite(n) ? n : null;
-	}
+    function toNumberOrNull(value: string): number | null {
+        const t = value.trim();
+        if (t.length === 0) return null;
+        const n = Number(t);
+        return Number.isFinite(n) ? n : null;
+    }
 
-	function toDraft(e: Education): EducationDraft {
-		return {
-			id: e.id,
-			education_stage: e.education_stage,
-			institution_name: e.institution_name,
-			degree: String(e.degree ?? ''),
-			start_date: e.start_date,
-			end_date: e.end_date ?? '',
-			description: e.description ?? '',
-			display_order: e.display_order == null ? '' : String(e.display_order)
-		};
-	}
+    function toDraft(e: Education): EducationDraft {
+        return {
+            id: e.id,
+            education_stage: e.education_stage,
+            institution_name: e.institution_name,
+            degree: String(e.degree ?? ''),
+            start_date: e.start_date,
+            end_date: e.end_date ?? '',
+            description: e.description ?? '',
+            display_order: e.display_order == null ? '' : String(e.display_order)
+        };
+    }
 
-	function toKeyPointDraft(p: EducationKeyPoint): KeyPointDraft {
-		return {
-			id: p.id,
-			key_point: p.key_point,
-			display_order: p.display_order == null ? '' : String(p.display_order)
-		};
-	}
+    function toKeyPointDraft(p: EducationKeyPoint): KeyPointDraft {
+        return {
+            id: p.id,
+            key_point: p.key_point,
+            display_order: p.display_order == null ? '' : String(p.display_order)
+        };
+    }
 
-	const displayOrderReorder = createDisplayOrderReorder<EducationDraft>({
-		getDrafts: () => drafts,
-		setDrafts: (next) => (drafts = next),
-		getSavedSigs: () => savedEduSigById,
-		setSavedSigs: (next) => (savedEduSigById = next),
-		getReordering: () => reordering,
-		setReordering: (next) => (reordering = next),
-		setError: (message) => (error = message),
-		getErrorMessage: (e) => (e as ApiError).message,
-		parseOrder: toNumberOrNull,
-		updateDisplayOrder: (id, display_order) => updateEducation(id, { display_order }),
-		orderStep: 10
-	});
+    const displayOrderReorder = createDisplayOrderReorder<EducationDraft>({
+        getDrafts: () => drafts,
+        setDrafts: (next) => (drafts = next),
+        getSavedSigs: () => savedEduSigById,
+        setSavedSigs: (next) => (savedEduSigById = next),
+        getReordering: () => reordering,
+        setReordering: (next) => (reordering = next),
+        setError: (message) => (error = message),
+        getErrorMessage: (e) => (e as ApiError).message,
+        parseOrder: toNumberOrNull,
+        updateDisplayOrder: (id, display_order) => updateEducation(id, { display_order }),
+        orderStep: 10
+    });
 
-	const dragReorder = createCardDragReorder({
-		getDraggingId: () => draggingId,
-		setDraggingId: (id) => (draggingId = id),
-		setDragOverId: (id) => (dragOverId = id),
-		getReordering: () => reordering,
-		getOrderedIds: () => drafts.map((d) => d.id),
-		reorderByIds: displayOrderReorder.reorderByIds
-	});
+    const dragReorder = createCardDragReorder({
+        getDraggingId: () => draggingId,
+        setDraggingId: (id) => (draggingId = id),
+        setDragOverId: (id) => (dragOverId = id),
+        getReordering: () => reordering,
+        getOrderedIds: () => drafts.map((d) => d.id),
+        reorderByIds: displayOrderReorder.reorderByIds
+    });
 
-	const keyPointDisplayOrderReorder = createGroupedDisplayOrderReorder<KeyPointDraft, number>({
-		getDrafts: (educationId) => keyPoints[educationId] ?? [],
-		setDrafts: (educationId, next) => (keyPoints = { ...keyPoints, [educationId]: next }),
-		getSavedSigs: () => savedKeyPointSigById,
-		setSavedSigs: (next) => (savedKeyPointSigById = next),
-		getReordering: () => reordering,
-		setReordering: (next) => (reordering = next),
-		setError: (message) => (error = message),
-		getErrorMessage: (e) => (e as ApiError).message,
-		parseOrder: toNumberOrNull,
-		updateDisplayOrder: (id, display_order) => updateEducationKeyPoint(id, { display_order }),
-		orderStep: 10
-	});
+    const keyPointDisplayOrderReorder = createGroupedDisplayOrderReorder<KeyPointDraft, number>({
+        getDrafts: (educationId) => keyPoints[educationId] ?? [],
+        setDrafts: (educationId, next) => (keyPoints = { ...keyPoints, [educationId]: next }),
+        getSavedSigs: () => savedKeyPointSigById,
+        setSavedSigs: (next) => (savedKeyPointSigById = next),
+        getReordering: () => reordering,
+        setReordering: (next) => (reordering = next),
+        setError: (message) => (error = message),
+        getErrorMessage: (e) => (e as ApiError).message,
+        parseOrder: toNumberOrNull,
+        updateDisplayOrder: (id, display_order) => updateEducationKeyPoint(id, { display_order }),
+        orderStep: 10
+    });
 
-	const keyPointDragReorder = createGroupedDragReorder<number>({
-		getDragging: () => keyPointDragging,
-		setDragging: (item) => (keyPointDragging = item),
-		setDragOver: (item) => (keyPointDragOver = item),
-		getReordering: () => reordering,
-		getOrderedIds: (educationId) => (keyPoints[educationId] ?? []).map((kp) => kp.id),
-		reorderByIds: keyPointDisplayOrderReorder.reorderByIds
-	});
+    const keyPointDragReorder = createGroupedDragReorder<number>({
+        getDragging: () => keyPointDragging,
+        setDragging: (item) => (keyPointDragging = item),
+        setDragOver: (item) => (keyPointDragOver = item),
+        getReordering: () => reordering,
+        getOrderedIds: (educationId) => (keyPoints[educationId] ?? []).map((kp) => kp.id),
+        reorderByIds: keyPointDisplayOrderReorder.reorderByIds
+    });
 
-	function sigEdu(d: EducationDraft): string {
-		return JSON.stringify({
-			education_stage: d.education_stage.trim(),
-			institution_name: d.institution_name.trim(),
-			degree: toNullable(d.degree),
-			start_date: d.start_date,
-			end_date: toNullable(d.end_date),
-			description: toNullable(d.description),
-			display_order: toNumberOrNull(d.display_order)
-		});
-	}
+    function sigEdu(d: EducationDraft): string {
+        return JSON.stringify({
+            education_stage: d.education_stage.trim(),
+            institution_name: d.institution_name.trim(),
+            degree: toNullable(d.degree),
+            start_date: d.start_date,
+            end_date: toNullable(d.end_date),
+            description: toNullable(d.description),
+            display_order: toNumberOrNull(d.display_order)
+        });
+    }
 
-	function isEduDirty(d: EducationDraft): boolean {
-		return savedEduSigById[d.id] !== sigEdu(d);
-	}
+    function isEduDirty(d: EducationDraft): boolean {
+        return savedEduSigById[d.id] !== sigEdu(d);
+    }
 
-	function sigKeyPoint(d: KeyPointDraft): string {
-		return JSON.stringify({
-			key_point: d.key_point.trim(),
-			display_order: toNumberOrNull(d.display_order)
-		});
-	}
+    function sigKeyPoint(d: KeyPointDraft): string {
+        return JSON.stringify({
+            key_point: d.key_point.trim(),
+            display_order: toNumberOrNull(d.display_order)
+        });
+    }
 
-	function isKeyPointDirty(d: KeyPointDraft): boolean {
-		return savedKeyPointSigById[d.id] !== sigKeyPoint(d);
-	}
+    function isKeyPointDirty(d: KeyPointDraft): boolean {
+        return savedKeyPointSigById[d.id] !== sigKeyPoint(d);
+    }
 
-	async function refresh() {
-		loading = true;
-		error = null;
-		try {
-			const items = await listEducations(resumeId);
-			activeById = Object.fromEntries(items.map((e) => [e.id, e.active]));
-			const sorted = [...items].sort(byDisplayOrder);
-			const ds = sorted.map(toDraft);
-			drafts = ds;
-			savedEduSigById = Object.fromEntries(ds.map((d) => [d.id, sigEdu(d)]));
-			collapsedById = Object.fromEntries(ds.map((d) => [d.id, collapsedById[d.id] ?? true]));
-			const newMap: Record<number, KeyPointDraft[]> = {};
-			for (const e of items) {
-				newMap[e.id] = [];
-			}
-			keyPoints = newMap;
-			for (const e of items) {
-				void loadKeyPoints(e.id);
-			}
-		} catch (e) {
-			const err = e as ApiError;
-			error = err.message;
-		} finally {
-			loading = false;
-		}
-	}
+    async function refresh() {
+        loading = true;
+        error = null;
+        try {
+            const items = await listEducations(resumeId);
+            activeById = Object.fromEntries(items.map((e) => [e.id, e.active]));
+            const sorted = [...items].sort(byDisplayOrder);
+            const ds = sorted.map(toDraft);
+            drafts = ds;
+            savedEduSigById = Object.fromEntries(ds.map((d) => [d.id, sigEdu(d)]));
+            collapsedById = Object.fromEntries(ds.map((d) => [d.id, collapsedById[d.id] ?? true]));
+            const newMap: Record<number, KeyPointDraft[]> = {};
+            for (const e of items) {
+                newMap[e.id] = [];
+            }
+            keyPoints = newMap;
+            for (const e of items) {
+                void loadKeyPoints(e.id);
+            }
+        } catch (e) {
+            const err = e as ApiError;
+            error = err.message;
+        } finally {
+            loading = false;
+        }
+    }
 
-	async function loadKeyPoints(educationId: number) {
-		keyPointLoading = { ...keyPointLoading, [educationId]: true };
-		try {
-			const points = await listEducationKeyPoints(resumeId, educationId);
-			const sorted = [...points].sort(byDisplayOrder);
-			const ds = sorted.map(toKeyPointDraft);
-			keyPoints = { ...keyPoints, [educationId]: ds };
-			savedKeyPointSigById = {
-				...savedKeyPointSigById,
-				...Object.fromEntries(ds.map((d) => [d.id, sigKeyPoint(d)]))
-			};
-		} catch {
-			keyPoints = { ...keyPoints, [educationId]: [] };
-		} finally {
-			keyPointLoading = { ...keyPointLoading, [educationId]: false };
-		}
-	}
+    async function loadKeyPoints(educationId: number) {
+        keyPointLoading = { ...keyPointLoading, [educationId]: true };
+        try {
+            const points = await listEducationKeyPoints(resumeId, educationId);
+            const sorted = [...points].sort(byDisplayOrder);
+            const ds = sorted.map(toKeyPointDraft);
+            keyPoints = { ...keyPoints, [educationId]: ds };
+            savedKeyPointSigById = {
+                ...savedKeyPointSigById,
+                ...Object.fromEntries(ds.map((d) => [d.id, sigKeyPoint(d)]))
+            };
+        } catch {
+            keyPoints = { ...keyPoints, [educationId]: [] };
+        } finally {
+            keyPointLoading = { ...keyPointLoading, [educationId]: false };
+        }
+    }
 
-	onMount(() => {
-		void refresh();
-	});
+    onMount(() => {
+        void refresh();
+    });
 
-	async function handleCreate() {
-		creating = true;
-		error = null;
-		try {
-			const payload: NewEducationRequest = {
-				education_stage: newStage.trim(),
-				institution_name: newInstitution.trim(),
-				degree: toNullable(newDegree),
-				start_date: newStart,
-				end_date: toNullable(newEnd),
-				description: toNullable(newDescription),
-				display_order: null
-			};
-			await createEducation(resumeId, payload);
-			newStage = '';
-			newInstitution = '';
-			newDegree = '';
-			newStart = '';
-			newEnd = '';
-			newDescription = '';
-			await refresh();
-		} catch (e) {
-			const err = e as ApiError;
-			error = err.message;
-		} finally {
-			creating = false;
-		}
-	}
+    async function handleCreate() {
+        creating = true;
+        error = null;
+        try {
+            const payload: NewEducationRequest = {
+                education_stage: newStage.trim(),
+                institution_name: newInstitution.trim(),
+                degree: toNullable(newDegree),
+                start_date: newStart,
+                end_date: toNullable(newEnd),
+                description: toNullable(newDescription),
+                display_order: null
+            };
+            await createEducation(resumeId, payload);
+            newStage = '';
+            newInstitution = '';
+            newDegree = '';
+            newStart = '';
+            newEnd = '';
+            newDescription = '';
+            await refresh();
+        } catch (e) {
+            const err = e as ApiError;
+            error = err.message;
+        } finally {
+            creating = false;
+        }
+    }
 
-	async function handleSave(d: EducationDraft) {
-		error = null;
-		try {
-			const payload: UpdateEducationRequest = {
-				education_stage: d.education_stage.trim(),
-				institution_name: d.institution_name.trim(),
-				degree: toNullable(d.degree),
-				start_date: d.start_date,
-				end_date: toNullable(d.end_date),
-				description: toNullable(d.description),
-				display_order: toNumberOrNull(d.display_order)
-			};
-			await updateEducation(d.id, payload);
-			await refresh();
-		} catch (e) {
-			const err = e as ApiError;
-			error = err.message;
-		}
-	}
+    async function handleSave(d: EducationDraft) {
+        error = null;
+        try {
+            const payload: UpdateEducationRequest = {
+                education_stage: d.education_stage.trim(),
+                institution_name: d.institution_name.trim(),
+                degree: toNullable(d.degree),
+                start_date: d.start_date,
+                end_date: toNullable(d.end_date),
+                description: toNullable(d.description),
+                display_order: toNumberOrNull(d.display_order)
+            };
+            await updateEducation(d.id, payload);
+            await refresh();
+        } catch (e) {
+            const err = e as ApiError;
+            error = err.message;
+        }
+    }
 
-	async function handleDelete(educationId: number) {
-		const ok = confirm('Delete this education entry?');
-		if (!ok) return;
-		error = null;
-		try {
-			await deleteEducation(educationId);
-			await refresh();
-		} catch (e) {
-			const err = e as ApiError;
-			error = err.message;
-		}
-	}
+    async function handleDelete(educationId: number) {
+        const ok = confirm('Delete this education entry?');
+        if (!ok) return;
+        error = null;
+        try {
+            await deleteEducation(educationId);
+            await refresh();
+        } catch (e) {
+            const err = e as ApiError;
+            error = err.message;
+        }
+    }
 
-	async function handleAddKeyPoint(educationId: number) {
-		const text = (newKeyPointText[educationId] ?? '').trim();
-		if (text.length === 0) return;
-		error = null;
-		try {
-			const payload: NewEducationKeyPointRequest = { key_point: text, display_order: null };
-			await createEducationKeyPoint(resumeId, educationId, payload);
-			newKeyPointText = { ...newKeyPointText, [educationId]: '' };
-			await loadKeyPoints(educationId);
-		} catch (e) {
-			const err = e as ApiError;
-			error = err.message;
-		}
-	}
+    async function handleAddKeyPoint(educationId: number) {
+        const text = (newKeyPointText[educationId] ?? '').trim();
+        if (text.length === 0) return;
+        error = null;
+        try {
+            const payload: NewEducationKeyPointRequest = { key_point: text, display_order: null };
+            await createEducationKeyPoint(resumeId, educationId, payload);
+            newKeyPointText = { ...newKeyPointText, [educationId]: '' };
+            await loadKeyPoints(educationId);
+        } catch (e) {
+            const err = e as ApiError;
+            error = err.message;
+        }
+    }
 
-	async function handleSaveKeyPoint(educationId: number, kp: KeyPointDraft) {
-		error = null;
-		try {
-			const payload: UpdateEducationKeyPointRequest = {
-				key_point: kp.key_point.trim(),
-				display_order: toNumberOrNull(kp.display_order)
-			};
-			await updateEducationKeyPoint(kp.id, payload);
-			await loadKeyPoints(educationId);
-		} catch (e) {
-			const err = e as ApiError;
-			error = err.message;
-		}
-	}
+    async function handleSaveKeyPoint(educationId: number, kp: KeyPointDraft) {
+        error = null;
+        try {
+            const payload: UpdateEducationKeyPointRequest = {
+                key_point: kp.key_point.trim(),
+                display_order: toNumberOrNull(kp.display_order)
+            };
+            await updateEducationKeyPoint(kp.id, payload);
+            await loadKeyPoints(educationId);
+        } catch (e) {
+            const err = e as ApiError;
+            error = err.message;
+        }
+    }
 
-	async function handleDeleteKeyPoint(educationId: number, keyPointId: number) {
-		const ok = confirm('Delete this key point?');
-		if (!ok) return;
-		error = null;
-		try {
-			await deleteEducationKeyPoint(keyPointId);
-			await loadKeyPoints(educationId);
-		} catch (e) {
-			const err = e as ApiError;
-			error = err.message;
-		}
-	}
+    async function handleDeleteKeyPoint(educationId: number, keyPointId: number) {
+        const ok = confirm('Delete this key point?');
+        if (!ok) return;
+        error = null;
+        try {
+            await deleteEducationKeyPoint(keyPointId);
+            await loadKeyPoints(educationId);
+        } catch (e) {
+            const err = e as ApiError;
+            error = err.message;
+        }
+    }
 
-	async function handleToggleActive(educationId: number) {
-		error = null;
-		try {
-			const next = !(activeById[educationId] ?? true);
-			await updateEducation(educationId, { active: next });
-			await refresh();
-		} catch (e) {
-			const err = e as ApiError;
-			error = err.message;
-		}
-	}
+    async function handleToggleActive(educationId: number) {
+        error = null;
+        try {
+            const next = !(activeById[educationId] ?? true);
+            await updateEducation(educationId, { active: next });
+            await refresh();
+        } catch (e) {
+            const err = e as ApiError;
+            error = err.message;
+        }
+    }
 </script>
 
 <SectionShell title="Education" description="Education entries and key points.">
-	<Card variant="new">
-		<FieldsWrap>
-			<TextInput
-				label="Stage (e.g. Bachelor)"
-				bind:value={newStage}
-				title="Education stage/level (e.g. High School, Diploma, Bachelor, Master)."
-			/>
-			<TextInput
-				label="Institution"
-				bind:value={newInstitution}
-				title="School/university/training provider name."
-			/>
-			<TextInput
-				label="Degree"
-				bind:value={newDegree}
-				title="Optional. Degree/qualification name."
-			/>
-			<TextInput
-				label="Start date"
-				type="date"
-				bind:value={newStart}
-				title="Start date for this education."
-			/>
-			<TextInput
-				label="End date"
-				type="date"
-				bind:value={newEnd}
-				title="Optional. End date (leave blank if ongoing)."
-			/>
-		</FieldsWrap>
-		<TextArea
-			label="Description"
-			bind:value={newDescription}
-			rows={2}
-			title="Optional. Additional details about the education."
-		/>
-		<CardActions>
-			<Button
-				onclick={handleCreate}
-				disabled={creating ||
-					newStage.trim().length === 0 ||
-					newInstitution.trim().length === 0 ||
-					newStart.trim().length === 0}
-			>
-				{creating ? 'Adding…' : 'Add education'}
-			</Button>
-		</CardActions>
-	</Card>
+    <Card variant="new">
+        <FieldsWrap>
+            <TextInput
+                label="Stage (e.g. Bachelor)"
+                bind:value={newStage}
+                title="Education stage/level (e.g. High School, Diploma, Bachelor, Master)."
+            />
+            <TextInput
+                label="Institution"
+                bind:value={newInstitution}
+                title="School/university/training provider name."
+            />
+            <TextInput
+                label="Degree"
+                bind:value={newDegree}
+                title="Optional. Degree/qualification name."
+            />
+            <TextInput
+                label="Start date"
+                type="date"
+                bind:value={newStart}
+                title="Start date for this education."
+            />
+            <TextInput
+                label="End date"
+                type="date"
+                bind:value={newEnd}
+                title="Optional. End date (leave blank if ongoing)."
+            />
+        </FieldsWrap>
+        <TextArea
+            label="Description"
+            bind:value={newDescription}
+            rows={2}
+            title="Optional. Additional details about the education."
+        />
+        <CardActions>
+            <Button
+                onclick={handleCreate}
+                disabled={creating ||
+                    newStage.trim().length === 0 ||
+                    newInstitution.trim().length === 0 ||
+                    newStart.trim().length === 0}
+            >
+                {creating ? 'Adding…' : 'Add education'}
+            </Button>
+        </CardActions>
+    </Card>
 
-	<SectionMessage
-		{error}
-		{loading}
-		empty={!loading && drafts.length === 0}
-		emptyText="No education entries yet."
-	>
-		{#each drafts as d (d.id)}
-			<CollapsibleCard
-				ariaLabel="Education entry"
-				collapsed={collapsedById[d.id] ?? true}
-				oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
-				draggable
-				dragDisabled={loading || reordering}
-				dragging={draggingId === d.id}
-				dragLabel="Reorder education entry"
-				ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
-				ondragend={() => dragReorder.handleDragEnd()}
-				onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
-				dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
-				ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
-				ondrop={(e) => dragReorder.handleDrop(d.id, e)}
-			>
-				{#snippet titleHeader()}
-					<div style="display: flex; flex-direction: row; gap: 1em">
-						<ActiveStatus style="width: 4em" active={activeById[d.id]} size="sm" />
-						<div>
-							{[d.education_stage, d.institution_name]
-								.map((x) => x.trim())
-								.filter(Boolean)
-								.join(' — ')}
-						</div>
-					</div>
-				{/snippet}
-				<FieldsWrap style="padding-top: 6px;">
-					<TextInput label="Stage" bind:value={d.education_stage} title="Education stage/level." />
-					<TextInput
-						label="Institution"
-						bind:value={d.institution_name}
-						title="Institution name."
-					/>
-					<TextInput
-						label="Degree"
-						bind:value={d.degree}
-						title="Optional. Degree/qualification name."
-					/>
-					<TextInput label="Start date" type="date" bind:value={d.start_date} title="Start date." />
-					<TextInput
-						label="End date"
-						type="date"
-						bind:value={d.end_date}
-						title="Optional. End date."
-					/>
-				</FieldsWrap>
-				<TextArea
-					label="Description"
-					bind:value={d.description}
-					rows={2}
-					title="Optional. Description/details."
-				/>
-				<CardActions>
-					<Button
-						variant="secondary"
-						onclick={() => handleToggleActive(d.id)}
-						title={(activeById[d.id] ?? true)
-							? 'Hide this entry from non-owners'
-							: 'Show this entry to non-owners'}
-					>
-						{(activeById[d.id] ?? true) ? 'Deactivate' : 'Activate'}
-					</Button>
-					{#if isEduDirty(d)}
-						<Button onclick={() => handleSave(d)}>Save</Button>
-					{/if}
-					<Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
-				</CardActions>
+    <SectionMessage
+        {error}
+        {loading}
+        empty={!loading && drafts.length === 0}
+        emptyText="No education entries yet."
+    >
+        {#each drafts as d (d.id)}
+            <CollapsibleCard
+                ariaLabel="Education entry"
+                collapsed={collapsedById[d.id] ?? true}
+                oncollapsedchange={(next) => (collapsedById = { ...collapsedById, [d.id]: next })}
+                draggable
+                dragDisabled={loading || reordering}
+                dragging={draggingId === d.id}
+                dragLabel="Reorder education entry"
+                ondragstart={(e) => dragReorder.handleDragStart(d.id, e)}
+                ondragend={() => dragReorder.handleDragEnd()}
+                onkeydown={(e) => dragReorder.handleHandleKeydown(d.id, e)}
+                dropOver={draggingId != null && dragOverId === d.id && draggingId !== d.id}
+                ondragover={(e) => dragReorder.handleDragOver(d.id, e)}
+                ondrop={(e) => dragReorder.handleDrop(d.id, e)}
+            >
+                {#snippet titleHeader()}
+                    <div style="display: flex; flex-direction: row; gap: 1em">
+                        <ActiveStatus style="width: 4em" active={activeById[d.id]} size="sm" />
+                        <div>
+                            {[d.education_stage, d.institution_name]
+                                .map((x) => x.trim())
+                                .filter(Boolean)
+                                .join(' — ')}
+                        </div>
+                    </div>
+                {/snippet}
+                <FieldsWrap style="padding-top: 6px;">
+                    <TextInput
+                        label="Stage"
+                        bind:value={d.education_stage}
+                        title="Education stage/level."
+                    />
+                    <TextInput
+                        label="Institution"
+                        bind:value={d.institution_name}
+                        title="Institution name."
+                    />
+                    <TextInput
+                        label="Degree"
+                        bind:value={d.degree}
+                        title="Optional. Degree/qualification name."
+                    />
+                    <TextInput
+                        label="Start date"
+                        type="date"
+                        bind:value={d.start_date}
+                        title="Start date."
+                    />
+                    <TextInput
+                        label="End date"
+                        type="date"
+                        bind:value={d.end_date}
+                        title="Optional. End date."
+                    />
+                </FieldsWrap>
+                <TextArea
+                    label="Description"
+                    bind:value={d.description}
+                    rows={2}
+                    title="Optional. Description/details."
+                />
+                <CardActions>
+                    <Button
+                        variant="secondary"
+                        onclick={() => handleToggleActive(d.id)}
+                        title={(activeById[d.id] ?? true)
+                            ? 'Hide this entry from non-owners'
+                            : 'Show this entry to non-owners'}
+                    >
+                        {(activeById[d.id] ?? true) ? 'Deactivate' : 'Activate'}
+                    </Button>
+                    {#if isEduDirty(d)}
+                        <Button onclick={() => handleSave(d)}>Save</Button>
+                    {/if}
+                    <Button variant="danger" onclick={() => handleDelete(d.id)}>Delete</Button>
+                </CardActions>
 
-				<NestedList
-					title="Key points"
-					loading={keyPointLoading[d.id] ?? false}
-					empty={(keyPoints[d.id] ?? []).length === 0}
-					emptyText="No key points."
-				>
-					{#each keyPoints[d.id] ?? [] as kp (kp.id)}
-						<FieldsWrap
-							role="group"
-							aria-label="Education key point"
-							class={keyPointDragging != null &&
-							keyPointDragOver != null &&
-							keyPointDragOver.group === d.id &&
-							keyPointDragOver.id === kp.id &&
-							!(keyPointDragging.group === d.id && keyPointDragging.id === kp.id)
-								? 'dropOver'
-								: ''}
-							ondragover={(e) => keyPointDragReorder.handleDragOver(d.id, kp.id, e)}
-							ondrop={(e) => keyPointDragReorder.handleDrop(d.id, kp.id, e)}
-						>
-							<DragHandle
-								ondragstart={(e) => keyPointDragReorder.handleDragStart(d.id, kp.id, e)}
-								ondragend={() => keyPointDragReorder.handleDragEnd()}
-								onkeydown={(e) => keyPointDragReorder.handleHandleKeydown(d.id, kp.id, e)}
-								disabled={loading || reordering || (keyPointLoading[d.id] ?? false)}
-								dragging={keyPointDragging != null &&
-									keyPointDragging.group === d.id &&
-									keyPointDragging.id === kp.id}
-								label="Reorder education key point"
-							/>
-							<TextInput
-								label="Key point"
-								bind:value={kp.key_point}
-								title="Key point text."
-								onkeydown={(e) => {
-									if (e.key === 'Enter' && (kp.key_point ?? '').trim().length > 0) {
-										handleSaveKeyPoint(d.id, kp);
-									}
-								}}
-							/>
-							{#if isKeyPointDirty(kp)}
-								<Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
-							{/if}
-							<Button variant="danger" onclick={() => handleDeleteKeyPoint(d.id, kp.id)}>
-								Delete
-							</Button>
-						</FieldsWrap>
-					{/each}
-				</NestedList>
+                <NestedList
+                    title="Key points"
+                    loading={keyPointLoading[d.id] ?? false}
+                    empty={(keyPoints[d.id] ?? []).length === 0}
+                    emptyText="No key points."
+                >
+                    {#each keyPoints[d.id] ?? [] as kp (kp.id)}
+                        <FieldsWrap
+                            role="group"
+                            aria-label="Education key point"
+                            class={keyPointDragging != null &&
+                            keyPointDragOver != null &&
+                            keyPointDragOver.group === d.id &&
+                            keyPointDragOver.id === kp.id &&
+                            !(keyPointDragging.group === d.id && keyPointDragging.id === kp.id)
+                                ? 'dropOver'
+                                : ''}
+                            ondragover={(e) => keyPointDragReorder.handleDragOver(d.id, kp.id, e)}
+                            ondrop={(e) => keyPointDragReorder.handleDrop(d.id, kp.id, e)}
+                        >
+                            <DragHandle
+                                ondragstart={(e) =>
+                                    keyPointDragReorder.handleDragStart(d.id, kp.id, e)}
+                                ondragend={() => keyPointDragReorder.handleDragEnd()}
+                                onkeydown={(e) =>
+                                    keyPointDragReorder.handleHandleKeydown(d.id, kp.id, e)}
+                                disabled={loading || reordering || (keyPointLoading[d.id] ?? false)}
+                                dragging={keyPointDragging != null &&
+                                    keyPointDragging.group === d.id &&
+                                    keyPointDragging.id === kp.id}
+                                label="Reorder education key point"
+                            />
+                            <TextInput
+                                label="Key point"
+                                bind:value={kp.key_point}
+                                title="Key point text."
+                                onkeydown={(e) => {
+                                    if (
+                                        e.key === 'Enter' &&
+                                        (kp.key_point ?? '').trim().length > 0
+                                    ) {
+                                        handleSaveKeyPoint(d.id, kp);
+                                    }
+                                }}
+                            />
+                            {#if isKeyPointDirty(kp)}
+                                <Button onclick={() => handleSaveKeyPoint(d.id, kp)}>Save</Button>
+                            {/if}
+                            <Button
+                                variant="danger"
+                                onclick={() => handleDeleteKeyPoint(d.id, kp.id)}
+                            >
+                                Delete
+                            </Button>
+                        </FieldsWrap>
+                    {/each}
+                </NestedList>
 
-				<FieldsWrap>
-					<TextInput
-						label="Add key point"
-						title="Add a bullet point for this education entry."
-						value={newKeyPointText[d.id] ?? ''}
-						oninput={(e) =>
-							(newKeyPointText = {
-								...newKeyPointText,
-								[d.id]: (e.target as HTMLInputElement).value
-							})}
-						onkeydown={(e) => {
-							if (e.key === 'Enter' && (newKeyPointText[d.id] ?? '').trim().length > 0) {
-								handleAddKeyPoint(d.id);
-							}
-						}}
-					/>
-					<Button
-						onclick={() => handleAddKeyPoint(d.id)}
-						disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
-					>
-						Add
-					</Button>
-				</FieldsWrap>
-			</CollapsibleCard>
-		{/each}
-	</SectionMessage>
+                <FieldsWrap>
+                    <TextInput
+                        label="Add key point"
+                        title="Add a bullet point for this education entry."
+                        value={newKeyPointText[d.id] ?? ''}
+                        oninput={(e) =>
+                            (newKeyPointText = {
+                                ...newKeyPointText,
+                                [d.id]: (e.target as HTMLInputElement).value
+                            })}
+                        onkeydown={(e) => {
+                            if (
+                                e.key === 'Enter' &&
+                                (newKeyPointText[d.id] ?? '').trim().length > 0
+                            ) {
+                                handleAddKeyPoint(d.id);
+                            }
+                        }}
+                    />
+                    <Button
+                        onclick={() => handleAddKeyPoint(d.id)}
+                        disabled={(newKeyPointText[d.id] ?? '').trim().length === 0}
+                    >
+                        Add
+                    </Button>
+                </FieldsWrap>
+            </CollapsibleCard>
+        {/each}
+    </SectionMessage>
 </SectionShell>

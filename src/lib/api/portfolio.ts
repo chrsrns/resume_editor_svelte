@@ -12,7 +12,12 @@ import type {
 } from '$lib/types';
 
 export async function listPortfolioProjects(resumeId: number): Promise<PortfolioProject[]> {
-    const { body } = await apiRequest<PortfolioProject[]>(`/resume/${resumeId}/portfolio_projects`, { auth: true });
+    const { body } = await apiRequest<PortfolioProject[]>(
+        `/resume/${resumeId}/portfolio_projects`,
+        {
+            auth: true
+        }
+    );
     if (body === undefined) throw new ApiError(500, 'Missing response body');
     return body;
 }
@@ -118,11 +123,14 @@ export async function updatePortfolioTechnology(
     technologyId: number,
     payload: UpdatePortfolioTechnologyRequest
 ): Promise<PortfolioTechnology> {
-    const { body } = await apiRequest<PortfolioTechnology>(`/portfolio_technologies/${technologyId}`, {
-        method: 'PUT',
-        body: payload,
-        auth: true
-    });
+    const { body } = await apiRequest<PortfolioTechnology>(
+        `/portfolio_technologies/${technologyId}`,
+        {
+            method: 'PUT',
+            body: payload,
+            auth: true
+        }
+    );
     if (body === undefined) throw new ApiError(500, 'Missing response body');
     return body;
 }

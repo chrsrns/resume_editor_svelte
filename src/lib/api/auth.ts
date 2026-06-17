@@ -8,7 +8,10 @@ export async function register(payload: AuthRegisterRequest): Promise<User> {
 }
 
 export async function login(payload: AuthLoginRequest): Promise<AuthTokenResponse> {
-    const { body } = await apiRequest<AuthTokenResponse>('/auth/login', { method: 'POST', body: payload });
+    const { body } = await apiRequest<AuthTokenResponse>('/auth/login', {
+        method: 'POST',
+        body: payload
+    });
     if (body === undefined) throw new ApiError(500, 'Missing response body');
     return body;
 }

@@ -9,7 +9,9 @@ import type {
 } from '$lib/types';
 
 export async function listWorkExperiences(resumeId: number): Promise<WorkExperience[]> {
-    const { body } = await apiRequest<WorkExperience[]>(`/resume/${resumeId}/work_experiences`, { auth: true });
+    const { body } = await apiRequest<WorkExperience[]>(`/resume/${resumeId}/work_experiences`, {
+        auth: true
+    });
     if (body === undefined) throw new ApiError(500, 'Missing response body');
     return body;
 }
@@ -73,11 +75,14 @@ export async function updateWorkExperienceKeyPoint(
     keyPointId: number,
     payload: UpdateWorkExperienceKeyPointRequest
 ): Promise<WorkExperienceKeyPoint> {
-    const { body } = await apiRequest<WorkExperienceKeyPoint>(`/work_experience_key_points/${keyPointId}`, {
-        method: 'PUT',
-        body: payload,
-        auth: true
-    });
+    const { body } = await apiRequest<WorkExperienceKeyPoint>(
+        `/work_experience_key_points/${keyPointId}`,
+        {
+            method: 'PUT',
+            body: payload,
+            auth: true
+        }
+    );
     if (body === undefined) throw new ApiError(500, 'Missing response body');
     return body;
 }

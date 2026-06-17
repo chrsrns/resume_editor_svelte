@@ -14,13 +14,21 @@ export async function getResume(id: number): Promise<Resume> {
 }
 
 export async function createResume(payload: NewResumeRequest): Promise<Resume> {
-    const { body } = await apiRequest<Resume>('/new_resume', { method: 'POST', body: payload, auth: true });
+    const { body } = await apiRequest<Resume>('/new_resume', {
+        method: 'POST',
+        body: payload,
+        auth: true
+    });
     if (body === undefined) throw new ApiError(500, 'Missing response body');
     return body;
 }
 
 export async function updateResume(id: number, payload: UpdateResumeRequest): Promise<Resume> {
-    const { body } = await apiRequest<Resume>(`/resume/${id}`, { method: 'PUT', body: payload, auth: true });
+    const { body } = await apiRequest<Resume>(`/resume/${id}`, {
+        method: 'PUT',
+        body: payload,
+        auth: true
+    });
     if (body === undefined) throw new ApiError(500, 'Missing response body');
     return body;
 }

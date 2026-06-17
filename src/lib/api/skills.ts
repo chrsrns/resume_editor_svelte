@@ -18,7 +18,11 @@ export async function createSkill(resumeId: number, payload: NewSkillRequest): P
 }
 
 export async function updateSkill(skillId: number, payload: UpdateSkillRequest): Promise<Skill> {
-    const { body } = await apiRequest<Skill>(`/skills/${skillId}`, { method: 'PUT', body: payload, auth: true });
+    const { body } = await apiRequest<Skill>(`/skills/${skillId}`, {
+        method: 'PUT',
+        body: payload,
+        auth: true
+    });
     if (body === undefined) throw new ApiError(500, 'Missing response body');
     return body;
 }
