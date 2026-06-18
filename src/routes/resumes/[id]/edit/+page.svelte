@@ -59,6 +59,7 @@
     import PortfolioProjectsSection from '$lib/components/sections/PortfolioProjectsSection.svelte';
     import SkillsSection from '$lib/components/sections/SkillsSection.svelte';
     import WorkExperiencesSection from '$lib/components/sections/WorkExperiencesSection.svelte';
+    import SaveResultPopup from '$lib/components/ui/SaveResultPopup.svelte';
     import type {
         Resume,
         EducationKeyPoint,
@@ -115,6 +116,12 @@
     let deleting = $state(false);
     let error = $state<string | null>(null);
     let activeTab = $derived(parseTabId(page.url.searchParams.get('tab')));
+
+    // Save result popup state
+    let savePopupOpen = $state(false);
+    let savePopupSuccess = $state(true);
+    let savePopupMessage = $state('');
+    let savePopupErrors = $state<Array<{ section: string; error: string }>>([]);
 
     // Global dirty state (basics + skills + education + work + portfolio + languages)
     const isDirty = $derived(
@@ -775,22 +782,39 @@
 
             if (failures.length > 0) {
                 const failedIds = new Set<number>();
+                const errors: Array<{ section: string; error: string }> = [];
                 for (const failure of failures) {
                     if (failure.status === 'rejected') {
                         // Extract the ID from the action (this is a simplification)
                         // In production, we'd track this more carefully
-                        error = failure.reason.message;
+                        const err = failure.reason as ApiError;
+                        errors.push({
+                            section: 'Unknown',
+                            error: err.message || 'Failed to save item'
+                        });
                     }
                 }
                 // Keep failed items in dirty state
-                // skills.keepFailedItems(failedIds);
-                // education.keepFailedItems(failedIds);
-                // work.keepFailedItems(failedIds);
-                // portfolio.keepFailedItems(failedIds);
-                // languages.keepFailedItems(failedIds);
+                skills.keepFailedItems(failedIds);
+                education.keepFailedItems(failedIds);
+                work.keepFailedItems(failedIds);
+                portfolio.keepFailedItems(failedIds);
+                languages.keepFailedItems(failedIds);
+
+                // Show error popup
+                savePopupSuccess = false;
+                savePopupMessage = `Failed to save ${failures.length} item(s). Please fix the errors and try again.`;
+                savePopupErrors = errors;
+                savePopupOpen = true;
             } else {
                 // Full success: baselines already updated by applySaveResults
                 // No need to reload from server
+
+                // Show success popup
+                savePopupSuccess = true;
+                savePopupMessage = 'All changes saved successfully!';
+                savePopupErrors = [];
+                savePopupOpen = true;
             }
         } catch (e) {
             const err = e as ApiError;
@@ -829,6 +853,16 @@
         }
     }
 
+    function closeSavePopup() {
+        savePopupOpen = false;
+        savePopupErrors = [];
+    }
+
+    function retrySave() {
+        closeSavePopup();
+        void handleUnifiedSave();
+    }
+
     // beforeunload guard for unsaved changes
     $effect(() => {
         if (!isDirty) return;
@@ -865,14 +899,21 @@
                 Cancel
             </Button>
             {#if isDirty}
-                <Button
-                    variant="primary"
-                    disabled={saving || hasValidationErrors}
-                    onclick={handleUnifiedSave}
-                >
-                    {#snippet icon()}<Save size={16} />{/snippet}
-                    {saving ? 'Saving…' : 'Save'}
-                </Button>
+                <div class="tooltip-wrapper">
+                    <Button
+                        variant="primary"
+                        disabled={saving || hasValidationErrors}
+                        onclick={handleUnifiedSave}
+                    >
+                        {#snippet icon()}<Save size={16} />{/snippet}
+                        {saving ? 'Saving…' : 'Save'}
+                    </Button>
+                    {#if hasValidationErrors}
+                        <span class="tooltip">Fix errors before saving</span>
+                    {:else}
+                        <span class="tooltip">Unsaved changes</span>
+                    {/if}
+                </div>
             {/if}
             <Button variant="danger" onclick={handleDelete} disabled={deleting}>
                 {#snippet icon()}<Trash2 size={16} />{/snippet}
@@ -1032,6 +1073,15 @@
     {/if}
 {/if}
 
+<SaveResultPopup
+    open={savePopupOpen}
+    success={savePopupSuccess}
+    message={savePopupMessage}
+    errors={savePopupErrors}
+    onclose={closeSavePopup}
+    onretry={retrySave}
+/>
+
 <style>
     .header {
         display: flex;
@@ -1053,6 +1103,32 @@
         display: flex;
         gap: var(--space-2);
         flex-wrap: wrap;
+    }
+
+    .tooltip-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--color-text);
+        color: var(--color-surface);
+        padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        white-space: nowrap;
+        margin-bottom: 4px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+    }
+
+    .tooltip-wrapper:hover .tooltip {
+        opacity: 1;
     }
 
     .muted {
