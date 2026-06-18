@@ -15,3 +15,12 @@ export * as skills from './skills.svelte';
 
 // Education draft module
 export * as education from './education.svelte';
+
+// Work draft module
+export * as work from './work.svelte';
+
+// Portfolio draft module
+export * as portfolio from './portfolio.svelte';
+
+// Languages draft module
+export * as languages from './languages.svelte';

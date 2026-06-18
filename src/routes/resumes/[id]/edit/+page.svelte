@@ -16,6 +16,42 @@
         updateEducationKeyPoint,
         deleteEducationKeyPoint
     } from '$lib/api/education';
+    import {
+        listWorkExperiences,
+        listWorkExperienceKeyPoints,
+        createWorkExperience,
+        updateWorkExperience,
+        deleteWorkExperience,
+        createWorkExperienceKeyPoint,
+        updateWorkExperienceKeyPoint,
+        deleteWorkExperienceKeyPoint
+    } from '$lib/api/work-experience';
+    import {
+        listPortfolioProjects,
+        listPortfolioKeyPoints,
+        listPortfolioTechnologies,
+        createPortfolioProject,
+        updatePortfolioProject,
+        deletePortfolioProject,
+        createPortfolioKeyPoint,
+        updatePortfolioKeyPoint,
+        deletePortfolioKeyPoint,
+        createPortfolioTechnology,
+        updatePortfolioTechnology,
+        deletePortfolioTechnology
+    } from '$lib/api/portfolio';
+    import {
+        listLanguages,
+        createLanguage,
+        updateLanguage,
+        deleteLanguage
+    } from '$lib/api/languages';
+    import {
+        listFrameworks,
+        createFramework,
+        updateFramework,
+        deleteFramework
+    } from '$lib/api/frameworks';
     import type { ApiError } from '$lib/api/client';
     import ResumeForm from '$lib/components/ResumeForm.svelte';
     import EducationSection from '$lib/components/sections/EducationSection.svelte';
@@ -23,10 +59,17 @@
     import PortfolioProjectsSection from '$lib/components/sections/PortfolioProjectsSection.svelte';
     import SkillsSection from '$lib/components/sections/SkillsSection.svelte';
     import WorkExperiencesSection from '$lib/components/sections/WorkExperiencesSection.svelte';
-    import type { Resume, EducationKeyPoint } from '$lib/types';
+    import type {
+        Resume,
+        EducationKeyPoint,
+        WorkExperienceKeyPoint,
+        PortfolioKeyPoint,
+        PortfolioTechnology,
+        Framework
+    } from '$lib/types';
     import { authToken } from '$lib/auth';
     import { currentUser } from '$lib/session';
-    import { basics, skills, education } from '$lib/stores/draft';
+    import { basics, skills, education, work, portfolio, languages } from '$lib/stores/draft';
     import IconTabBar from '$lib/components/IconTabBar.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import User from '@lucide/svelte/icons/user';
@@ -73,14 +116,24 @@
     let error = $state<string | null>(null);
     let activeTab = $derived(parseTabId(page.url.searchParams.get('tab')));
 
-    // Global dirty state (basics + skills + education for Phase 2)
-    const isDirty = $derived(basics.isDirty() || skills.isDirty() || education.isDirty());
+    // Global dirty state (basics + skills + education + work + portfolio + languages)
+    const isDirty = $derived(
+        basics.isDirty() ||
+            skills.isDirty() ||
+            education.isDirty() ||
+            work.isDirty() ||
+            portfolio.isDirty() ||
+            languages.isDirty()
+    );
 
     // Global validation errors
     const hasValidationErrors = $derived(
         basics.getValidationError() !== null ||
             skills.getValidationErrors().length > 0 ||
-            education.getValidationErrors().length > 0
+            education.getValidationErrors().length > 0 ||
+            work.getValidationErrors().length > 0 ||
+            portfolio.getValidationErrors().length > 0 ||
+            languages.getValidationErrors().length > 0
     );
 
     // Reactive visible drafts for SkillsSection
@@ -92,6 +145,43 @@
         const result: Record<number, ReturnType<typeof education.getVisibleKeyPoints>> = {};
         for (const draft of education.getVisibleDrafts()) {
             result[draft.id] = education.getVisibleKeyPoints(draft.id);
+        }
+        return result;
+    });
+
+    // Reactive visible drafts for WorkExperiencesSection
+    const visibleWorkDrafts = $derived.by(() => work.getVisibleDrafts());
+    const visibleWorkKeyPoints = $derived.by(() => {
+        const result: Record<number, ReturnType<typeof work.getVisibleKeyPoints>> = {};
+        for (const draft of work.getVisibleDrafts()) {
+            result[draft.id] = work.getVisibleKeyPoints(draft.id);
+        }
+        return result;
+    });
+
+    // Reactive visible drafts for PortfolioProjectsSection
+    const visiblePortfolioDrafts = $derived.by(() => portfolio.getVisibleDrafts());
+    const visiblePortfolioKeyPoints = $derived.by(() => {
+        const result: Record<number, ReturnType<typeof portfolio.getVisibleKeyPoints>> = {};
+        for (const draft of portfolio.getVisibleDrafts()) {
+            result[draft.id] = portfolio.getVisibleKeyPoints(draft.id);
+        }
+        return result;
+    });
+    const visiblePortfolioTechnologies = $derived.by(() => {
+        const result: Record<number, ReturnType<typeof portfolio.getVisibleTechnologies>> = {};
+        for (const draft of portfolio.getVisibleDrafts()) {
+            result[draft.id] = portfolio.getVisibleTechnologies(draft.id);
+        }
+        return result;
+    });
+
+    // Reactive visible drafts for LanguagesFrameworksSection
+    const visibleLanguageDrafts = $derived.by(() => languages.getVisibleDrafts());
+    const visibleLanguageFrameworks = $derived.by(() => {
+        const result: Record<number, ReturnType<typeof languages.getVisibleFrameworks>> = {};
+        for (const draft of languages.getVisibleDrafts()) {
+            result[draft.id] = languages.getVisibleFrameworks(draft.id);
         }
         return result;
     });
@@ -176,6 +266,36 @@
                 keyPointsData.push(...kps);
             }
             education.initialize(educationData, keyPointsData);
+
+            // Load work data
+            const workData = await listWorkExperiences(resume.id);
+            const workKeyPointsData: WorkExperienceKeyPoint[] = [];
+            for (const exp of workData) {
+                const kps = await listWorkExperienceKeyPoints(resume.id, exp.id);
+                workKeyPointsData.push(...kps);
+            }
+            work.initialize(workData, workKeyPointsData);
+
+            // Load portfolio data
+            const portfolioData = await listPortfolioProjects(resume.id);
+            const portfolioKeyPointsData: PortfolioKeyPoint[] = [];
+            const portfolioTechnologiesData: PortfolioTechnology[] = [];
+            for (const proj of portfolioData) {
+                const kps = await listPortfolioKeyPoints(resume.id, proj.id);
+                portfolioKeyPointsData.push(...kps);
+                const techs = await listPortfolioTechnologies(resume.id, proj.id);
+                portfolioTechnologiesData.push(...techs);
+            }
+            portfolio.initialize(portfolioData, portfolioKeyPointsData, portfolioTechnologiesData);
+
+            // Load languages data
+            const languagesData = await listLanguages(resume.id);
+            const frameworksData: Framework[] = [];
+            for (const lang of languagesData) {
+                const fws = await listFrameworks(resume.id, lang.id);
+                frameworksData.push(...fws);
+            }
+            languages.initialize(languagesData, frameworksData);
         } catch (e) {
             const err = e as ApiError;
             error = err.message;
@@ -328,6 +448,307 @@
                 })
             );
 
+            // Phase 8: Work creations
+            const workActions = work.computeDiff();
+            const workCreations = workActions.filter((a) => a.type === 'createWork');
+
+            const workCreationResults = await Promise.allSettled(
+                workCreations.map(async (action) => {
+                    const result = await createWorkExperience(resume!.id, action.payload);
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build work tempId -> realId mapping
+            const workTempIdMap = new Map<number, number>();
+            for (const result of workCreationResults) {
+                if (result.status === 'fulfilled') {
+                    workTempIdMap.set(result.value.action.tempId, result.value.realId);
+                }
+            }
+
+            // Phase 9: Work key point creations (after work creations)
+            const workKeyPointCreations = workActions.filter((a) => a.type === 'createKeyPoint');
+
+            const workKeyPointCreationResults = await Promise.allSettled(
+                workKeyPointCreations.map(async (action) => {
+                    // Map temp work IDs to real IDs if needed
+                    const workId = workTempIdMap.get(action.workId) ?? action.workId;
+                    const result = await createWorkExperienceKeyPoint(
+                        resume!.id,
+                        workId,
+                        action.payload
+                    );
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build work key point tempId -> realId mapping
+            const workKeyPointTempIdMap = new Map<number, number>();
+            for (const result of workKeyPointCreationResults) {
+                if (result.status === 'fulfilled') {
+                    workKeyPointTempIdMap.set(result.value.action.tempId, result.value.realId);
+                }
+            }
+
+            // Combine work temp ID maps
+            const workCombinedTempIdMap = new Map([...workTempIdMap, ...workKeyPointTempIdMap]);
+
+            // Apply successful work creations
+            work.applySaveResults(workCombinedTempIdMap);
+
+            // Phase 10: Work updates and deletions
+            const workUpdatesAndDeletes = workActions.filter(
+                (a) => a.type === 'updateWork' || a.type === 'deleteWork'
+            );
+
+            const workUpdateDeleteResults = await Promise.allSettled(
+                workUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteWork') {
+                        await deleteWorkExperience(action.id);
+                        return { action };
+                    } else {
+                        await updateWorkExperience(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
+            // Phase 11: Work key point updates and deletions
+            const workKeyPointUpdatesAndDeletes = workActions.filter(
+                (a) => a.type === 'updateKeyPoint' || a.type === 'deleteKeyPoint'
+            );
+
+            const workKeyPointUpdateDeleteResults = await Promise.allSettled(
+                workKeyPointUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteKeyPoint') {
+                        await deleteWorkExperienceKeyPoint(action.id);
+                        return { action };
+                    } else {
+                        await updateWorkExperienceKeyPoint(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
+            // Phase 12: Portfolio project creations
+            const portfolioActions = portfolio.computeDiff();
+            const portfolioCreations = portfolioActions.filter((a) => a.type === 'createProject');
+
+            const portfolioCreationResults = await Promise.allSettled(
+                portfolioCreations.map(async (action) => {
+                    const result = await createPortfolioProject(resume!.id, action.payload);
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build portfolio tempId -> realId mapping
+            const portfolioTempIdMap = new Map<number, number>();
+            for (const result of portfolioCreationResults) {
+                if (result.status === 'fulfilled') {
+                    portfolioTempIdMap.set(result.value.action.tempId, result.value.realId);
+                }
+            }
+
+            // Phase 13: Portfolio key point creations (after project creations)
+            const portfolioKeyPointCreations = portfolioActions.filter(
+                (a) => a.type === 'createKeyPoint'
+            );
+
+            const portfolioKeyPointCreationResults = await Promise.allSettled(
+                portfolioKeyPointCreations.map(async (action) => {
+                    // Map temp project IDs to real IDs if needed
+                    const projectId = portfolioTempIdMap.get(action.projectId) ?? action.projectId;
+                    const result = await createPortfolioKeyPoint(
+                        resume!.id,
+                        projectId,
+                        action.payload
+                    );
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build portfolio key point tempId -> realId mapping
+            const portfolioKeyPointTempIdMap = new Map<number, number>();
+            for (const result of portfolioKeyPointCreationResults) {
+                if (result.status === 'fulfilled') {
+                    portfolioKeyPointTempIdMap.set(result.value.action.tempId, result.value.realId);
+                }
+            }
+
+            // Phase 14: Portfolio technology creations (after project creations)
+            const portfolioTechnologyCreations = portfolioActions.filter(
+                (a) => a.type === 'createTechnology'
+            );
+
+            const portfolioTechnologyCreationResults = await Promise.allSettled(
+                portfolioTechnologyCreations.map(async (action) => {
+                    // Map temp project IDs to real IDs if needed
+                    const projectId = portfolioTempIdMap.get(action.projectId) ?? action.projectId;
+                    const result = await createPortfolioTechnology(
+                        resume!.id,
+                        projectId,
+                        action.payload
+                    );
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build portfolio technology tempId -> realId mapping
+            const portfolioTechnologyTempIdMap = new Map<number, number>();
+            for (const result of portfolioTechnologyCreationResults) {
+                if (result.status === 'fulfilled') {
+                    portfolioTechnologyTempIdMap.set(
+                        result.value.action.tempId,
+                        result.value.realId
+                    );
+                }
+            }
+
+            // Combine portfolio temp ID maps
+            const portfolioCombinedTempIdMap = new Map([
+                ...portfolioTempIdMap,
+                ...portfolioKeyPointTempIdMap,
+                ...portfolioTechnologyTempIdMap
+            ]);
+
+            // Apply successful portfolio creations
+            portfolio.applySaveResults(portfolioCombinedTempIdMap);
+
+            // Phase 15: Portfolio project updates and deletions
+            const portfolioUpdatesAndDeletes = portfolioActions.filter(
+                (a) => a.type === 'updateProject' || a.type === 'deleteProject'
+            );
+
+            const portfolioUpdateDeleteResults = await Promise.allSettled(
+                portfolioUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteProject') {
+                        await deletePortfolioProject(action.id);
+                        return { action };
+                    } else {
+                        await updatePortfolioProject(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
+            // Phase 16: Portfolio key point updates and deletions
+            const portfolioKeyPointUpdatesAndDeletes = portfolioActions.filter(
+                (a) => a.type === 'updateKeyPoint' || a.type === 'deleteKeyPoint'
+            );
+
+            const portfolioKeyPointUpdateDeleteResults = await Promise.allSettled(
+                portfolioKeyPointUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteKeyPoint') {
+                        await deletePortfolioKeyPoint(action.id);
+                        return { action };
+                    } else {
+                        await updatePortfolioKeyPoint(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
+            // Phase 17: Portfolio technology updates and deletions
+            const portfolioTechnologyUpdatesAndDeletes = portfolioActions.filter(
+                (a) => a.type === 'updateTechnology' || a.type === 'deleteTechnology'
+            );
+
+            const portfolioTechnologyUpdateDeleteResults = await Promise.allSettled(
+                portfolioTechnologyUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteTechnology') {
+                        await deletePortfolioTechnology(action.id);
+                        return { action };
+                    } else {
+                        await updatePortfolioTechnology(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
+            // Phase 18: Language creations
+            const languagesActions = languages.computeDiff();
+            const languageCreations = languagesActions.filter((a) => a.type === 'createLanguage');
+
+            const languageCreationResults = await Promise.allSettled(
+                languageCreations.map(async (action) => {
+                    const result = await createLanguage(resume!.id, action.payload);
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build language tempId -> realId mapping
+            const languageTempIdMap = new Map<number, number>();
+            for (const result of languageCreationResults) {
+                if (result.status === 'fulfilled') {
+                    languageTempIdMap.set(result.value.action.tempId, result.value.realId);
+                }
+            }
+
+            // Phase 19: Framework creations (after language creations)
+            const frameworkCreations = languagesActions.filter((a) => a.type === 'createFramework');
+
+            const frameworkCreationResults = await Promise.allSettled(
+                frameworkCreations.map(async (action) => {
+                    // Map temp language IDs to real IDs if needed
+                    const languageId =
+                        languageTempIdMap.get(action.languageId) ?? action.languageId;
+                    const result = await createFramework(resume!.id, languageId, action.payload);
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build framework tempId -> realId mapping
+            const frameworkTempIdMap = new Map<number, number>();
+            for (const result of frameworkCreationResults) {
+                if (result.status === 'fulfilled') {
+                    frameworkTempIdMap.set(result.value.action.tempId, result.value.realId);
+                }
+            }
+
+            // Combine language temp ID maps
+            const languageCombinedTempIdMap = new Map([
+                ...languageTempIdMap,
+                ...frameworkTempIdMap
+            ]);
+
+            // Apply successful language creations
+            languages.applySaveResults(languageCombinedTempIdMap);
+
+            // Phase 20: Language updates and deletions
+            const languageUpdatesAndDeletes = languagesActions.filter(
+                (a) => a.type === 'updateLanguage' || a.type === 'deleteLanguage'
+            );
+
+            const languageUpdateDeleteResults = await Promise.allSettled(
+                languageUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteLanguage') {
+                        await deleteLanguage(action.id);
+                        return { action };
+                    } else {
+                        await updateLanguage(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
+            // Phase 21: Framework updates and deletions
+            const frameworkUpdatesAndDeletes = languagesActions.filter(
+                (a) => a.type === 'updateFramework' || a.type === 'deleteFramework'
+            );
+
+            const frameworkUpdateDeleteResults = await Promise.allSettled(
+                frameworkUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteFramework') {
+                        await deleteFramework(action.id);
+                        return { action };
+                    } else {
+                        await updateFramework(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
             // Check for failures
             const failures = [
                 ...skillCreationResults.filter((r) => r.status === 'rejected'),
@@ -335,7 +756,21 @@
                 ...educationCreationResults.filter((r) => r.status === 'rejected'),
                 ...keyPointCreationResults.filter((r) => r.status === 'rejected'),
                 ...educationUpdateDeleteResults.filter((r) => r.status === 'rejected'),
-                ...keyPointUpdateDeleteResults.filter((r) => r.status === 'rejected')
+                ...keyPointUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...workCreationResults.filter((r) => r.status === 'rejected'),
+                ...workKeyPointCreationResults.filter((r) => r.status === 'rejected'),
+                ...workUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...workKeyPointUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...portfolioCreationResults.filter((r) => r.status === 'rejected'),
+                ...portfolioKeyPointCreationResults.filter((r) => r.status === 'rejected'),
+                ...portfolioTechnologyCreationResults.filter((r) => r.status === 'rejected'),
+                ...portfolioUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...portfolioKeyPointUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...portfolioTechnologyUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...languageCreationResults.filter((r) => r.status === 'rejected'),
+                ...frameworkCreationResults.filter((r) => r.status === 'rejected'),
+                ...languageUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...frameworkUpdateDeleteResults.filter((r) => r.status === 'rejected')
             ];
 
             if (failures.length > 0) {
@@ -350,6 +785,9 @@
                 // Keep failed items in dirty state
                 // skills.keepFailedItems(failedIds);
                 // education.keepFailedItems(failedIds);
+                // work.keepFailedItems(failedIds);
+                // portfolio.keepFailedItems(failedIds);
+                // languages.keepFailedItems(failedIds);
             } else {
                 // Full success: baselines already updated by applySaveResults
                 // No need to reload from server
@@ -367,6 +805,9 @@
         basics.resetToBaseline();
         skills.resetToBaseline();
         education.resetToBaseline();
+        work.resetToBaseline();
+        portfolio.resetToBaseline();
+        languages.resetToBaseline();
         error = null;
     }
 
@@ -489,7 +930,26 @@
             aria-labelledby="tab-work"
             tabindex="0"
         >
-            <WorkExperiencesSection resumeId={resume.id} />
+            <WorkExperiencesSection
+                drafts={visibleWorkDrafts}
+                keyPoints={visibleWorkKeyPoints}
+                onAddWork={(draft) => work.addWork(draft)}
+                onUpdateWork={(id: number, partial) => work.updateWork(id, partial)}
+                onRemoveWork={(id: number) => work.removeWork(id)}
+                onReorder={(from: number, to: number) => work.reorder(from, to)}
+                onToggleActive={(id: number) => {
+                    // For now, just a placeholder - active state is not managed in drafts yet
+                    // This will be implemented when we add active state to the draft module
+                }}
+                onAddKeyPoint={(workId: number, draft) => work.addKeyPoint(workId, draft)}
+                onUpdateKeyPoint={(id: number, partial) => work.updateKeyPoint(id, partial)}
+                onRemoveKeyPoint={(id: number) => work.removeKeyPoint(id)}
+                onReorderKeyPoints={(workId: number, from: number, to: number) =>
+                    work.reorderKeyPoints(workId, from, to)}
+                onValidateWork={(id: number) => work.validateWork(id)}
+                onValidateKeyPoint={(id: number) => work.validateKeyPoint(id)}
+                {saving}
+            />
         </div>
         <div
             class="panel"
@@ -499,7 +959,32 @@
             aria-labelledby="tab-portfolio"
             tabindex="0"
         >
-            <PortfolioProjectsSection resumeId={resume.id} />
+            <PortfolioProjectsSection
+                drafts={visiblePortfolioDrafts}
+                keyPoints={visiblePortfolioKeyPoints}
+                technologies={visiblePortfolioTechnologies}
+                onAddProject={(draft) => portfolio.addProject(draft)}
+                onUpdateProject={(id: number, partial) => portfolio.updateProject(id, partial)}
+                onRemoveProject={(id: number) => portfolio.removeProject(id)}
+                onAddKeyPoint={(projectId: number, draft) =>
+                    portfolio.addKeyPoint(projectId, draft)}
+                onUpdateKeyPoint={(id: number, partial) => portfolio.updateKeyPoint(id, partial)}
+                onRemoveKeyPoint={(id: number) => portfolio.removeKeyPoint(id)}
+                onAddTechnology={(projectId: number, draft) =>
+                    portfolio.addTechnology(projectId, draft)}
+                onUpdateTechnology={(id: number, partial) =>
+                    portfolio.updateTechnology(id, partial)}
+                onRemoveTechnology={(id: number) => portfolio.removeTechnology(id)}
+                onReorder={(from: number, to: number) => portfolio.reorder(from, to)}
+                onReorderKeyPoints={(projectId: number, from: number, to: number) =>
+                    portfolio.reorderKeyPoints(projectId, from, to)}
+                onReorderTechnologies={(projectId: number, from: number, to: number) =>
+                    portfolio.reorderTechnologies(projectId, from, to)}
+                onValidateProject={(id: number) => portfolio.validateProject(id)}
+                onValidateKeyPoint={(id: number) => portfolio.validateKeyPoint(id)}
+                onValidateTechnology={(id: number) => portfolio.validateTechnology(id)}
+                {saving}
+            />
         </div>
         <div
             class="panel"
@@ -526,7 +1011,23 @@
             aria-labelledby="tab-languages"
             tabindex="0"
         >
-            <LanguagesFrameworksSection resumeId={resume.id} />
+            <LanguagesFrameworksSection
+                drafts={visibleLanguageDrafts}
+                frameworks={visibleLanguageFrameworks}
+                onAddLanguage={(draft) => languages.addLanguage(draft)}
+                onUpdateLanguage={(id: number, partial) => languages.updateLanguage(id, partial)}
+                onRemoveLanguage={(id: number) => languages.removeLanguage(id)}
+                onAddFramework={(languageId: number, draft) =>
+                    languages.addFramework(languageId, draft)}
+                onUpdateFramework={(id: number, partial) => languages.updateFramework(id, partial)}
+                onRemoveFramework={(id: number) => languages.removeFramework(id)}
+                onReorder={(from: number, to: number) => languages.reorder(from, to)}
+                onReorderFrameworks={(languageId: number, from: number, to: number) =>
+                    languages.reorderFrameworks(languageId, from, to)}
+                onValidateLanguage={(id: number) => languages.validateLanguage(id)}
+                onValidateFramework={(id: number) => languages.validateFramework(id)}
+                {saving}
+            />
         </div>
     {/if}
 {/if}
