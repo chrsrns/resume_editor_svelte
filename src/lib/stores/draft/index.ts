@@ -12,3 +12,6 @@ export * as basics from './basics.svelte';
 
 // Skills draft module
 export * as skills from './skills.svelte';
+
+// Education draft module
+export * as education from './education.svelte';

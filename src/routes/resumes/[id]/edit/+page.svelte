@@ -6,6 +6,16 @@
     import { resolve } from '$app/paths';
     import { deleteResume, getResume, updateResume } from '$lib/api/resumes';
     import { createSkill, deleteSkill, listSkills, updateSkill } from '$lib/api/skills';
+    import {
+        createEducation,
+        deleteEducation,
+        listEducations,
+        updateEducation,
+        listEducationKeyPoints,
+        createEducationKeyPoint,
+        updateEducationKeyPoint,
+        deleteEducationKeyPoint
+    } from '$lib/api/education';
     import type { ApiError } from '$lib/api/client';
     import ResumeForm from '$lib/components/ResumeForm.svelte';
     import EducationSection from '$lib/components/sections/EducationSection.svelte';
@@ -13,10 +23,10 @@
     import PortfolioProjectsSection from '$lib/components/sections/PortfolioProjectsSection.svelte';
     import SkillsSection from '$lib/components/sections/SkillsSection.svelte';
     import WorkExperiencesSection from '$lib/components/sections/WorkExperiencesSection.svelte';
-    import type { Resume } from '$lib/types';
+    import type { Resume, EducationKeyPoint } from '$lib/types';
     import { authToken } from '$lib/auth';
     import { currentUser } from '$lib/session';
-    import { basics, skills } from '$lib/stores/draft';
+    import { basics, skills, education } from '$lib/stores/draft';
     import IconTabBar from '$lib/components/IconTabBar.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import User from '@lucide/svelte/icons/user';
@@ -63,16 +73,28 @@
     let error = $state<string | null>(null);
     let activeTab = $derived(parseTabId(page.url.searchParams.get('tab')));
 
-    // Global dirty state (basics + skills only for Phase 1)
-    const isDirty = $derived(basics.isDirty() || skills.isDirty());
+    // Global dirty state (basics + skills + education for Phase 2)
+    const isDirty = $derived(basics.isDirty() || skills.isDirty() || education.isDirty());
 
     // Global validation errors
     const hasValidationErrors = $derived(
-        basics.getValidationError() !== null || skills.getValidationErrors().length > 0
+        basics.getValidationError() !== null ||
+            skills.getValidationErrors().length > 0 ||
+            education.getValidationErrors().length > 0
     );
 
     // Reactive visible drafts for SkillsSection
     const visibleSkillDrafts = $derived.by(() => skills.getVisibleDrafts());
+
+    // Reactive visible drafts for EducationSection
+    const visibleEducationDrafts = $derived.by(() => education.getVisibleDrafts());
+    const visibleKeyPoints = $derived.by(() => {
+        const result: Record<number, ReturnType<typeof education.getVisibleKeyPoints>> = {};
+        for (const draft of education.getVisibleDrafts()) {
+            result[draft.id] = education.getVisibleKeyPoints(draft.id);
+        }
+        return result;
+    });
 
     function onTabListKeydown(e: KeyboardEvent) {
         const tablist = e.currentTarget as HTMLElement | null;
@@ -145,6 +167,15 @@
             basics.initialize(resume);
             const skillsData = await listSkills(resume.id);
             skills.initialize(skillsData);
+
+            // Load education data
+            const educationData = await listEducations(resume.id);
+            const keyPointsData: EducationKeyPoint[] = [];
+            for (const edu of educationData) {
+                const kps = await listEducationKeyPoints(resume.id, edu.id);
+                keyPointsData.push(...kps);
+            }
+            education.initialize(educationData, keyPointsData);
         } catch (e) {
             const err = e as ApiError;
             error = err.message;
@@ -213,10 +244,98 @@
                 })
             );
 
+            // Phase 4: Education creations
+            const educationActions = education.computeDiff();
+            const educationCreations = educationActions.filter((a) => a.type === 'createEducation');
+
+            const educationCreationResults = await Promise.allSettled(
+                educationCreations.map(async (action) => {
+                    const result = await createEducation(resume!.id, action.payload);
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build education tempId -> realId mapping
+            const educationTempIdMap = new Map<number, number>();
+            for (const result of educationCreationResults) {
+                if (result.status === 'fulfilled') {
+                    educationTempIdMap.set(result.value.action.tempId, result.value.realId);
+                }
+            }
+
+            // Phase 5: Key point creations (after education creations)
+            const keyPointCreations = educationActions.filter((a) => a.type === 'createKeyPoint');
+
+            const keyPointCreationResults = await Promise.allSettled(
+                keyPointCreations.map(async (action) => {
+                    // Map temp education IDs to real IDs if needed
+                    const educationId =
+                        educationTempIdMap.get(action.educationId) ?? action.educationId;
+                    const result = await createEducationKeyPoint(
+                        resume!.id,
+                        educationId,
+                        action.payload
+                    );
+                    return { action, realId: result.id };
+                })
+            );
+
+            // Build key point tempId -> realId mapping
+            const keyPointTempIdMap = new Map<number, number>();
+            for (const result of keyPointCreationResults) {
+                if (result.status === 'fulfilled') {
+                    keyPointTempIdMap.set(result.value.action.tempId, result.value.realId);
+                }
+            }
+
+            // Combine temp ID maps
+            const combinedTempIdMap = new Map([...educationTempIdMap, ...keyPointTempIdMap]);
+
+            // Apply successful creations
+            education.applySaveResults(combinedTempIdMap);
+
+            // Phase 6: Education updates and deletions
+            const educationUpdatesAndDeletes = educationActions.filter(
+                (a) => a.type === 'updateEducation' || a.type === 'deleteEducation'
+            );
+
+            const educationUpdateDeleteResults = await Promise.allSettled(
+                educationUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteEducation') {
+                        await deleteEducation(action.id);
+                        return { action };
+                    } else {
+                        await updateEducation(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
+            // Phase 7: Key point updates and deletions
+            const keyPointUpdatesAndDeletes = educationActions.filter(
+                (a) => a.type === 'updateKeyPoint' || a.type === 'deleteKeyPoint'
+            );
+
+            const keyPointUpdateDeleteResults = await Promise.allSettled(
+                keyPointUpdatesAndDeletes.map(async (action) => {
+                    if (action.type === 'deleteKeyPoint') {
+                        await deleteEducationKeyPoint(action.id);
+                        return { action };
+                    } else {
+                        await updateEducationKeyPoint(action.id, action.payload);
+                        return { action };
+                    }
+                })
+            );
+
             // Check for failures
             const failures = [
                 ...skillCreationResults.filter((r) => r.status === 'rejected'),
-                ...skillUpdateDeleteResults.filter((r) => r.status === 'rejected')
+                ...skillUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...educationCreationResults.filter((r) => r.status === 'rejected'),
+                ...keyPointCreationResults.filter((r) => r.status === 'rejected'),
+                ...educationUpdateDeleteResults.filter((r) => r.status === 'rejected'),
+                ...keyPointUpdateDeleteResults.filter((r) => r.status === 'rejected')
             ];
 
             if (failures.length > 0) {
@@ -230,6 +349,7 @@
                 }
                 // Keep failed items in dirty state
                 // skills.keepFailedItems(failedIds);
+                // education.keepFailedItems(failedIds);
             } else {
                 // Full success: baselines already updated by applySaveResults
                 // No need to reload from server
@@ -246,6 +366,7 @@
         if (!confirm('Discard all unsaved changes?')) return;
         basics.resetToBaseline();
         skills.resetToBaseline();
+        education.resetToBaseline();
         error = null;
     }
 
@@ -345,7 +466,20 @@
             aria-labelledby="tab-education"
             tabindex="0"
         >
-            <EducationSection resumeId={resume.id} />
+            <EducationSection
+                drafts={visibleEducationDrafts}
+                keyPoints={visibleKeyPoints}
+                onAddEducation={(draft) => education.addEducation(draft)}
+                onUpdateEducation={(id, partial) => education.updateEducation(id, partial)}
+                onDeleteEducation={(id) => education.removeEducation(id)}
+                onReorderEducation={(from, to) => education.reorderEducation(from, to)}
+                onAddKeyPoint={(educationId, draft) => education.addKeyPoint(educationId, draft)}
+                onUpdateKeyPoint={(id, partial) => education.updateKeyPoint(id, partial)}
+                onDeleteKeyPoint={(id) => education.removeKeyPoint(id)}
+                onReorderKeyPoint={(educationId, from, to) =>
+                    education.reorderKeyPoint(educationId, from, to)}
+                {saving}
+            />
         </div>
         <div
             class="panel"
