@@ -1,99 +1,174 @@
 <script lang="ts">
-    import { untrack } from 'svelte';
-    import type { NewResumeRequest } from '$lib/types';
+    import { basics } from '$lib/stores/draft';
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import Save from '@lucide/svelte/icons/save';
     import Image from '@lucide/svelte/icons/image';
 
-    type ResumeFormSubmit = NewResumeRequest & { is_public: boolean };
+    type BasicsFormData = {
+        name: string;
+        email: string;
+        profile_image_url: string;
+        location: string;
+        github_url: string;
+        mobile_number: string;
+        is_public: boolean;
+    };
 
     let {
+        formId,
+        showSubmitButton = false,
         initial,
         submitLabel,
-        onsubmit,
-        showSubmitButton = true,
-        formId
-    } = $props<{
-        initial?: Partial<NewResumeRequest> & { is_public?: boolean | null };
-        submitLabel?: string;
-        onsubmit?: (payload: ResumeFormSubmit) => void;
-        showSubmitButton?: boolean;
+        onsubmit
+    }: {
         formId?: string;
-    }>();
+        showSubmitButton?: boolean;
+        initial?: BasicsFormData;
+        submitLabel?: string;
+        // Keep as any for backward compatibility with old mode (new/+page.svelte)
+        // New mode (draft module) doesn't use this prop
+        onsubmit?: (payload: any) => void;
+    } = $props();
 
-    let name = $state(untrack(() => initial?.name ?? ''));
-    let email = $state(untrack(() => initial?.email ?? ''));
-    let profile_image_url = $state(untrack(() => initial?.profile_image_url ?? ''));
-    let location = $state(untrack(() => initial?.location ?? ''));
-    let github_url = $state(untrack(() => initial?.github_url ?? ''));
-    let mobile_number = $state(untrack(() => initial?.mobile_number ?? ''));
-    let is_public = $state(untrack(() => initial?.is_public ?? false));
-    const profileImagePreviewUrl = $derived(profile_image_url.trim());
+    // Backward compatibility: if initial is provided, use old local state instead of draft module
+    let useOldMode = $derived(!!initial);
 
-    function toNullable(value: string): string | null {
-        const trimmed = value.trim();
-        return trimmed.length === 0 ? null : trimmed;
+    let name = $state('');
+    let email = $state('');
+    let profile_image_url = $state('');
+    let location = $state('');
+    let github_url = $state('');
+    let mobile_number = $state('');
+    let is_public = $state(false);
+
+    // Initialize from initial if provided
+    $effect(() => {
+        if (initial) {
+            name = initial.name ?? '';
+            email = initial.email ?? '';
+            profile_image_url = initial.profile_image_url ?? '';
+            location = initial.location ?? '';
+            github_url = initial.github_url ?? '';
+            mobile_number = initial.mobile_number ?? '';
+            is_public = initial.is_public ?? false;
+        }
+    });
+
+    // Get draft data from the basics module (only used in new mode)
+    const draft = $derived(basics.getDraft());
+    const validationError = $derived(basics.getValidationError());
+    const profileImagePreviewUrl = $derived(
+        useOldMode ? profile_image_url.trim() : draft.profile_image_url.trim()
+    );
+
+    function handleFieldChange(
+        field: keyof Omit<typeof draft, '_status' | '_tempId' | '_validationError'>,
+        value: string | boolean
+    ) {
+        if (useOldMode) {
+            // Old mode: update local state
+            if (field === 'name') name = value as string;
+            else if (field === 'email') email = value as string;
+            else if (field === 'profile_image_url') profile_image_url = value as string;
+            else if (field === 'location') location = value as string;
+            else if (field === 'github_url') github_url = value as string;
+            else if (field === 'mobile_number') mobile_number = value as string;
+            else if (field === 'is_public') is_public = value as boolean;
+        } else {
+            // New mode: update draft module
+            basics.setField(field, value);
+        }
+    }
+
+    function handleBlur() {
+        if (!useOldMode) {
+            basics.validate();
+        }
     }
 
     function submit(e: Event) {
         e.preventDefault();
-        onsubmit?.({
-            name: name.trim(),
-            email: email.trim(),
-            profile_image_url: toNullable(profile_image_url),
-            location: toNullable(location),
-            github_url: toNullable(github_url),
-            mobile_number: toNullable(mobile_number),
-            is_public
-        } satisfies ResumeFormSubmit);
+        if (onsubmit) {
+            onsubmit({
+                name: name.trim(),
+                email: email.trim(),
+                profile_image_url: profile_image_url.trim() || null,
+                location: location.trim() || null,
+                github_url: github_url.trim() || null,
+                mobile_number: mobile_number.trim() || null,
+                is_public
+            });
+        }
     }
 </script>
 
 <div class="form-container">
     <form class="form" id={formId} onsubmit={submit}>
-        <TextInput label="Name" bind:value={name} required title="Full name shown on the resume." />
+        <TextInput
+            label="Name"
+            value={useOldMode ? name : draft.name}
+            oninput={(e) => handleFieldChange('name', (e.currentTarget as HTMLInputElement).value)}
+            onblur={handleBlur}
+            required
+            title="Full name shown on the resume."
+        />
 
         <TextInput
             label="Email"
             type="email"
-            bind:value={email}
+            value={useOldMode ? email : draft.email}
+            oninput={(e) => handleFieldChange('email', (e.currentTarget as HTMLInputElement).value)}
+            onblur={handleBlur}
             required
             title="Primary contact email displayed on the resume."
         />
 
         <TextInput
             label="Profile image URL"
-            bind:value={profile_image_url}
+            value={useOldMode ? profile_image_url : draft.profile_image_url}
+            oninput={(e) =>
+                handleFieldChange('profile_image_url', (e.currentTarget as HTMLInputElement).value)}
             title="Optional. Link to a profile photo image (e.g. https://...)."
         />
 
         <TextInput
             label="Location"
-            bind:value={location}
+            value={useOldMode ? location : draft.location}
+            oninput={(e) =>
+                handleFieldChange('location', (e.currentTarget as HTMLInputElement).value)}
             title="Optional. City / country (or remote)."
         />
 
         <TextInput
             label="GitHub URL"
-            bind:value={github_url}
+            value={useOldMode ? github_url : draft.github_url}
+            oninput={(e) =>
+                handleFieldChange('github_url', (e.currentTarget as HTMLInputElement).value)}
             title="Optional. Link to your GitHub profile."
         />
 
         <TextInput
             label="Mobile number"
-            bind:value={mobile_number}
+            value={useOldMode ? mobile_number : draft.mobile_number}
+            oninput={(e) =>
+                handleFieldChange('mobile_number', (e.currentTarget as HTMLInputElement).value)}
             title="Optional. Phone number for contact."
         />
 
         <label class="checkbox">
             <input
                 type="checkbox"
-                bind:checked={is_public}
+                checked={useOldMode ? is_public : draft.is_public}
+                onchange={(e) => handleFieldChange('is_public', e.currentTarget.checked)}
                 title="If enabled, this resume is visible publicly."
             />
             <span>Public</span>
         </label>
+
+        {#if !useOldMode && validationError}
+            <p class="error-message">{validationError}</p>
+        {/if}
 
         {#if showSubmitButton}
             <Button type="submit">
@@ -109,7 +184,7 @@
                 <div class="preview-frame">
                     <img
                         src={profileImagePreviewUrl}
-                        alt={`Profile preview for ${name.trim() || 'resume'}`}
+                        alt={`Profile preview for ${useOldMode ? name.trim() : draft.name.trim() || 'resume'}`}
                     />
                 </div>
             {:else}
@@ -209,5 +284,11 @@
         width: 18px;
         height: 18px;
         cursor: pointer;
+    }
+
+    .error-message {
+        color: var(--color-danger);
+        font-size: 13px;
+        margin: 0;
     }
 </style>
