@@ -589,14 +589,15 @@ export function computeDiff(): LanguageAction[] {
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
     // Update language IDs - only mark successful creations as existing
-    drafts = drafts
-        .filter((d) => d._status !== 'deleted')
-        .map((d) => {
-            if (d._status === 'new' && tempIdMap.has(d.id)) {
-                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-            }
-            return d;
-        });
+    drafts = drafts.map((d) => {
+        if (d._status === 'new' && tempIdMap.has(d.id)) {
+            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+        }
+        if (d._status === 'deleted') {
+            return null;
+        }
+        return d;
+    }).filter((d): d is DraftItem<LanguageDraft> => d !== null);
 
     // Update framework IDs - only mark successful creations as existing
     const newFrameworks: Record<number, DraftItem<FrameworkDraft>[]> = {};
@@ -605,13 +606,16 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
         // Check if language ID was remapped
         const realLanguageId = tempIdMap.get(numLanguageId) ?? numLanguageId;
         newFrameworks[realLanguageId] = frameworks[numLanguageId]
-            .filter((f) => f._status !== 'deleted')
             .map((f) => {
                 if (f._status === 'new' && tempIdMap.has(f.id)) {
                     return { ...f, id: tempIdMap.get(f.id)!, _status: 'existing' as DraftStatus };
                 }
+                if (f._status === 'deleted') {
+                    return null;
+                }
                 return f;
-            });
+            })
+            .filter((f): f is DraftItem<FrameworkDraft> => f !== null);
     }
     frameworks = newFrameworks;
 

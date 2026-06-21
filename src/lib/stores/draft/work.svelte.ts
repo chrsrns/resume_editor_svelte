@@ -638,14 +638,15 @@ export function computeDiff(): WorkAction[] {
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
     // Update work experience IDs - only mark successful creations as existing
-    drafts = drafts
-        .filter((d) => d._status !== 'deleted')
-        .map((d) => {
-            if (d._status === 'new' && tempIdMap.has(d.id)) {
-                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-            }
-            return d;
-        });
+    drafts = drafts.map((d) => {
+        if (d._status === 'new' && tempIdMap.has(d.id)) {
+            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+        }
+        if (d._status === 'deleted') {
+            return null;
+        }
+        return d;
+    }).filter((d): d is DraftItem<WorkDraft> => d !== null);
 
     // Update key point IDs - only mark successful creations as existing
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -654,13 +655,16 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
         // Check if work ID was remapped
         const realWorkId = tempIdMap.get(numWorkId) ?? numWorkId;
         newKeyPoints[realWorkId] = keyPoints[numWorkId]
-            .filter((kp) => kp._status !== 'deleted')
             .map((kp) => {
                 if (kp._status === 'new' && tempIdMap.has(kp.id)) {
                     return { ...kp, id: tempIdMap.get(kp.id)!, _status: 'existing' as DraftStatus };
                 }
+                if (kp._status === 'deleted') {
+                    return null;
+                }
                 return kp;
-            });
+            })
+            .filter((kp): kp is DraftItem<KeyPointDraft> => kp !== null);
     }
     keyPoints = newKeyPoints;
 

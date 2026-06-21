@@ -319,15 +319,16 @@ export function computeDiff(): SkillAction[] {
  * @param tempIdMap - Map of temp IDs to real server IDs
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
-    // Only mark successful creations as existing
-    drafts = drafts
-        .filter((d) => d._status !== 'deleted')
-        .map((d) => {
-            if (d._status === 'new' && tempIdMap.has(d.id)) {
-                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-            }
-            return d;
-        });
+    // Map over full drafts array (including deleted)
+    drafts = drafts.map((d) => {
+        if (d._status === 'new' && tempIdMap.has(d.id)) {
+            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+        }
+        if (d._status === 'deleted') {
+            return null;
+        }
+        return d;
+    }).filter((d): d is DraftItem<SkillDraft> => d !== null);
 
     // Remove deleted items from baseline
     baselineSkills = baselineSkills.filter(bs =>
@@ -341,7 +342,13 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
  * @param failedIds - Set of IDs that failed to save
  */
 export function keepFailedItems(failedIds: Set<number>): void {
-    drafts = drafts.map((d) =>
-        failedIds.has(d.id) ? d : { ...d, _status: 'existing' as DraftStatus }
-    );
+    drafts = drafts.map((d) => {
+        if (failedIds.has(d.id)) {
+            return d; // Keep status as-is so it stays dirty
+        }
+        if (d._status === 'new') {
+            return { ...d, _status: 'existing' as DraftStatus };
+        }
+        return d;
+    });
 }

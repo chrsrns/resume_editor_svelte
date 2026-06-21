@@ -917,14 +917,15 @@ export function computeDiff(): PortfolioAction[] {
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
     // Update project IDs - only mark successful creations as existing
-    drafts = drafts
-        .filter((d) => d._status !== 'deleted')
-        .map((d) => {
-            if (d._status === 'new' && tempIdMap.has(d.id)) {
-                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-            }
-            return d;
-        });
+    drafts = drafts.map((d) => {
+        if (d._status === 'new' && tempIdMap.has(d.id)) {
+            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+        }
+        if (d._status === 'deleted') {
+            return null;
+        }
+        return d;
+    }).filter((d): d is DraftItem<ProjectDraft> => d !== null);
 
     // Update key point IDs - only mark successful creations as existing
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -933,13 +934,16 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
         // Check if project ID was remapped
         const realProjectId = tempIdMap.get(numProjectId) ?? numProjectId;
         newKeyPoints[realProjectId] = keyPoints[numProjectId]
-            .filter((kp) => kp._status !== 'deleted')
             .map((kp) => {
                 if (kp._status === 'new' && tempIdMap.has(kp.id)) {
                     return { ...kp, id: tempIdMap.get(kp.id)!, _status: 'existing' as DraftStatus };
                 }
+                if (kp._status === 'deleted') {
+                    return null;
+                }
                 return kp;
-            });
+            })
+            .filter((kp): kp is DraftItem<KeyPointDraft> => kp !== null);
     }
     keyPoints = newKeyPoints;
 
@@ -950,13 +954,16 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
         // Check if project ID was remapped
         const realProjectId = tempIdMap.get(numProjectId) ?? numProjectId;
         newTechnologies[realProjectId] = technologies[numProjectId]
-            .filter((t) => t._status !== 'deleted')
             .map((t) => {
                 if (t._status === 'new' && tempIdMap.has(t.id)) {
                     return { ...t, id: tempIdMap.get(t.id)!, _status: 'existing' as DraftStatus };
                 }
+                if (t._status === 'deleted') {
+                    return null;
+                }
                 return t;
-            });
+            })
+            .filter((t): t is DraftItem<TechnologyDraft> => t !== null);
     }
     technologies = newTechnologies;
 
