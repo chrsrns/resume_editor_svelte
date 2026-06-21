@@ -953,13 +953,15 @@
                 keyPoints={visibleKeyPoints}
                 onAddEducation={(draft) => education.addEducation(draft)}
                 onUpdateEducation={(id, partial) => education.updateEducation(id, partial)}
-                onDeleteEducation={(id) => education.removeEducation(id)}
-                onReorderEducation={(from, to) => education.reorderEducation(from, to)}
+                onRemoveEducation={(id) => education.removeEducation(id)}
+                onReorder={(from, to) => education.reorderEducation(from, to)}
                 onAddKeyPoint={(educationId, draft) => education.addKeyPoint(educationId, draft)}
                 onUpdateKeyPoint={(id, partial) => education.updateKeyPoint(id, partial)}
-                onDeleteKeyPoint={(id) => education.removeKeyPoint(id)}
-                onReorderKeyPoint={(educationId, from, to) =>
+                onRemoveKeyPoint={(id) => education.removeKeyPoint(id)}
+                onReorderKeyPoints={(educationId, from, to) =>
                     education.reorderKeyPoint(educationId, from, to)}
+                onValidateEducation={(id) => education.validateEducation(id)}
+                onValidateKeyPoint={(id) => education.validateKeyPoint(id)}
                 {saving}
             />
         </div>

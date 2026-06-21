@@ -37,27 +37,31 @@
         keyPoints,
         onAddEducation,
         onUpdateEducation,
-        onDeleteEducation,
-        onReorderEducation,
+        onRemoveEducation,
+        onReorder,
         onAddKeyPoint,
         onUpdateKeyPoint,
-        onDeleteKeyPoint,
-        onReorderKeyPoint,
+        onRemoveKeyPoint,
+        onReorderKeyPoints,
+        onValidateEducation,
+        onValidateKeyPoint,
         saving
     }: {
         drafts: DraftItem<EducationDraft>[];
         keyPoints: Record<number, DraftItem<KeyPointDraft>[]>;
         onAddEducation: (draft: Omit<EducationDraft, 'id' | 'display_order'>) => void;
         onUpdateEducation: (id: number, partial: Partial<EducationDraft>) => void;
-        onDeleteEducation: (id: number) => void;
-        onReorderEducation: (fromId: number, toId: number) => void;
+        onRemoveEducation: (id: number) => void;
+        onReorder: (fromId: number, toId: number) => void;
         onAddKeyPoint: (
             educationId: number,
             draft: Omit<KeyPointDraft, 'id' | 'display_order'>
         ) => void;
         onUpdateKeyPoint: (id: number, partial: Partial<KeyPointDraft>) => void;
-        onDeleteKeyPoint: (id: number) => void;
-        onReorderKeyPoint: (educationId: number, fromId: number, toId: number) => void;
+        onRemoveKeyPoint: (id: number) => void;
+        onReorderKeyPoints: (educationId: number, fromId: number, toId: number) => void;
+        onValidateEducation: (id: number) => void;
+        onValidateKeyPoint: (id: number) => void;
         saving: boolean;
     } = $props();
 
@@ -140,7 +144,7 @@
         const fromId = draggingId;
         handleDragEnd();
         if (fromId == null || fromId === id) return;
-        onReorderEducation(fromId, id);
+        onReorder(fromId, id);
     }
 
     function handleHandleKeydown(id: number, e: KeyboardEvent) {
@@ -153,7 +157,7 @@
         if (index === -1) return;
         const nextIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
         if (nextIndex < 0 || nextIndex >= ids.length) return;
-        onReorderEducation(id, ids[nextIndex]);
+        onReorder(id, ids[nextIndex]);
     }
 
     function handleKeyPointDragStart(educationId: number, id: number, e: DragEvent) {
@@ -184,7 +188,7 @@
         const fromItem = keyPointDragging;
         handleKeyPointDragEnd();
         if (fromItem == null || fromItem.id === id) return;
-        onReorderKeyPoint(educationId, fromItem.id, id);
+        onReorderKeyPoints(educationId, fromItem.id, id);
     }
 
     function handleKeyPointHandleKeydown(educationId: number, id: number, e: KeyboardEvent) {
@@ -199,7 +203,7 @@
         if (index === -1) return;
         const nextIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
         if (nextIndex < 0 || nextIndex >= ids.length) return;
-        onReorderKeyPoint(educationId, id, ids[nextIndex]);
+        onReorderKeyPoints(educationId, id, ids[nextIndex]);
     }
 </script>
 
@@ -290,6 +294,7 @@
                             onUpdateEducation(d.id, {
                                 education_stage: (e.currentTarget as HTMLInputElement).value
                             })}
+                        onblur={() => onValidateEducation(d.id)}
                         title="Education stage/level."
                     />
                     <TextInput
@@ -299,6 +304,7 @@
                             onUpdateEducation(d.id, {
                                 institution_name: (e.currentTarget as HTMLInputElement).value
                             })}
+                        onblur={() => onValidateEducation(d.id)}
                         title="Institution name."
                     />
                     <TextInput
@@ -308,6 +314,7 @@
                             onUpdateEducation(d.id, {
                                 degree: (e.currentTarget as HTMLInputElement).value
                             })}
+                        onblur={() => onValidateEducation(d.id)}
                         title="Optional. Degree/qualification name."
                     />
                     <TextInput
@@ -318,6 +325,7 @@
                             onUpdateEducation(d.id, {
                                 start_date: (e.currentTarget as HTMLInputElement).value
                             })}
+                        onblur={() => onValidateEducation(d.id)}
                         title="Start date."
                     />
                     <TextInput
@@ -328,6 +336,7 @@
                             onUpdateEducation(d.id, {
                                 end_date: (e.currentTarget as HTMLInputElement).value
                             })}
+                        onblur={() => onValidateEducation(d.id)}
                         title="Optional. End date."
                     />
                 </FieldsWrap>
@@ -344,7 +353,7 @@
                 <CardActions>
                     <Button
                         variant="danger"
-                        onclick={() => onDeleteEducation(d.id)}
+                        onclick={() => onRemoveEducation(d.id)}
                         disabled={saving}
                     >
                         {#snippet icon()}<Trash2 size={16} />{/snippet}
@@ -391,6 +400,7 @@
                                     onUpdateKeyPoint(kp.id, {
                                         key_point: (e.currentTarget as HTMLInputElement).value
                                     })}
+                                onblur={() => onValidateKeyPoint(kp.id)}
                                 title="Key point text."
                                 onkeydown={(e) => {
                                     if (
@@ -403,7 +413,7 @@
                             />
                             <Button
                                 variant="danger"
-                                onclick={() => onDeleteKeyPoint(kp.id)}
+                                onclick={() => onRemoveKeyPoint(kp.id)}
                                 disabled={saving}
                             >
                                 {#snippet icon()}<Trash2 size={16} />{/snippet}
