@@ -4,7 +4,7 @@
     import { resolve } from '$app/paths';
     import { createResume } from '$lib/api/resumes';
     import { authToken } from '$lib/auth';
-    import ResumeForm from '$lib/components/ResumeForm.svelte';
+    import NewResumeForm from '$lib/components/NewResumeForm.svelte';
     import type { ApiError } from '$lib/api/client';
     import type { NewResumeRequest } from '$lib/types';
 
@@ -43,7 +43,7 @@
     <p class="error">{error}</p>
 {/if}
 
-<ResumeForm submitLabel={loading ? 'Creating…' : 'Create'} onsubmit={handleSubmit} />
+<NewResumeForm submitLabel={loading ? 'Creating…' : 'Create'} onsubmit={handleSubmit} />
 
 <style>
     .error {

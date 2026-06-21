@@ -1,34 +1,88 @@
 <script lang="ts">
-    import { basics } from '$lib/stores/draft';
     import TextInput from '$lib/components/ui/TextInput.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
+    import Save from '@lucide/svelte/icons/save';
     import Image from '@lucide/svelte/icons/image';
 
-    let { formId }: { formId?: string } = $props();
+    type BasicsFormData = {
+        name: string;
+        email: string;
+        profile_image_url: string;
+        location: string;
+        github_url: string;
+        mobile_number: string;
+        is_public: boolean;
+    };
 
-    // Get draft data from the basics module
-    const draft = $derived(basics.getDraft());
-    const validationError = $derived(basics.getValidationError());
-    const profileImagePreviewUrl = $derived(draft.profile_image_url.trim());
+    let {
+        formId,
+        showSubmitButton = false,
+        initial,
+        submitLabel,
+        onsubmit
+    }: {
+        formId?: string;
+        showSubmitButton?: boolean;
+        initial?: BasicsFormData;
+        submitLabel?: string;
+        onsubmit?: (payload: any) => void;
+    } = $props();
+
+    let name = $state('');
+    let email = $state('');
+    let profile_image_url = $state('');
+    let location = $state('');
+    let github_url = $state('');
+    let mobile_number = $state('');
+    let is_public = $state(false);
+
+    // Initialize from initial if provided
+    $effect(() => {
+        if (initial) {
+            name = initial.name ?? '';
+            email = initial.email ?? '';
+            profile_image_url = initial.profile_image_url ?? '';
+            location = initial.location ?? '';
+            github_url = initial.github_url ?? '';
+            mobile_number = initial.mobile_number ?? '';
+            is_public = initial.is_public ?? false;
+        }
+    });
 
     function handleFieldChange(
-        field: keyof Omit<typeof draft, '_status' | '_tempId' | '_validationError'>,
+        field: keyof BasicsFormData,
         value: string | boolean
     ) {
-        basics.setField(field, value);
+        if (field === 'name') name = value as string;
+        else if (field === 'email') email = value as string;
+        else if (field === 'profile_image_url') profile_image_url = value as string;
+        else if (field === 'location') location = value as string;
+        else if (field === 'github_url') github_url = value as string;
+        else if (field === 'mobile_number') mobile_number = value as string;
+        else if (field === 'is_public') is_public = value as boolean;
     }
 
-    function handleBlur() {
-        basics.validate();
+    function submit(e: Event) {
+        e.preventDefault();
+        if (onsubmit) {
+            onsubmit({
+                name: name.trim(),
+                email: email.trim(),
+                profile_image_url: profile_image_url.trim() || null,
+                location: location.trim() || null,
+                github_url: github_url.trim() || null,
+                mobile_number: mobile_number.trim() || null,
+                is_public
+            });
+        }
     }
 </script>
 
 <div class="form-container">
-    <form class="form" id={formId}>
+    <form class="form" id={formId} onsubmit={submit}>
         <TextInput
             label="Name"
-            value={draft.name}
-            oninput={(e) => handleFieldChange('name', (e.currentTarget as HTMLInputElement).value)}
-            onblur={handleBlur}
+            bind:value={name}
             required
             title="Full name shown on the resume."
         />
@@ -36,67 +90,59 @@
         <TextInput
             label="Email"
             type="email"
-            value={draft.email}
-            oninput={(e) => handleFieldChange('email', (e.currentTarget as HTMLInputElement).value)}
-            onblur={handleBlur}
+            bind:value={email}
             required
             title="Primary contact email displayed on the resume."
         />
 
         <TextInput
             label="Profile image URL"
-            value={draft.profile_image_url}
-            oninput={(e) =>
-                handleFieldChange('profile_image_url', (e.currentTarget as HTMLInputElement).value)}
+            bind:value={profile_image_url}
             title="Optional. Link to a profile photo image (e.g. https://...)."
         />
 
         <TextInput
             label="Location"
-            value={draft.location}
-            oninput={(e) =>
-                handleFieldChange('location', (e.currentTarget as HTMLInputElement).value)}
+            bind:value={location}
             title="Optional. City / country (or remote)."
         />
 
         <TextInput
             label="GitHub URL"
-            value={draft.github_url}
-            oninput={(e) =>
-                handleFieldChange('github_url', (e.currentTarget as HTMLInputElement).value)}
+            bind:value={github_url}
             title="Optional. Link to your GitHub profile."
         />
 
         <TextInput
             label="Mobile number"
-            value={draft.mobile_number}
-            oninput={(e) =>
-                handleFieldChange('mobile_number', (e.currentTarget as HTMLInputElement).value)}
+            bind:value={mobile_number}
             title="Optional. Phone number for contact."
         />
 
         <label class="checkbox">
             <input
                 type="checkbox"
-                checked={draft.is_public}
-                onchange={(e) => handleFieldChange('is_public', e.currentTarget.checked)}
+                bind:checked={is_public}
                 title="If enabled, this resume is visible publicly."
             />
             <span>Public</span>
         </label>
 
-        {#if validationError}
-            <p class="error-message">{validationError}</p>
+        {#if showSubmitButton}
+            <Button type="submit">
+                {#snippet icon()}<Save size={16} />{/snippet}
+                {submitLabel ?? 'Save'}
+            </Button>
         {/if}
     </form>
     <div>
         <div class="preview-card">
             <p class="preview-label">Profile preview</p>
-            {#if profileImagePreviewUrl}
+            {#if profile_image_url.trim()}
                 <div class="preview-frame">
                     <img
-                        src={profileImagePreviewUrl}
-                        alt={`Profile preview for ${draft.name.trim() || 'resume'}`}
+                        src={profile_image_url.trim()}
+                        alt={`Profile preview for ${name.trim() || 'resume'}`}
                     />
                 </div>
             {:else}
@@ -190,11 +236,5 @@
 
     .checkbox input {
         cursor: pointer;
-    }
-
-    .error-message {
-        margin: 0;
-        font-size: 13px;
-        color: var(--color-error);
     }
 </style>
