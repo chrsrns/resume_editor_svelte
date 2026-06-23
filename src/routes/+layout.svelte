@@ -4,17 +4,36 @@
     import { onMount } from 'svelte';
     import { resolve } from '$app/paths';
     import { goto } from '$app/navigation';
+    import { page } from '$app/state';
     import { authToken, clearAuthToken } from '$lib/auth';
     import { logout } from '$lib/api/auth';
     import { currentUser, refreshCurrentUser, clearCurrentUser } from '$lib/session';
     import FileText from '@lucide/svelte/icons/file-text';
     import LogOut from '@lucide/svelte/icons/log-out';
+    import HeadsUpDialog from '$lib/components/ui/HeadsUpDialog.svelte';
 
     let { children } = $props();
 
     onMount(() => {
         void refreshCurrentUser();
     });
+
+    let dialogOpen = $state(false);
+
+    // Check for query parameter on mount
+    $effect(() => {
+        if (page.url.searchParams.get('source') === 'backend') {
+            dialogOpen = true;
+        }
+    });
+
+    function closeDialog() {
+        dialogOpen = false;
+        // Remove the query parameter without navigating
+        const url = new URL(window.location.href);
+        url.searchParams.delete('source');
+        window.history.replaceState({}, '', url.toString());
+    }
 
     async function handleLogout() {
         try {
@@ -60,6 +79,8 @@
     </header>
     <main class="main">{@render children()}</main>
 </div>
+
+<HeadsUpDialog open={dialogOpen} onclose={closeDialog} />
 
 <style>
     .shell {
