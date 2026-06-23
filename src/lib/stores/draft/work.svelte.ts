@@ -178,13 +178,22 @@ export function getBaselineKeyPoints(): BaselineKeyPoint[] {
  */
 export function addWork(draft: Omit<WorkDraft, 'id' | 'display_order'>): void {
     const tempId = generateTempId();
+    // Calculate next display order (max existing + 10, or 10 if none exist)
+    const maxOrder = drafts
+        .filter((d) => d._status !== 'deleted')
+        .reduce((max, d) => {
+            const order = toNumberOrNull(d.display_order) ?? 0;
+            return order > max ? order : max;
+        }, 0);
+    const nextOrder = String(maxOrder + 10);
+
     drafts = [
         ...drafts,
         {
             id: tempId,
             _status: 'new',
             ...draft,
-            display_order: '',
+            display_order: nextOrder,
         },
     ];
     // Initialize empty key points for new work experience
@@ -668,13 +677,46 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
     }
     keyPoints = newKeyPoints;
 
-    // Remove deleted items from baseline
-    baselineWorks = baselineWorks.filter(bw =>
-        !drafts.find(d => d.id === bw.id && d._status === 'deleted')
-    );
-    baselineKeyPoints = baselineKeyPoints.filter(bkp =>
-        !Object.values(keyPoints).flat().find(kp => kp.id === bkp.id && kp._status === 'deleted')
-    );
+    // Update baseline to match current draft state for successful saves
+    // Rebuild baseline from current drafts for existing items
+    const resumeId = baselineWorks[0]?.resume_id ?? 0;
+
+    baselineWorks = drafts
+        .filter((d) => d._status === 'existing')
+        .map((d) => {
+            const existing = baselineWorks.find((bw) => bw.id === d.id);
+            return {
+                id: d.id,
+                resume_id: existing?.resume_id ?? resumeId,
+                job_title: d.job_title.trim(),
+                company_name: d.company_name.trim(),
+                start_date: d.start_date,
+                end_date: toNullable(d.end_date),
+                description: toNullable(d.description),
+                display_order: toNumberOrNull(d.display_order),
+                active: existing?.active ?? true,
+                created_at: existing?.created_at ?? new Date().toISOString(),
+            };
+        });
+
+    baselineKeyPoints = [];
+    for (const workId of Object.keys(keyPoints)) {
+        const numWorkId = Number(workId);
+        const current = keyPoints[numWorkId];
+        if (current) {
+            for (const kp of current.filter((k) => k._status === 'existing')) {
+                const existing = baselineKeyPoints.find((bkp) => bkp.id === kp.id);
+                baselineKeyPoints.push({
+                    id: kp.id,
+                    work_experience_id: numWorkId,
+                    key_point: kp.key_point.trim(),
+                    display_order: toNumberOrNull(kp.display_order),
+                    active: existing?.active ?? true,
+                    created_at: existing?.created_at ?? new Date().toISOString(),
+                });
+            }
+        }
+    }
 }
 
 /**

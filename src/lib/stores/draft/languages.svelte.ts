@@ -167,13 +167,22 @@ export function getBaselineFrameworks(): BaselineFramework[] {
  */
 export function addLanguage(draft: Omit<LanguageDraft, 'id' | 'display_order'>): void {
     const tempId = generateTempId();
+    // Calculate next display order (max existing + 10, or 10 if none exist)
+    const maxOrder = drafts
+        .filter((d) => d._status !== 'deleted')
+        .reduce((max, d) => {
+            const order = toNumberOrNull(d.display_order) ?? 0;
+            return order > max ? order : max;
+        }, 0);
+    const nextOrder = String(maxOrder + 10);
+
     drafts = [
         ...drafts,
         {
             id: tempId,
             _status: 'new',
             ...draft,
-            display_order: '',
+            display_order: nextOrder,
         },
     ];
     // Initialize empty frameworks for new language
@@ -619,13 +628,40 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
     }
     frameworks = newFrameworks;
 
-    // Remove deleted items from baseline
-    baselineLanguages = baselineLanguages.filter(bl =>
-        !drafts.find(d => d.id === bl.id && d._status === 'deleted')
-    );
-    baselineFrameworks = baselineFrameworks.filter(bf =>
-        !Object.values(frameworks).flat().find(f => f.id === bf.id && f._status === 'deleted')
-    );
+    // Update baseline to match current draft state for successful saves
+    // Rebuild baseline from current drafts for existing items
+    const resumeId = baselineLanguages[0]?.resume_id ?? 0;
+
+    baselineLanguages = drafts
+        .filter((d) => d._status === 'existing')
+        .map((d) => {
+            const existing = baselineLanguages.find((bl) => bl.id === d.id);
+            return {
+                id: d.id,
+                resume_id: existing?.resume_id ?? resumeId,
+                language_name: d.language_name.trim(),
+                display_order: toNumberOrNull(d.display_order),
+                created_at: existing?.created_at ?? new Date().toISOString(),
+            };
+        });
+
+    baselineFrameworks = [];
+    for (const languageId of Object.keys(frameworks)) {
+        const numLanguageId = Number(languageId);
+        const current = frameworks[numLanguageId];
+        if (current) {
+            for (const fw of current.filter((f) => f._status === 'existing')) {
+                const existing = baselineFrameworks.find((bf) => bf.id === fw.id);
+                baselineFrameworks.push({
+                    id: fw.id,
+                    language_id: numLanguageId,
+                    framework_name: fw.framework_name.trim(),
+                    display_order: toNumberOrNull(fw.display_order),
+                    created_at: existing?.created_at ?? new Date().toISOString(),
+                });
+            }
+        }
+    }
 }
 
 /**

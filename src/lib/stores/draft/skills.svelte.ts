@@ -102,13 +102,22 @@ export function getBaseline(): BaselineSkill[] {
  * @param draft - The skill data (without id and display_order)
  */
 export function add(draft: Omit<SkillDraft, 'id' | 'display_order'>): void {
+    // Calculate next display order (max existing + 10, or 10 if none exist)
+    const maxOrder = drafts
+        .filter((d) => d._status !== 'deleted')
+        .reduce((max, d) => {
+            const order = toNumberOrNull(d.display_order) ?? 0;
+            return order > max ? order : max;
+        }, 0);
+    const nextOrder = String(maxOrder + 10);
+
     drafts = [
         ...drafts,
         {
             id: generateTempId(),
             _status: 'new',
             ...draft,
-            display_order: '',
+            display_order: nextOrder,
         },
     ];
 }
@@ -330,10 +339,23 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
         return d;
     }).filter((d): d is DraftItem<SkillDraft> => d !== null);
 
-    // Remove deleted items from baseline
-    baselineSkills = baselineSkills.filter(bs =>
-        !drafts.find(d => d.id === bs.id && d._status === 'deleted')
-    );
+    // Update baseline to match current draft state for successful saves
+    // Rebuild baseline from current drafts for existing items
+    const resumeId = baselineSkills[0]?.resume_id ?? 0;
+
+    baselineSkills = drafts
+        .filter((d) => d._status === 'existing')
+        .map((d) => {
+            const existing = baselineSkills.find((bs) => bs.id === d.id);
+            return {
+                id: d.id,
+                resume_id: existing?.resume_id ?? resumeId,
+                skill_name: d.skill_name.trim(),
+                confidence_percentage: Number(d.confidence_percentage),
+                display_order: toNumberOrNull(d.display_order),
+                created_at: existing?.created_at ?? new Date().toISOString(),
+            };
+        });
 }
 
 /**

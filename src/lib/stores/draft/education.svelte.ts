@@ -180,13 +180,22 @@ export function getBaselineKeyPoints(): BaselineKeyPoint[] {
  */
 export function addEducation(draft: Omit<EducationDraft, 'id' | 'display_order'>): void {
     const tempId = generateTempId();
+    // Calculate next display order (max existing + 10, or 10 if none exist)
+    const maxOrder = drafts
+        .filter((d) => d._status !== 'deleted')
+        .reduce((max, d) => {
+            const order = toNumberOrNull(d.display_order) ?? 0;
+            return order > max ? order : max;
+        }, 0);
+    const nextOrder = String(maxOrder + 10);
+
     drafts = [
         ...drafts,
         {
             id: tempId,
             _status: 'new',
             ...draft,
-            display_order: '',
+            display_order: nextOrder,
         },
     ];
     // Initialize empty key points for new education
@@ -747,13 +756,47 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
     }
     keyPoints = newKeyPoints;
 
-    // Remove deleted items from baseline
-    baselineEducations = baselineEducations.filter(be =>
-        !drafts.find(d => d.id === be.id && d._status === 'deleted')
-    );
-    baselineKeyPoints = baselineKeyPoints.filter(bkp =>
-        !Object.values(keyPoints).flat().find(kp => kp.id === bkp.id && kp._status === 'deleted')
-    );
+    // Update baseline to match current draft state for successful saves
+    // Rebuild baseline from current drafts for existing items
+    // Get resume_id from existing baseline items (they should all have the same resume_id)
+    const resumeId = baselineEducations[0]?.resume_id ?? 0;
+
+    baselineEducations = drafts
+        .filter((d) => d._status === 'existing')
+        .map((d) => {
+            const existing = baselineEducations.find((be) => be.id === d.id);
+            return {
+                id: d.id,
+                resume_id: existing?.resume_id ?? resumeId,
+                education_stage: d.education_stage.trim(),
+                institution_name: d.institution_name.trim(),
+                degree: toNullable(d.degree),
+                start_date: d.start_date,
+                end_date: toNullable(d.end_date),
+                description: toNullable(d.description),
+                display_order: toNumberOrNull(d.display_order),
+                active: existing?.active ?? true,
+                created_at: existing?.created_at ?? new Date().toISOString(),
+            };
+        });
+
+    baselineKeyPoints = [];
+    for (const educationId of Object.keys(keyPoints)) {
+        const numId = Number(educationId);
+        const current = keyPoints[numId];
+        if (current) {
+            for (const kp of current.filter((k) => k._status === 'existing')) {
+                const existing = baselineKeyPoints.find((bkp) => bkp.id === kp.id);
+                baselineKeyPoints.push({
+                    id: kp.id,
+                    education_id: numId,
+                    key_point: kp.key_point.trim(),
+                    display_order: toNumberOrNull(kp.display_order),
+                    created_at: existing?.created_at ?? new Date().toISOString(),
+                });
+            }
+        }
+    }
 }
 
 /**

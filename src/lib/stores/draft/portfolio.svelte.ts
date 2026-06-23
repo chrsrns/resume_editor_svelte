@@ -240,13 +240,22 @@ export function getBaselineTechnologies(): BaselineTechnology[] {
  */
 export function addProject(draft: Omit<ProjectDraft, 'id' | 'display_order'>): void {
     const tempId = generateTempId();
+    // Calculate next display order (max existing + 10, or 10 if none exist)
+    const maxOrder = drafts
+        .filter((d) => d._status !== 'deleted')
+        .reduce((max, d) => {
+            const order = toNumberOrNull(d.display_order) ?? 0;
+            return order > max ? order : max;
+        }, 0);
+    const nextOrder = String(maxOrder + 10);
+
     drafts = [
         ...drafts,
         {
             id: tempId,
             _status: 'new',
             ...draft,
-            display_order: '',
+            display_order: nextOrder,
         },
     ];
     // Initialize empty key points and technologies for new project
@@ -967,16 +976,63 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
     }
     technologies = newTechnologies;
 
-    // Remove deleted items from baseline
-    baselineProjects = baselineProjects.filter(bp =>
-        !drafts.find(d => d.id === bp.id && d._status === 'deleted')
-    );
-    baselineKeyPoints = baselineKeyPoints.filter(bkp =>
-        !Object.values(keyPoints).flat().find(kp => kp.id === bkp.id && kp._status === 'deleted')
-    );
-    baselineTechnologies = baselineTechnologies.filter(bt =>
-        !Object.values(technologies).flat().find(t => t.id === bt.id && t._status === 'deleted')
-    );
+    // Update baseline to match current draft state for successful saves
+    // Rebuild baseline from current drafts for existing items
+    const resumeId = baselineProjects[0]?.resume_id ?? 0;
+
+    baselineProjects = drafts
+        .filter((d) => d._status === 'existing')
+        .map((d) => {
+            const existing = baselineProjects.find((bp) => bp.id === d.id);
+            return {
+                id: d.id,
+                resume_id: existing?.resume_id ?? resumeId,
+                project_name: d.project_name.trim(),
+                image_url: toNullable(d.image_url),
+                project_link: toNullable(d.project_link),
+                source_code_link: toNullable(d.source_code_link),
+                description: toNullable(d.description),
+                display_order: toNumberOrNull(d.display_order),
+                active: existing?.active ?? true,
+                created_at: existing?.created_at ?? new Date().toISOString(),
+            };
+        });
+
+    baselineKeyPoints = [];
+    for (const projectId of Object.keys(keyPoints)) {
+        const numProjectId = Number(projectId);
+        const current = keyPoints[numProjectId];
+        if (current) {
+            for (const kp of current.filter((k) => k._status === 'existing')) {
+                const existing = baselineKeyPoints.find((bkp) => bkp.id === kp.id);
+                baselineKeyPoints.push({
+                    id: kp.id,
+                    portfolio_project_id: numProjectId,
+                    key_point: kp.key_point.trim(),
+                    display_order: toNumberOrNull(kp.display_order),
+                    created_at: existing?.created_at ?? new Date().toISOString(),
+                });
+            }
+        }
+    }
+
+    baselineTechnologies = [];
+    for (const projectId of Object.keys(technologies)) {
+        const numProjectId = Number(projectId);
+        const current = technologies[numProjectId];
+        if (current) {
+            for (const tech of current.filter((t) => t._status === 'existing')) {
+                const existing = baselineTechnologies.find((bt) => bt.id === tech.id);
+                baselineTechnologies.push({
+                    id: tech.id,
+                    portfolio_project_id: numProjectId,
+                    technology_name: tech.technology_name.trim(),
+                    display_order: toNumberOrNull(tech.display_order),
+                    created_at: existing?.created_at ?? new Date().toISOString(),
+                });
+            }
+        }
+    }
 }
 
 /**
