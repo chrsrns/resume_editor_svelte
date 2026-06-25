@@ -66,15 +66,18 @@ export async function apiRequest<T = unknown>(
                 continue;
             }
 
-            if (res.status === 500 && !res.body) {
-                console.log('Retrying from 500 error');
-                triesLeft--;
-                if (triesLeft === 0) {
-                    throw new ApiError(500, 'Failed to fetch');
+            if (res.status === 500) {
+                const bodyText = await res.clone().text();
+                if (bodyText.trim().length === 0) {
+                    console.log('Retrying from 500 error');
+                    triesLeft--;
+                    if (triesLeft === 0) {
+                        throw new ApiError(500, 'Failed to fetch');
+                    }
+                    await wait(currentDelay);
+                    currentDelay *= delayMultiplier;
+                    continue;
                 }
-                await wait(currentDelay);
-                currentDelay *= delayMultiplier;
-                continue;
             }
             return res;
         }

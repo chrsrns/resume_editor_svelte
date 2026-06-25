@@ -6,6 +6,8 @@
     import type { Resume } from '$lib/types';
     import { authToken } from '$lib/auth';
     import { currentUser } from '$lib/session';
+    import Button from '$lib/components/ui/Button.svelte';
+    import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     let loading = $state(true);
     let error = $state<string | null>(null);
@@ -76,7 +78,10 @@
     </ul>
 {/if}
 
-<button class="linkButton" type="button" onclick={loadResumes} disabled={loading}>Refresh</button>
+<Button variant="secondary" onclick={loadResumes} disabled={loading}>
+    {#snippet icon()}<RefreshCw size={16} />{/snippet}
+    Refresh
+</Button>
 
 <style>
     .header {
@@ -158,19 +163,5 @@
 
     .muted {
         color: #475569;
-    }
-
-    .linkButton {
-        padding: 0;
-        border: 0;
-        background: transparent;
-        color: #0f172a;
-        text-decoration: underline;
-        cursor: pointer;
-    }
-
-    .linkButton[disabled] {
-        opacity: 0.6;
-        cursor: not-allowed;
     }
 </style>

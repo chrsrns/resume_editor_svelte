@@ -33,6 +33,7 @@
     import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
     import IconTabBar from '$lib/components/IconTabBar.svelte';
     import FieldRow from '$lib/components/FieldRow.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
     import Eye from '@lucide/svelte/icons/eye';
     import Mail from '@lucide/svelte/icons/mail';
     import Image from '@lucide/svelte/icons/image';
@@ -45,6 +46,7 @@
     import Folder from '@lucide/svelte/icons/folder';
     import Star from '@lucide/svelte/icons/star';
     import Globe from '@lucide/svelte/icons/globe';
+    import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     const tabs = [
         { id: 'basics', label: 'Basics' },
@@ -80,6 +82,7 @@
     }
 
     let loading = $state(true);
+    let sectionLoading = $state(false);
     let error = $state<string | null>(null);
     let sectionError = $state<string | null>(null);
     let resume = $state<Resume | null>(null);
@@ -239,6 +242,20 @@
         }
     }
 
+    async function retryLoadSections() {
+        if (!resume) return;
+        sectionLoading = true;
+        sectionError = null;
+        try {
+            await loadSections(resume.id);
+        } catch (e) {
+            const err = e as ApiError;
+            sectionError = err.message;
+        } finally {
+            sectionLoading = false;
+        }
+    }
+
     function formatDateRange(start: string, end: string | null): string {
         return `${start} - ${end && end.trim().length > 0 ? end : 'Present'}`;
     }
@@ -256,6 +273,10 @@
     <p class="stateText">Loading…</p>
 {:else if error}
     <p class="stateText error">{error}</p>
+    <Button variant="secondary" onclick={load} disabled={loading}>
+        {#snippet icon()}<RefreshCw size={16} />{/snippet}
+        Retry
+    </Button>
 {:else if resume}
     <ResumeViewHeader
         {resume}
@@ -266,6 +287,14 @@
 
     {#if sectionError}
         <p class="sectionError">{sectionError}</p>
+        {#if sectionLoading}
+            <p class="stateText">Loading sections…</p>
+        {:else}
+            <Button variant="secondary" onclick={retryLoadSections}>
+                {#snippet icon()}<RefreshCw size={16} />{/snippet}
+                Retry
+            </Button>
+        {/if}
     {/if}
 
     <div

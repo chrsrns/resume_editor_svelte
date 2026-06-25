@@ -47,6 +47,7 @@
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import Save from '@lucide/svelte/icons/save';
+    import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     const tabs = [
         { id: 'basics', label: 'Basics' },
@@ -357,6 +358,10 @@
     <p class="stateText">Loading…</p>
 {:else if error}
     <p class="stateText error">{error}</p>
+    <Button variant="secondary" onclick={load} disabled={loading}>
+        {#snippet icon()}<RefreshCw size={16} />{/snippet}
+        Retry
+    </Button>
 {:else if resume}
     <div class="header">
         <div>

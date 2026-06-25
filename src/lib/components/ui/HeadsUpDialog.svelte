@@ -12,8 +12,8 @@
         onclose?: () => void;
     } = $props();
 
-    const RESUME_URL = 'https://chrsrns.github.io/css-resume/';
-    const PORTFOLIO_URL = 'https://chrsrns.github.io/personal-projects-portal/';
+    const RESUME_URL = 'https://chrsrns.github.io/css-resume/?source=backend';
+    const PORTFOLIO_URL = 'https://chrsrns.github.io/personal-projects-portal/?source=backend';
 
     function handleBackdropClick(e: MouseEvent) {
         if (e.target === e.currentTarget) {
