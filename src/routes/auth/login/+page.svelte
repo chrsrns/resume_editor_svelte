@@ -12,7 +12,7 @@
     let loading = $state(false);
     let error = $state<string | null>(null);
 
-    async function submit(e: Event) {
+    async function handleSubmit(e: Event) {
         e.preventDefault();
         error = null;
         loading = true;
@@ -33,7 +33,7 @@
 
 <h1>Login</h1>
 
-<form class="form" onsubmit={submit}>
+<form class="form" onsubmit={handleSubmit}>
     <TextInput label="Email" type="email" bind:value={email} required autocomplete="email" />
 
     <TextInput

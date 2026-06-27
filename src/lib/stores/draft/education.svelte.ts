@@ -37,6 +37,7 @@ type EducationDraft = {
     end_date: string;
     description: string;
     display_order: string;
+    active: boolean;
 };
 
 /**
@@ -107,7 +108,8 @@ export function initialize(educations: Education[], keyPointList: EducationKeyPo
         start_date: e.start_date,
         end_date: e.end_date ?? '',
         description: e.description ?? '',
-        display_order: e.display_order == null ? '' : String(e.display_order)
+        display_order: e.display_order == null ? '' : String(e.display_order),
+        active: e.active
     }));
 
     // Initialize key points grouped by education ID
@@ -495,7 +497,8 @@ export function isDirty(): boolean {
             start_date: e.start_date,
             end_date: e.end_date,
             description: e.description,
-            display_order: e.display_order
+            display_order: e.display_order,
+            active: e.active
         }))
     );
     const draftEduSig = computeSignature(
@@ -509,7 +512,8 @@ export function isDirty(): boolean {
                 start_date: d.start_date,
                 end_date: toNullable(d.end_date),
                 description: toNullable(d.description),
-                display_order: toNumberOrNull(d.display_order)
+                display_order: toNumberOrNull(d.display_order),
+                active: d.active
             }))
             .sort(byDisplayOrder)
     );
@@ -632,7 +636,8 @@ export function computeDiff(): EducationAction[] {
                     start_date: draft.start_date,
                     end_date: toNullable(draft.end_date),
                     description: toNullable(draft.description),
-                    display_order: toNumberOrNull(draft.display_order)
+                    display_order: toNumberOrNull(draft.display_order),
+                    active: draft.active
                 }
             });
         } else if (draft._status === 'deleted') {
@@ -663,6 +668,9 @@ export function computeDiff(): EducationAction[] {
                 }
                 if (toNumberOrNull(draft.display_order) !== baseline.display_order) {
                     payload.display_order = toNumberOrNull(draft.display_order);
+                }
+                if (draft.active !== baseline.active) {
+                    payload.active = draft.active;
                 }
                 if (Object.keys(payload).length > 0) {
                     actions.push({
@@ -799,7 +807,7 @@ export function commitBaseline(): void {
                 end_date: toNullable(d.end_date),
                 description: toNullable(d.description),
                 display_order: toNumberOrNull(d.display_order),
-                active: existing?.active ?? true,
+                active: d.active,
                 created_at: existing?.created_at ?? ''
             };
         });

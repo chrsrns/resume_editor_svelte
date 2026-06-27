@@ -12,6 +12,7 @@
     import TextArea from '$lib/components/ui/TextArea.svelte';
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import ActiveStatus from '../ui/ActiveStatus.svelte';
+    import ActiveToggle from '../ui/ActiveToggle.svelte';
     import Plus from '@lucide/svelte/icons/plus';
     import Trash2 from '@lucide/svelte/icons/trash-2';
 
@@ -24,6 +25,7 @@
         end_date: string;
         description: string;
         display_order: string;
+        active: boolean;
     };
 
     type KeyPointDraft = {
@@ -99,7 +101,8 @@
             degree: newDegree,
             start_date: newStart,
             end_date: newEnd,
-            description: newDescription
+            description: newDescription,
+            active: true
         });
         newStage = '';
         newInstitution = '';
@@ -276,8 +279,8 @@
                 ondrop={(e) => handleDrop(d.id, e)}
             >
                 {#snippet titleHeader()}
-                    <div style="display: flex; flex-direction: row; gap: 1em">
-                        <ActiveStatus style="width: 4em" active={true} size="sm" />
+                    <div style="display: flex; flex-direction: row; gap: 1em; align-items: center;">
+                        <ActiveStatus style="width: 4em" active={d.active} size="sm" />
                         <div>
                             {[d.education_stage, d.institution_name]
                                 .map((x) => x.trim())
@@ -351,6 +354,12 @@
                     title="Optional. Description/details."
                 />
                 <CardActions>
+                    <ActiveToggle
+                        active={d.active}
+                        size="sm"
+                        title="Hide this entry from non-owners"
+                        onchange={(active) => onUpdateEducation(d.id, { active })}
+                    />
                     <Button
                         variant="danger"
                         onclick={() => onRemoveEducation(d.id)}

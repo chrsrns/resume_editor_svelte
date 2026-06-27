@@ -469,10 +469,6 @@
                 onUpdateWork={(id: number, partial) => work.updateWork(id, partial)}
                 onRemoveWork={(id: number) => work.removeWork(id)}
                 onReorder={(from: number, to: number) => work.reorder(from, to)}
-                onToggleActive={(id: number) => {
-                    // For now, just a placeholder - active state is not managed in drafts yet
-                    // This will be implemented when we add active state to the draft module
-                }}
                 onAddKeyPoint={(workId: number, draft) => work.addKeyPoint(workId, draft)}
                 onUpdateKeyPoint={(id: number, partial) => work.updateKeyPoint(id, partial)}
                 onRemoveKeyPoint={(id: number) => work.removeKeyPoint(id)}
@@ -532,6 +528,7 @@
                 onUpdate={(id, partial) => skills.update(id, partial)}
                 onDelete={(id) => skills.remove(id)}
                 onReorder={(from, to) => skills.reorder(from, to)}
+                onValidate={(id) => skills.validate(id)}
                 {saving}
             />
         </div>

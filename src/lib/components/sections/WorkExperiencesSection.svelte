@@ -12,6 +12,7 @@
     import TextArea from '$lib/components/ui/TextArea.svelte';
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import ActiveStatus from '../ui/ActiveStatus.svelte';
+    import ActiveToggle from '../ui/ActiveToggle.svelte';
     import Plus from '@lucide/svelte/icons/plus';
     import Trash2 from '@lucide/svelte/icons/trash-2';
 
@@ -23,6 +24,7 @@
         end_date: string;
         description: string;
         display_order: string;
+        active: boolean;
     };
 
     type KeyPointDraft = {
@@ -38,7 +40,6 @@
         onUpdateWork,
         onRemoveWork,
         onReorder,
-        onToggleActive,
         onAddKeyPoint,
         onUpdateKeyPoint,
         onRemoveKeyPoint,
@@ -53,7 +54,6 @@
         onUpdateWork: (id: number, partial: Partial<WorkDraft>) => void;
         onRemoveWork: (id: number) => void;
         onReorder: (fromId: number, toId: number) => void;
-        onToggleActive: (id: number) => void;
         onAddKeyPoint: (workId: number, draft: Omit<KeyPointDraft, 'id' | 'display_order'>) => void;
         onUpdateKeyPoint: (id: number, partial: Partial<KeyPointDraft>) => void;
         onRemoveKeyPoint: (id: number) => void;
@@ -91,7 +91,8 @@
             company_name: newCompany,
             start_date: newStart,
             end_date: newEnd,
-            description: newDescription
+            description: newDescription,
+            active: true
         });
         newTitle = '';
         newCompany = '';
@@ -250,8 +251,8 @@
                 ondrop={(e) => handleDrop(d.id, e)}
             >
                 {#snippet titleHeader()}
-                    <div style="display: flex; flex-direction: row; gap: 1em">
-                        <ActiveStatus style="width: 4em" active={true} size="sm" />
+                    <div style="display: flex; flex-direction: row; gap: 1em; align-items: center;">
+                        <ActiveStatus style="width: 4em" active={d.active} size="sm" />
                         <div>
                             {[d.job_title, d.company_name]
                                 .map((x) => x.trim())
@@ -316,14 +317,12 @@
                     title="Optional. Description/details."
                 />
                 <CardActions>
-                    <Button
-                        variant="secondary"
-                        onclick={() => onToggleActive(d.id)}
+                    <ActiveToggle
+                        active={d.active}
+                        size="sm"
                         title="Hide this entry from non-owners"
-                        disabled={saving}
-                    >
-                        Deactivate
-                    </Button>
+                        onchange={(active) => onUpdateWork(d.id, { active })}
+                    />
                     <Button variant="danger" onclick={() => onRemoveWork(d.id)} disabled={saving}>
                         {#snippet icon()}<Trash2 size={16} />{/snippet}
                         Delete

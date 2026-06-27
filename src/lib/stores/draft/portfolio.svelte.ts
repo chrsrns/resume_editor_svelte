@@ -39,6 +39,7 @@ type ProjectDraft = {
     source_code_link: string;
     description: string;
     display_order: string;
+    active: boolean;
 };
 
 /**
@@ -134,7 +135,8 @@ export function initialize(
         project_link: p.project_link ?? '',
         source_code_link: p.source_code_link ?? '',
         description: p.description ?? '',
-        display_order: p.display_order == null ? '' : String(p.display_order)
+        display_order: p.display_order == null ? '' : String(p.display_order),
+        active: p.active
     }));
 
     // Initialize key points grouped by project ID
@@ -656,7 +658,8 @@ export function isDirty(): boolean {
             project_link: p.project_link ?? '',
             source_code_link: p.source_code_link ?? '',
             description: p.description ?? '',
-            display_order: p.display_order
+            display_order: p.display_order,
+            active: p.active
         }))
     );
     const draftProjectSig = computeSignature(
@@ -669,7 +672,8 @@ export function isDirty(): boolean {
                 project_link: d.project_link,
                 source_code_link: d.source_code_link,
                 description: d.description,
-                display_order: toNumberOrNull(d.display_order)
+                display_order: toNumberOrNull(d.display_order),
+                active: d.active
             }))
             .sort(byDisplayOrder)
     );
@@ -767,7 +771,8 @@ export function resetToBaseline(): void {
         project_link: p.project_link ?? '',
         source_code_link: p.source_code_link ?? '',
         description: p.description ?? '',
-        display_order: p.display_order == null ? '' : String(p.display_order)
+        display_order: p.display_order == null ? '' : String(p.display_order),
+        active: p.active
     }));
 
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -823,7 +828,8 @@ export function computeDiff(): PortfolioAction[] {
                     project_link: toNullable(draft.project_link),
                     source_code_link: toNullable(draft.source_code_link),
                     description: toNullable(draft.description),
-                    display_order: toNumberOrNull(draft.display_order)
+                    display_order: toNumberOrNull(draft.display_order),
+                    active: draft.active
                 }
             });
         } else if (draft._status === 'deleted') {
@@ -851,6 +857,9 @@ export function computeDiff(): PortfolioAction[] {
                 }
                 if (String(baseline.display_order ?? '') !== draft.display_order) {
                     payload.display_order = toNumberOrNull(draft.display_order);
+                }
+                if (baseline.active !== draft.active) {
+                    payload.active = draft.active;
                 }
 
                 if (Object.keys(payload).length > 0) {
@@ -1028,7 +1037,7 @@ export function commitBaseline(): void {
                 source_code_link: toNullable(d.source_code_link),
                 description: toNullable(d.description),
                 display_order: toNumberOrNull(d.display_order),
-                active: existing?.active ?? true,
+                active: d.active,
                 created_at: existing?.created_at ?? ''
             };
         });

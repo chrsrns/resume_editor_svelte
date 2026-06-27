@@ -13,6 +13,8 @@
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import Plus from '@lucide/svelte/icons/plus';
     import Trash2 from '@lucide/svelte/icons/trash-2';
+    import ActiveStatus from '../ui/ActiveStatus.svelte';
+    import ActiveToggle from '../ui/ActiveToggle.svelte';
 
     type ProjectDraft = {
         id: number;
@@ -22,6 +24,7 @@
         source_code_link: string;
         description: string;
         display_order: string;
+        active: boolean;
     };
 
     type KeyPointDraft = {
@@ -117,7 +120,8 @@
             image_url: newImage,
             project_link: newProjectLink,
             source_code_link: newSourceLink,
-            description: newDescription
+            description: newDescription,
+            active: true
         });
         newName = '';
         newImage = '';
@@ -332,7 +336,8 @@
                 ondrop={(e) => handleDrop(d.id, e)}
             >
                 {#snippet titleHeader()}
-                    <div style="display: flex; flex-direction: row; gap: 1em">
+                    <div style="display: flex; flex-direction: row; gap: 1em; align-items: center;">
+                        <ActiveStatus style="width: 4em" active={d.active} size="sm" />
                         <div>{d.project_name.trim()}</div>
                     </div>
                 {/snippet}
@@ -370,6 +375,12 @@
                     onblur={() => onValidateProject(d.id)}
                 />
                 <CardActions>
+                    <ActiveToggle
+                        active={d.active}
+                        size="sm"
+                        title="Hide this entry from non-owners"
+                        onchange={(active) => onUpdateProject(d.id, { active })}
+                    />
                     <Button variant="danger" onclick={() => onRemoveProject(d.id)}>
                         {#snippet icon()}<Trash2 size={16} />{/snippet}
                         Delete

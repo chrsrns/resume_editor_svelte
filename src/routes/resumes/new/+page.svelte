@@ -43,7 +43,11 @@
     <p class="error">{error}</p>
 {/if}
 
-<NewResumeForm submitLabel={loading ? 'Creating…' : 'Create'} onsubmit={handleSubmit} />
+<NewResumeForm
+    submitLabel={loading ? 'Creating…' : 'Create'}
+    showSubmitButton
+    onsubmit={handleSubmit}
+/>
 
 <style>
     .error {

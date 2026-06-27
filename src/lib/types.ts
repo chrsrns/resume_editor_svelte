@@ -137,6 +137,7 @@ export type NewEducationRequest = {
     end_date?: string | null;
     description?: string | null;
     display_order?: number | null;
+    active?: boolean;
 };
 
 export type UpdateEducationRequest = {
@@ -188,6 +189,7 @@ export type NewWorkExperienceRequest = {
     end_date?: string | null;
     description?: string | null;
     display_order?: number | null;
+    active?: boolean;
 };
 
 export type UpdateWorkExperienceRequest = {
@@ -240,6 +242,7 @@ export type NewPortfolioProjectRequest = {
     source_code_link?: string | null;
     description?: string | null;
     display_order?: number | null;
+    active?: boolean;
 };
 
 export type UpdatePortfolioProjectRequest = {

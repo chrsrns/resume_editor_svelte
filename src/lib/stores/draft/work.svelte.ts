@@ -36,6 +36,7 @@ type WorkDraft = {
     end_date: string;
     description: string;
     display_order: string;
+    active: boolean;
 };
 
 /**
@@ -105,7 +106,8 @@ export function initialize(works: WorkExperience[], keyPointList: WorkExperience
         start_date: w.start_date,
         end_date: w.end_date ?? '',
         description: w.description ?? '',
-        display_order: w.display_order == null ? '' : String(w.display_order)
+        display_order: w.display_order == null ? '' : String(w.display_order),
+        active: w.active
     }));
 
     // Initialize key points grouped by work ID
@@ -455,7 +457,8 @@ export function isDirty(): boolean {
             start_date: w.start_date,
             end_date: w.end_date ?? '',
             description: w.description ?? '',
-            display_order: w.display_order
+            display_order: w.display_order,
+            active: w.active
         }))
     );
     const draftWorkSig = computeSignature(
@@ -468,7 +471,8 @@ export function isDirty(): boolean {
                 start_date: d.start_date,
                 end_date: d.end_date,
                 description: d.description,
-                display_order: toNumberOrNull(d.display_order)
+                display_order: toNumberOrNull(d.display_order),
+                active: d.active
             }))
             .sort(byDisplayOrder)
     );
@@ -536,7 +540,8 @@ export function resetToBaseline(): void {
         start_date: w.start_date,
         end_date: w.end_date ?? '',
         description: w.description ?? '',
-        display_order: w.display_order == null ? '' : String(w.display_order)
+        display_order: w.display_order == null ? '' : String(w.display_order),
+        active: w.active
     }));
 
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -575,7 +580,8 @@ export function computeDiff(): WorkAction[] {
                     start_date: draft.start_date,
                     end_date: toNullable(draft.end_date),
                     description: toNullable(draft.description),
-                    display_order: toNumberOrNull(draft.display_order)
+                    display_order: toNumberOrNull(draft.display_order),
+                    active: draft.active
                 }
             });
         } else if (draft._status === 'deleted') {
@@ -603,6 +609,9 @@ export function computeDiff(): WorkAction[] {
                 }
                 if (String(baseline.display_order ?? '') !== draft.display_order) {
                     payload.display_order = toNumberOrNull(draft.display_order);
+                }
+                if (baseline.active !== draft.active) {
+                    payload.active = draft.active;
                 }
 
                 if (Object.keys(payload).length > 0) {
@@ -719,7 +728,7 @@ export function commitBaseline(): void {
                 end_date: toNullable(d.end_date),
                 description: toNullable(d.description),
                 display_order: toNumberOrNull(d.display_order),
-                active: existing?.active ?? true,
+                active: d.active,
                 created_at: existing?.created_at ?? ''
             };
         });

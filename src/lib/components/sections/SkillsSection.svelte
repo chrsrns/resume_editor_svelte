@@ -24,6 +24,7 @@
         onUpdate,
         onDelete,
         onReorder,
+        onValidate,
         saving
     }: {
         drafts: DraftItem<SkillDraft>[];
@@ -31,6 +32,7 @@
         onUpdate: (id: number, partial: Partial<SkillDraft>) => void;
         onDelete: (id: number) => void;
         onReorder: (fromId: number, toId: number) => void;
+        onValidate: (id: number) => void;
         saving: boolean;
     } = $props();
 
@@ -167,6 +169,7 @@
                             onUpdate(d.id, {
                                 skill_name: (e.currentTarget as HTMLInputElement).value
                             })}
+                        onblur={() => onValidate(d.id)}
                         title="Skill name."
                     />
                     <TextInput
@@ -181,14 +184,26 @@
                             onUpdate(d.id, {
                                 confidence_percentage: (e.currentTarget as HTMLInputElement).value
                             })}
+                        onblur={() => onValidate(d.id)}
                         title="Confidence level (0–100)."
                     />
                     <Button variant="danger" onclick={() => onDelete(d.id)} disabled={saving}>
                         {#snippet icon()}<Trash2 size={16} />{/snippet}
                         Delete
                     </Button>
+                    {#if d._validationError}
+                        <p class="error-message">{d._validationError}</p>
+                    {/if}
                 </FieldsWrap>
             {/each}
         </NestedList>
     </SectionMessage>
 </SectionShell>
+
+<style>
+    .error-message {
+        margin: 0;
+        font-size: 13px;
+        color: var(--color-error);
+    }
+</style>

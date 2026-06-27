@@ -108,16 +108,19 @@ export function add(draft: Omit<SkillDraft, 'id' | 'display_order'>): void {
             return order > max ? order : max;
         }, 0);
     const nextOrder = String(maxOrder + 10);
+    const nextId = generateTempId();
 
     drafts = [
         ...drafts,
         {
-            id: generateTempId(),
+            id: nextId,
             _status: 'new',
             ...draft,
             display_order: nextOrder
         }
     ];
+
+    validate(nextId);
 }
 
 /**
@@ -187,12 +190,19 @@ export function validate(id: number): boolean {
         valid = false;
     }
 
-    const confidence = Number(draft.confidence_percentage);
-    if (isNaN(confidence) || confidence < 0 || confidence > 100) {
+    if (draft.confidence_percentage.trim() === '') {
         drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, 'Confidence must be 0–100') : d
+            d.id === id ? setValidationError(d, 'Confidence is required') : d
         );
         valid = false;
+    } else {
+        const confidence = Number(draft.confidence_percentage);
+        if (isNaN(confidence) || confidence < 0 || confidence > 100) {
+            drafts = drafts.map((d) =>
+                d.id === id ? setValidationError(d, 'Confidence must be 0–100') : d
+            );
+            valid = false;
+        }
     }
 
     if (valid) {
