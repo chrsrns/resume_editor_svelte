@@ -1,17 +1,25 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
     import { resolve } from '$app/paths';
-    import { listResumes } from '$lib/api/resumes';
+    import { listResumes, importResumeMarkdown } from '$lib/api/resumes';
     import type { ApiError } from '$lib/api/client';
     import type { Resume } from '$lib/types';
     import { authToken } from '$lib/auth';
     import { currentUser } from '$lib/session';
     import Button from '$lib/components/ui/Button.svelte';
+    import ErrorDialog from '$lib/components/ui/ErrorDialog.svelte';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+    import FileUp from '@lucide/svelte/icons/file-up';
 
     let loading = $state(true);
     let error = $state<string | null>(null);
     let resumes = $state<Resume[]>([]);
+    let importInput: HTMLInputElement | null = $state(null);
+    let importBusy = $state(false);
+    let importErrorOpen = $state(false);
+    let importErrorTitle = $state('Import failed');
+    let importErrorMessage = $state('');
 
     async function loadResumes() {
         loading = true;
@@ -29,6 +37,36 @@
     onMount(() => {
         void loadResumes();
     });
+
+    function triggerImport() {
+        importInput?.click();
+    }
+
+    async function handleImportFile(e: Event) {
+        const input = e.currentTarget as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+        input.value = '';
+
+        importBusy = true;
+        importErrorOpen = false;
+        try {
+            const text = await file.text();
+            const resume = await importResumeMarkdown(text);
+            await goto(resolve('/resumes/[id]/edit', { id: resume.id.toString() }));
+        } catch (err) {
+            const e = err as ApiError;
+            importErrorTitle = 'Import failed';
+            importErrorMessage = e.message;
+            importErrorOpen = true;
+        } finally {
+            importBusy = false;
+        }
+    }
+
+    function closeImportError() {
+        importErrorOpen = false;
+    }
 </script>
 
 <svelte:head>
@@ -43,11 +81,29 @@
     <div class="actions">
         {#if $authToken}
             <a class="button" href={resolve('/resumes/new')}>New resume</a>
+            <Button variant="secondary" onclick={triggerImport} disabled={importBusy}>
+                {#snippet icon()}<FileUp size={16} />{/snippet}
+                Import Markdown
+            </Button>
+            <input
+                bind:this={importInput}
+                type="file"
+                accept=".md,text/markdown"
+                onchange={handleImportFile}
+                class="hidden-file-input"
+            />
         {:else}
             <a class="button" href={resolve('/auth/login')}>Login to create</a>
         {/if}
     </div>
 </div>
+
+<ErrorDialog
+    open={importErrorOpen}
+    title={importErrorTitle}
+    message={importErrorMessage}
+    onclose={closeImportError}
+/>
 
 {#if loading}
     <p>Loading…</p>
@@ -94,6 +150,12 @@
     .actions {
         display: flex;
         gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .hidden-file-input {
+        display: none;
     }
 
     .button {

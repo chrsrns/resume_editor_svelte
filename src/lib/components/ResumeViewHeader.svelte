@@ -2,11 +2,13 @@
     import { resolve } from '$app/paths';
     import Pencil from '@lucide/svelte/icons/pencil';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+    import FileDown from '@lucide/svelte/icons/file-down';
     import type { Resume } from '$lib/types';
 
-    let { resume, canEdit } = $props<{
+    let { resume, canEdit, onExport } = $props<{
         resume: Resume;
         canEdit: boolean;
+        onExport?: () => void;
     }>();
 </script>
 
@@ -26,6 +28,12 @@
         </div>
     </div>
     <div class="actions">
+        {#if onExport}
+            <button class="btnSecondary" type="button" onclick={onExport}>
+                <FileDown size={16} />
+                Export Markdown
+            </button>
+        {/if}
         {#if canEdit}
             <a class="btnPrimary" href={resolve(`/resumes/${resume.id}/edit`)}>
                 <Pencil size={16} />
@@ -137,11 +145,17 @@
         background: white;
         color: var(--color-text);
         border: 1px solid var(--color-border);
+        cursor: pointer;
     }
 
     .btnSecondary:hover {
         background: var(--color-background);
         border-color: var(--color-muted);
+    }
+
+    .btnSecondary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     @media (max-width: 640px) {

@@ -4,7 +4,7 @@
     import { SvelteURLSearchParams } from 'svelte/reactivity';
     import { page } from '$app/state';
     import { resolve } from '$app/paths';
-    import { deleteResume, getResume, updateResume } from '$lib/api/resumes';
+    import { deleteResume, exportResumeMarkdown, getResume } from '$lib/api/resumes';
     import { listSkills } from '$lib/api/skills';
     import { listEducations, listEducationKeyPoints } from '$lib/api/education';
     import { listWorkExperiences, listWorkExperienceKeyPoints } from '$lib/api/work-experience';
@@ -24,6 +24,7 @@
     import SkillsSection from '$lib/components/sections/SkillsSection.svelte';
     import WorkExperiencesSection from '$lib/components/sections/WorkExperiencesSection.svelte';
     import SaveResultPopup from '$lib/components/ui/SaveResultPopup.svelte';
+    import ErrorDialog from '$lib/components/ui/ErrorDialog.svelte';
     import type {
         Resume,
         EducationKeyPoint,
@@ -48,6 +49,7 @@
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import Save from '@lucide/svelte/icons/save';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+    import FileDown from '@lucide/svelte/icons/file-down';
 
     const tabs = [
         { id: 'basics', label: 'Basics' },
@@ -87,6 +89,12 @@
     let savePopupSuccess = $state(true);
     let savePopupMessage = $state('');
     let savePopupErrors = $state<Array<{ section: string; error: string }>>([]);
+
+    // Export error dialog state
+    let exportErrorOpen = $state(false);
+    let exportErrorTitle = $state('Export failed');
+    let exportErrorMessage = $state('');
+    let exportBusy = $state(false);
 
     // Global dirty state (basics + skills + education + work + portfolio + languages)
     const isDirty = $derived(
@@ -348,6 +356,34 @@
         void handleUnifiedSave();
     }
 
+    async function handleExport() {
+        if (!resume) return;
+        exportBusy = true;
+        exportErrorOpen = false;
+        try {
+            const blob = await exportResumeMarkdown(resume.id);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${resume.name}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            const err = e as ApiError;
+            exportErrorTitle = 'Export failed';
+            exportErrorMessage = err.message;
+            exportErrorOpen = true;
+        } finally {
+            exportBusy = false;
+        }
+    }
+
+    function closeExportError() {
+        exportErrorOpen = false;
+    }
+
     // beforeunload guard for unsaved changes
     $effect(() => {
         if (!isDirty) return;
@@ -386,6 +422,10 @@
             <Button variant="secondary" onclick={() => goto(resolve(`/resumes/${resume!.id}`))}>
                 {#snippet icon()}<ChevronLeft size={16} />{/snippet}
                 Cancel
+            </Button>
+            <Button variant="secondary" onclick={handleExport} disabled={exportBusy}>
+                {#snippet icon()}<FileDown size={16} />{/snippet}
+                Export Markdown
             </Button>
             {#if isDirty}
                 <div class="tooltip-wrapper">
@@ -568,6 +608,13 @@
     errors={savePopupErrors}
     onclose={closeSavePopup}
     onretry={retrySave}
+/>
+
+<ErrorDialog
+    open={exportErrorOpen}
+    title={exportErrorTitle}
+    message={exportErrorMessage}
+    onclose={closeExportError}
 />
 
 <style>

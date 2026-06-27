@@ -12,7 +12,7 @@
         listPortfolioProjects,
         listPortfolioTechnologies
     } from '$lib/api/portfolio';
-    import { getResume } from '$lib/api/resumes';
+    import { getResume, exportResumeMarkdown } from '$lib/api/resumes';
     import { listSkills } from '$lib/api/skills';
     import { listWorkExperienceKeyPoints, listWorkExperiences } from '$lib/api/work-experience';
     import type { ApiError } from '$lib/api/client';
@@ -34,6 +34,7 @@
     import IconTabBar from '$lib/components/IconTabBar.svelte';
     import FieldRow from '$lib/components/FieldRow.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+    import ErrorDialog from '$lib/components/ui/ErrorDialog.svelte';
     import Eye from '@lucide/svelte/icons/eye';
     import Mail from '@lucide/svelte/icons/mail';
     import Image from '@lucide/svelte/icons/image';
@@ -98,6 +99,10 @@
     let skills = $state<Skill[]>([]);
     let languages = $state<Language[]>([]);
     let frameworks = $state<Record<number, Framework[]>>({});
+
+    let exportErrorOpen = $state(false);
+    let exportErrorTitle = $state('Export failed');
+    let exportErrorMessage = $state('');
 
     function onTabListKeydown(e: KeyboardEvent) {
         const tablist = e.currentTarget as HTMLElement | null;
@@ -260,6 +265,31 @@
         return `${start} - ${end && end.trim().length > 0 ? end : 'Present'}`;
     }
 
+    async function handleExport() {
+        if (!resume) return;
+        exportErrorOpen = false;
+        try {
+            const blob = await exportResumeMarkdown(resume.id);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${resume.name}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            const err = e as ApiError;
+            exportErrorTitle = 'Export failed';
+            exportErrorMessage = err.message;
+            exportErrorOpen = true;
+        }
+    }
+
+    function closeExportError() {
+        exportErrorOpen = false;
+    }
+
     onMount(() => {
         void load();
     });
@@ -281,9 +311,17 @@
     <ResumeViewHeader
         {resume}
         canEdit={$currentUser !== null && resume.created_by === $currentUser.id}
+        onExport={handleExport}
     />
 
     <IconTabBar tabs={tabIcons} {activeTab} onselect={selectTab} onkeydown={onTabListKeydown} />
+
+    <ErrorDialog
+        open={exportErrorOpen}
+        title={exportErrorTitle}
+        message={exportErrorMessage}
+        onclose={closeExportError}
+    />
 
     {#if sectionError}
         <p class="sectionError">{sectionError}</p>
