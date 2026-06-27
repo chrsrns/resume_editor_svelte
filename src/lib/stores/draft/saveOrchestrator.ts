@@ -1,11 +1,5 @@
-import {
-    updateResume
-} from '$lib/api/resumes';
-import {
-    createSkill,
-    updateSkill,
-    deleteSkill
-} from '$lib/api/skills';
+import { updateResume } from '$lib/api/resumes';
+import { createSkill, updateSkill, deleteSkill } from '$lib/api/skills';
 import {
     createEducation,
     updateEducation,
@@ -33,16 +27,8 @@ import {
     updatePortfolioTechnology,
     deletePortfolioTechnology
 } from '$lib/api/portfolio';
-import {
-    createLanguage,
-    updateLanguage,
-    deleteLanguage
-} from '$lib/api/languages';
-import {
-    createFramework,
-    updateFramework,
-    deleteFramework
-} from '$lib/api/frameworks';
+import { createLanguage, updateLanguage, deleteLanguage } from '$lib/api/languages';
+import { createFramework, updateFramework, deleteFramework } from '$lib/api/frameworks';
 import type { ApiError } from '$lib/api/client';
 import { basics, skills, education, work, portfolio, languages } from './index';
 
@@ -59,7 +45,6 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
         // Phase 1: Resume (basics)
         if (basics.isDirty()) {
             await updateResume(resumeId, basics.toUpdatePayload());
-            basics.applySaveResults();
         }
 
         // Phase 2: Skills creations
@@ -128,11 +113,7 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
                 // Map temp education IDs to real IDs if needed
                 const educationId =
                     educationTempIdMap.get(action.educationId) ?? action.educationId;
-                const result = await createEducationKeyPoint(
-                    resumeId,
-                    educationId,
-                    action.payload
-                );
+                const result = await createEducationKeyPoint(resumeId, educationId, action.payload);
                 return { action, realId: result.id };
             })
         );
@@ -211,11 +192,7 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
             workKeyPointCreations.map(async (action) => {
                 // Map temp work IDs to real IDs if needed
                 const workId = workTempIdMap.get(action.workId) ?? action.workId;
-                const result = await createWorkExperienceKeyPoint(
-                    resumeId,
-                    workId,
-                    action.payload
-                );
+                const result = await createWorkExperienceKeyPoint(resumeId, workId, action.payload);
                 return { action, realId: result.id };
             })
         );
@@ -296,11 +273,7 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
             portfolioKeyPointCreations.map(async (action) => {
                 // Map temp project IDs to real IDs if needed
                 const projectId = portfolioTempIdMap.get(action.projectId) ?? action.projectId;
-                const result = await createPortfolioKeyPoint(
-                    resumeId,
-                    projectId,
-                    action.payload
-                );
+                const result = await createPortfolioKeyPoint(resumeId, projectId, action.payload);
                 return { action, realId: result.id };
             })
         );
@@ -322,11 +295,7 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
             portfolioTechnologyCreations.map(async (action) => {
                 // Map temp project IDs to real IDs if needed
                 const projectId = portfolioTempIdMap.get(action.projectId) ?? action.projectId;
-                const result = await createPortfolioTechnology(
-                    resumeId,
-                    projectId,
-                    action.payload
-                );
+                const result = await createPortfolioTechnology(resumeId, projectId, action.payload);
                 return { action, realId: result.id };
             })
         );
@@ -335,10 +304,7 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
         const portfolioTechnologyTempIdMap = new Map<number, number>();
         for (const result of portfolioTechnologyCreationResults) {
             if (result.status === 'fulfilled') {
-                portfolioTechnologyTempIdMap.set(
-                    result.value.action.tempId,
-                    result.value.realId
-                );
+                portfolioTechnologyTempIdMap.set(result.value.action.tempId, result.value.realId);
             }
         }
 
@@ -428,8 +394,7 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
         const frameworkCreationResults = await Promise.allSettled(
             frameworkCreations.map(async (action) => {
                 // Map temp language IDs to real IDs if needed
-                const languageId =
-                    languageTempIdMap.get(action.languageId) ?? action.languageId;
+                const languageId = languageTempIdMap.get(action.languageId) ?? action.languageId;
                 const result = await createFramework(resumeId, languageId, action.payload);
                 return { action, realId: result.id };
             })
@@ -444,10 +409,7 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
         }
 
         // Combine language temp ID maps
-        const languageCombinedTempIdMap = new Map([
-            ...languageTempIdMap,
-            ...frameworkTempIdMap
-        ]);
+        const languageCombinedTempIdMap = new Map([...languageTempIdMap, ...frameworkTempIdMap]);
 
         // Apply successful language creations
         languages.applySaveResults(languageCombinedTempIdMap);
@@ -511,7 +473,6 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
         ];
 
         if (failures.length > 0) {
-            const failedIds = new Set<number>();
             for (const failure of failures) {
                 if (failure.status === 'rejected') {
                     const err = failure.reason as ApiError;
@@ -521,12 +482,6 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
                     });
                 }
             }
-            // Keep failed items in dirty state
-            skills.keepFailedItems(failedIds);
-            education.keepFailedItems(failedIds);
-            work.keepFailedItems(failedIds);
-            portfolio.keepFailedItems(failedIds);
-            languages.keepFailedItems(failedIds);
 
             return {
                 success: false,
@@ -534,7 +489,14 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
                 errors
             };
         } else {
-            // Full success: baselines already updated by applySaveResults
+            // Full success: commit baselines for all sections
+            basics.commitBaseline();
+            skills.commitBaseline();
+            education.commitBaseline();
+            work.commitBaseline();
+            portfolio.commitBaseline();
+            languages.commitBaseline();
+
             return {
                 success: true,
                 message: 'All changes saved successfully!',

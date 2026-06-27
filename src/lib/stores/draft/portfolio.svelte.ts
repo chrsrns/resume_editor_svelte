@@ -73,10 +73,20 @@ export type PortfolioAction =
     | { type: 'createProject'; tempId: number; payload: NewPortfolioProjectRequest }
     | { type: 'updateProject'; id: number; payload: UpdatePortfolioProjectRequest }
     | { type: 'deleteProject'; id: number }
-    | { type: 'createKeyPoint'; projectId: number; tempId: number; payload: NewPortfolioKeyPointRequest }
+    | {
+        type: 'createKeyPoint';
+        projectId: number;
+        tempId: number;
+        payload: NewPortfolioKeyPointRequest;
+    }
     | { type: 'updateKeyPoint'; id: number; payload: UpdatePortfolioKeyPointRequest }
     | { type: 'deleteKeyPoint'; id: number }
-    | { type: 'createTechnology'; projectId: number; tempId: number; payload: NewPortfolioTechnologyRequest }
+    | {
+        type: 'createTechnology';
+        projectId: number;
+        tempId: number;
+        payload: NewPortfolioTechnologyRequest;
+    }
     | { type: 'updateTechnology'; id: number; payload: UpdatePortfolioTechnologyRequest }
     | { type: 'deleteTechnology'; id: number };
 
@@ -116,18 +126,16 @@ export function initialize(
     baselineKeyPoints = [...keyPointList];
     baselineTechnologies = [...technologyList];
 
-    drafts = projects
-        .sort(byDisplayOrder)
-        .map((p) => ({
-            id: p.id,
-            _status: 'existing',
-            project_name: p.project_name,
-            image_url: p.image_url ?? '',
-            project_link: p.project_link ?? '',
-            source_code_link: p.source_code_link ?? '',
-            description: p.description ?? '',
-            display_order: p.display_order == null ? '' : String(p.display_order),
-        }));
+    drafts = projects.sort(byDisplayOrder).map((p) => ({
+        id: p.id,
+        _status: 'existing',
+        project_name: p.project_name,
+        image_url: p.image_url ?? '',
+        project_link: p.project_link ?? '',
+        source_code_link: p.source_code_link ?? '',
+        description: p.description ?? '',
+        display_order: p.display_order == null ? '' : String(p.display_order)
+    }));
 
     // Initialize key points grouped by project ID
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -135,12 +143,14 @@ export function initialize(
         const projectKeyPoints = keyPointList
             .filter((kp) => kp.portfolio_project_id === project.id)
             .sort(byDisplayOrder)
-            .map((kp): DraftItem<KeyPointDraft> => ({
-                id: kp.id,
-                _status: 'existing' as DraftStatus,
-                key_point: kp.key_point,
-                display_order: kp.display_order == null ? '' : String(kp.display_order),
-            }));
+            .map(
+                (kp): DraftItem<KeyPointDraft> => ({
+                    id: kp.id,
+                    _status: 'existing' as DraftStatus,
+                    key_point: kp.key_point,
+                    display_order: kp.display_order == null ? '' : String(kp.display_order)
+                })
+            );
         newKeyPoints[project.id] = projectKeyPoints;
     }
     keyPoints = newKeyPoints;
@@ -151,12 +161,14 @@ export function initialize(
         const projectTechnologies = technologyList
             .filter((t) => t.portfolio_project_id === project.id)
             .sort(byDisplayOrder)
-            .map((t): DraftItem<TechnologyDraft> => ({
-                id: t.id,
-                _status: 'existing' as DraftStatus,
-                technology_name: t.technology_name,
-                display_order: t.display_order == null ? '' : String(t.display_order),
-            }));
+            .map(
+                (t): DraftItem<TechnologyDraft> => ({
+                    id: t.id,
+                    _status: 'existing' as DraftStatus,
+                    technology_name: t.technology_name,
+                    display_order: t.display_order == null ? '' : String(t.display_order)
+                })
+            );
         newTechnologies[project.id] = projectTechnologies;
     }
     technologies = newTechnologies;
@@ -255,8 +267,8 @@ export function addProject(draft: Omit<ProjectDraft, 'id' | 'display_order'>): v
             id: tempId,
             _status: 'new',
             ...draft,
-            display_order: nextOrder,
-        },
+            display_order: nextOrder
+        }
     ];
     // Initialize empty key points and technologies for new project
     keyPoints = { ...keyPoints, [tempId]: [] };
@@ -279,9 +291,7 @@ export function updateProject(id: number, partial: Partial<ProjectDraft>): void 
  * @param id - The project ID (real or temp)
  */
 export function removeProject(id: number): void {
-    drafts = drafts.map((d) =>
-        d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d
-    );
+    drafts = drafts.map((d) => (d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d));
 }
 
 /**
@@ -303,9 +313,9 @@ export function addKeyPoint(
                 id: generateTempId(),
                 _status: 'new',
                 ...draft,
-                display_order: '',
-            },
-        ],
+                display_order: ''
+            }
+        ]
     };
 }
 
@@ -323,7 +333,7 @@ export function updateKeyPoint(id: number, partial: Partial<KeyPointDraft>): voi
         if (current && current.some((kp) => kp.id === id)) {
             keyPoints = {
                 ...keyPoints,
-                [numId]: current.map((kp) => (kp.id === id ? { ...kp, ...partial } : kp)),
+                [numId]: current.map((kp) => (kp.id === id ? { ...kp, ...partial } : kp))
             };
             return;
         }
@@ -344,7 +354,7 @@ export function removeKeyPoint(id: number): void {
                 ...keyPoints,
                 [numId]: current.map((kp) =>
                     kp.id === id ? { ...kp, _status: 'deleted' as DraftStatus } : kp
-                ),
+                )
             };
             return;
         }
@@ -370,9 +380,9 @@ export function addTechnology(
                 id: generateTempId(),
                 _status: 'new',
                 ...draft,
-                display_order: '',
-            },
-        ],
+                display_order: ''
+            }
+        ]
     };
 }
 
@@ -390,7 +400,7 @@ export function updateTechnology(id: number, partial: Partial<TechnologyDraft>):
         if (current && current.some((t) => t.id === id)) {
             technologies = {
                 ...technologies,
-                [numId]: current.map((t) => (t.id === id ? { ...t, ...partial } : t)),
+                [numId]: current.map((t) => (t.id === id ? { ...t, ...partial } : t))
             };
             return;
         }
@@ -411,7 +421,7 @@ export function removeTechnology(id: number): void {
                 ...technologies,
                 [numId]: current.map((t) =>
                     t.id === id ? { ...t, _status: 'deleted' as DraftStatus } : t
-                ),
+                )
             };
             return;
         }
@@ -437,7 +447,7 @@ export function reorder(fromId: number, toId: number): void {
     // Update display_order based on new positions
     const updated = newDrafts.map((d, i) => ({
         ...d,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     drafts = updated;
@@ -466,7 +476,7 @@ export function reorderKeyPoints(projectId: number, fromId: number, toId: number
     // Update display_order based on new positions
     const updated = newKeyPoints.map((kp, i) => ({
         ...kp,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     keyPoints = { ...keyPoints, [projectId]: updated };
@@ -495,7 +505,7 @@ export function reorderTechnologies(projectId: number, fromId: number, toId: num
     // Update display_order based on new positions
     const updated = newTechnologies.map((t, i) => ({
         ...t,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     technologies = { ...technologies, [projectId]: updated };
@@ -517,9 +527,7 @@ export function validateProject(id: number): void {
     }
 
     if (errors.length > 0) {
-        drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, errors.join(', ')) : d
-        );
+        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, errors.join(', ')) : d));
     } else {
         drafts = drafts.map((d) => (d.id === id ? setValidationError(d, null) : d));
     }
@@ -549,12 +557,12 @@ export function validateKeyPoint(id: number): void {
                     ...keyPoints,
                     [numId]: current.map((kp) =>
                         kp.id === id ? setValidationError(kp, errors.join(', ')) : kp
-                    ),
+                    )
                 };
             } else {
                 keyPoints = {
                     ...keyPoints,
-                    [numId]: current.map((kp) => (kp.id === id ? setValidationError(kp, null) : kp)),
+                    [numId]: current.map((kp) => (kp.id === id ? setValidationError(kp, null) : kp))
                 };
             }
             return;
@@ -586,17 +594,39 @@ export function validateTechnology(id: number): void {
                     ...technologies,
                     [numId]: current.map((t) =>
                         t.id === id ? setValidationError(t, errors.join(', ')) : t
-                    ),
+                    )
                 };
             } else {
                 technologies = {
                     ...technologies,
-                    [numId]: current.map((t) => (t.id === id ? setValidationError(t, null) : t)),
+                    [numId]: current.map((t) => (t.id === id ? setValidationError(t, null) : t))
                 };
             }
             return;
         }
     }
+}
+
+/**
+ * Validate all visible portfolio projects, key points, and technologies.
+ *
+ * @returns true if all visible items are valid, false otherwise
+ */
+export function validateAll(): boolean {
+    for (const draft of getVisibleDrafts()) {
+        validateProject(draft.id);
+    }
+    for (const projectId of Object.keys(keyPoints)) {
+        for (const keyPoint of getVisibleKeyPoints(Number(projectId))) {
+            validateKeyPoint(keyPoint.id);
+        }
+    }
+    for (const projectId of Object.keys(technologies)) {
+        for (const technology of getVisibleTechnologies(Number(projectId))) {
+            validateTechnology(technology.id);
+        }
+    }
+    return getValidationErrors().length === 0;
 }
 
 /**
@@ -619,17 +649,15 @@ export function isDirty(): boolean {
 
     // Check projects - normalize data before comparison
     const baselineProjectSig = computeSignature(
-        baselineProjects
-            .sort(byDisplayOrder)
-            .map((p) => ({
-                id: p.id,
-                project_name: p.project_name,
-                image_url: p.image_url ?? '',
-                project_link: p.project_link ?? '',
-                source_code_link: p.source_code_link ?? '',
-                description: p.description ?? '',
-                display_order: p.display_order,
-            }))
+        baselineProjects.sort(byDisplayOrder).map((p) => ({
+            id: p.id,
+            project_name: p.project_name,
+            image_url: p.image_url ?? '',
+            project_link: p.project_link ?? '',
+            source_code_link: p.source_code_link ?? '',
+            description: p.description ?? '',
+            display_order: p.display_order
+        }))
     );
     const draftProjectSig = computeSignature(
         drafts
@@ -641,7 +669,7 @@ export function isDirty(): boolean {
                 project_link: d.project_link,
                 source_code_link: d.source_code_link,
                 description: d.description,
-                display_order: toNumberOrNull(d.display_order),
+                display_order: toNumberOrNull(d.display_order)
             }))
             .sort(byDisplayOrder)
     );
@@ -651,13 +679,11 @@ export function isDirty(): boolean {
 
     // Check key points - normalize data before comparison
     const baselineKeyPointSig = computeSignature(
-        baselineKeyPoints
-            .sort(byDisplayOrder)
-            .map((kp) => ({
-                id: kp.id,
-                key_point: kp.key_point,
-                display_order: kp.display_order,
-            }))
+        baselineKeyPoints.sort(byDisplayOrder).map((kp) => ({
+            id: kp.id,
+            key_point: kp.key_point,
+            display_order: kp.display_order
+        }))
     );
     const draftKeyPointSig = computeSignature(
         flatKeyPoints
@@ -665,7 +691,7 @@ export function isDirty(): boolean {
             .map((kp) => ({
                 id: kp.id,
                 key_point: kp.key_point,
-                display_order: toNumberOrNull(kp.display_order),
+                display_order: toNumberOrNull(kp.display_order)
             }))
             .sort(byDisplayOrder)
     );
@@ -675,13 +701,11 @@ export function isDirty(): boolean {
 
     // Check technologies - normalize data before comparison
     const baselineTechnologySig = computeSignature(
-        baselineTechnologies
-            .sort(byDisplayOrder)
-            .map((t) => ({
-                id: t.id,
-                technology_name: t.technology_name,
-                display_order: t.display_order,
-            }))
+        baselineTechnologies.sort(byDisplayOrder).map((t) => ({
+            id: t.id,
+            technology_name: t.technology_name,
+            display_order: t.display_order
+        }))
     );
     const draftTechnologySig = computeSignature(
         flatTechnologies
@@ -689,7 +713,7 @@ export function isDirty(): boolean {
             .map((t) => ({
                 id: t.id,
                 technology_name: t.technology_name,
-                display_order: toNumberOrNull(t.display_order),
+                display_order: toNumberOrNull(t.display_order)
             }))
             .sort(byDisplayOrder)
     );
@@ -735,30 +759,30 @@ export function getValidationErrors(): string[] {
  * Reset all drafts to the baseline.
  */
 export function resetToBaseline(): void {
-    drafts = baselineProjects
-        .sort(byDisplayOrder)
-        .map((p) => ({
-            id: p.id,
-            _status: 'existing',
-            project_name: p.project_name,
-            image_url: p.image_url ?? '',
-            project_link: p.project_link ?? '',
-            source_code_link: p.source_code_link ?? '',
-            description: p.description ?? '',
-            display_order: p.display_order == null ? '' : String(p.display_order),
-        }));
+    drafts = baselineProjects.sort(byDisplayOrder).map((p) => ({
+        id: p.id,
+        _status: 'existing',
+        project_name: p.project_name,
+        image_url: p.image_url ?? '',
+        project_link: p.project_link ?? '',
+        source_code_link: p.source_code_link ?? '',
+        description: p.description ?? '',
+        display_order: p.display_order == null ? '' : String(p.display_order)
+    }));
 
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
     for (const project of baselineProjects) {
         const projectKeyPoints = baselineKeyPoints
             .filter((kp) => kp.portfolio_project_id === project.id)
             .sort(byDisplayOrder)
-            .map((kp): DraftItem<KeyPointDraft> => ({
-                id: kp.id,
-                _status: 'existing' as DraftStatus,
-                key_point: kp.key_point,
-                display_order: kp.display_order == null ? '' : String(kp.display_order),
-            }));
+            .map(
+                (kp): DraftItem<KeyPointDraft> => ({
+                    id: kp.id,
+                    _status: 'existing' as DraftStatus,
+                    key_point: kp.key_point,
+                    display_order: kp.display_order == null ? '' : String(kp.display_order)
+                })
+            );
         newKeyPoints[project.id] = projectKeyPoints;
     }
     keyPoints = newKeyPoints;
@@ -768,12 +792,14 @@ export function resetToBaseline(): void {
         const projectTechnologies = baselineTechnologies
             .filter((t) => t.portfolio_project_id === project.id)
             .sort(byDisplayOrder)
-            .map((t): DraftItem<TechnologyDraft> => ({
-                id: t.id,
-                _status: 'existing' as DraftStatus,
-                technology_name: t.technology_name,
-                display_order: t.display_order == null ? '' : String(t.display_order),
-            }));
+            .map(
+                (t): DraftItem<TechnologyDraft> => ({
+                    id: t.id,
+                    _status: 'existing' as DraftStatus,
+                    technology_name: t.technology_name,
+                    display_order: t.display_order == null ? '' : String(t.display_order)
+                })
+            );
         newTechnologies[project.id] = projectTechnologies;
     }
     technologies = newTechnologies;
@@ -797,8 +823,8 @@ export function computeDiff(): PortfolioAction[] {
                     project_link: toNullable(draft.project_link),
                     source_code_link: toNullable(draft.source_code_link),
                     description: toNullable(draft.description),
-                    display_order: toNumberOrNull(draft.display_order),
-                },
+                    display_order: toNumberOrNull(draft.display_order)
+                }
             });
         } else if (draft._status === 'deleted') {
             // Skip delete actions for items that were never saved (new-then-deleted)
@@ -849,8 +875,8 @@ export function computeDiff(): PortfolioAction[] {
                     tempId: kp.id,
                     payload: {
                         key_point: kp.key_point,
-                        display_order: toNumberOrNull(kp.display_order),
-                    },
+                        display_order: toNumberOrNull(kp.display_order)
+                    }
                 });
             } else if (kp._status === 'deleted') {
                 // Skip delete actions for items that were never saved (new-then-deleted)
@@ -890,8 +916,8 @@ export function computeDiff(): PortfolioAction[] {
                     tempId: t.id,
                     payload: {
                         technology_name: t.technology_name,
-                        display_order: toNumberOrNull(t.display_order),
-                    },
+                        display_order: toNumberOrNull(t.display_order)
+                    }
                 });
             } else if (t._status === 'deleted') {
                 // Skip delete actions for items that were never saved (new-then-deleted)
@@ -920,21 +946,27 @@ export function computeDiff(): PortfolioAction[] {
 }
 
 /**
- * Apply save results from the server (update temp IDs to real IDs).
+ * Apply save results from the server.
+ *
+ * Maps temp IDs for newly created items to real IDs and removes deleted items.
+ * Baseline is not updated here; call `commitBaseline()` after all save phases
+ * succeed so failed items remain dirty for retry.
  *
  * @param tempIdMap - Map of temp IDs to real server IDs
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
     // Update project IDs - only mark successful creations as existing
-    drafts = drafts.map((d) => {
-        if (d._status === 'new' && tempIdMap.has(d.id)) {
-            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-        }
-        if (d._status === 'deleted') {
-            return null;
-        }
-        return d;
-    }).filter((d): d is DraftItem<ProjectDraft> => d !== null);
+    drafts = drafts
+        .map((d) => {
+            if (d._status === 'new' && tempIdMap.has(d.id)) {
+                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+            }
+            if (d._status === 'deleted') {
+                return null;
+            }
+            return d;
+        })
+        .filter((d): d is DraftItem<ProjectDraft> => d !== null);
 
     // Update key point IDs - only mark successful creations as existing
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -975,9 +1007,12 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
             .filter((t): t is DraftItem<TechnologyDraft> => t !== null);
     }
     technologies = newTechnologies;
+}
 
-    // Update baseline to match current draft state for successful saves
-    // Rebuild baseline from current drafts for existing items
+/**
+ * Commit the current draft state to the baseline after a successful save.
+ */
+export function commitBaseline(): void {
     const resumeId = baselineProjects[0]?.resume_id ?? 0;
 
     baselineProjects = drafts
@@ -994,7 +1029,7 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                 description: toNullable(d.description),
                 display_order: toNumberOrNull(d.display_order),
                 active: existing?.active ?? true,
-                created_at: existing?.created_at ?? new Date().toISOString(),
+                created_at: existing?.created_at ?? ''
             };
         });
 
@@ -1010,7 +1045,7 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                     portfolio_project_id: numProjectId,
                     key_point: kp.key_point.trim(),
                     display_order: toNumberOrNull(kp.display_order),
-                    created_at: existing?.created_at ?? new Date().toISOString(),
+                    created_at: existing?.created_at ?? ''
                 });
             }
         }
@@ -1028,62 +1063,10 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                     portfolio_project_id: numProjectId,
                     technology_name: tech.technology_name.trim(),
                     display_order: toNumberOrNull(tech.display_order),
-                    created_at: existing?.created_at ?? new Date().toISOString(),
+                    created_at: existing?.created_at ?? ''
                 });
             }
         }
-    }
-}
-
-/**
- * Keep failed items in dirty state for retry.
- *
- * @param failedIds - Set of IDs that failed to save
- */
-export function keepFailedItems(failedIds: Set<number>): void {
-    // Keep projects with failed saves as-is, mark successful new items as existing
-    drafts = drafts.map((d) => {
-        if (failedIds.has(d.id)) {
-            return d; // Keep status as-is
-        }
-        if (d._status === 'new') {
-            return { ...d, _status: 'existing' as DraftStatus };
-        }
-        return d;
-    });
-
-    // Keep key points with failed saves as-is, mark successful new items as existing
-    for (const projectId of Object.keys(keyPoints)) {
-        const numProjectId = Number(projectId);
-        keyPoints = {
-            ...keyPoints,
-            [numProjectId]: keyPoints[numProjectId].map((kp) => {
-                if (failedIds.has(kp.id)) {
-                    return kp; // Keep status as-is
-                }
-                if (kp._status === 'new') {
-                    return { ...kp, _status: 'existing' as DraftStatus };
-                }
-                return kp;
-            }),
-        };
-    }
-
-    // Keep technologies with failed saves as-is, mark successful new items as existing
-    for (const projectId of Object.keys(technologies)) {
-        const numProjectId = Number(projectId);
-        technologies = {
-            ...technologies,
-            [numProjectId]: technologies[numProjectId].map((t) => {
-                if (failedIds.has(t.id)) {
-                    return t; // Keep status as-is
-                }
-                if (t._status === 'new') {
-                    return { ...t, _status: 'existing' as DraftStatus };
-                }
-                return t;
-            }),
-        };
     }
 }
 

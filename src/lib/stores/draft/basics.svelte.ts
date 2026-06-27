@@ -6,12 +6,7 @@
  */
 
 import type { Resume, UpdateResumeRequest } from '$lib/types';
-import {
-    type DraftItem,
-    computeSignature,
-    setValidationError,
-    toNullable
-} from './shared';
+import { type DraftItem, computeSignature, setValidationError } from './shared';
 
 /**
  * Draft data shape for resume basics.
@@ -72,7 +67,7 @@ export function initialize(resume: Resume): void {
         location: resume.location,
         github_url: resume.github_url,
         mobile_number: resume.mobile_number,
-        is_public: resume.is_public,
+        is_public: resume.is_public
     };
     draft = {
         id: resume.id,
@@ -83,7 +78,7 @@ export function initialize(resume: Resume): void {
         location: resume.location ?? '',
         github_url: resume.github_url ?? '',
         mobile_number: resume.mobile_number ?? '',
-        is_public: resume.is_public,
+        is_public: resume.is_public
     };
 }
 
@@ -104,10 +99,7 @@ export function getField<K extends keyof BasicsDraft>(field: K): BasicsDraft[K] 
 /**
  * Set a specific field value in the draft.
  */
-export function setField<K extends keyof BasicsDraft>(
-    field: K,
-    value: BasicsDraft[K]
-): void {
+export function setField<K extends keyof BasicsDraft>(field: K, value: BasicsDraft[K]): void {
     draft = { ...draft, [field]: value };
 }
 
@@ -160,7 +152,7 @@ export function isDirty(): boolean {
         location: draft.location.trim() || null,
         github_url: draft.github_url.trim() || null,
         mobile_number: draft.mobile_number.trim() || null,
-        is_public: draft.is_public,
+        is_public: draft.is_public
     });
     return sig !== computeSignature(baseline);
 }
@@ -178,7 +170,7 @@ export function resetToBaseline(): void {
         location: baseline.location ?? '',
         github_url: baseline.github_url ?? '',
         mobile_number: baseline.mobile_number ?? '',
-        is_public: baseline.is_public,
+        is_public: baseline.is_public
     };
     error = null;
 }
@@ -222,15 +214,14 @@ export function toUpdatePayload(): UpdateResumeRequest {
         location: draft.location.trim() || null,
         github_url: draft.github_url.trim() || null,
         mobile_number: draft.mobile_number.trim() || null,
-        is_public: draft.is_public,
+        is_public: draft.is_public
     };
 }
 
 /**
- * Apply successful save results.
- * For basics, this just updates the baseline to match the current draft.
+ * Commit the current draft state to the baseline after a successful save.
  */
-export function applySaveResults(): void {
+export function commitBaseline(): void {
     baseline = {
         id: draft.id,
         name: draft.name,
@@ -239,7 +230,7 @@ export function applySaveResults(): void {
         location: draft.location.trim() || null,
         github_url: draft.github_url.trim() || null,
         mobile_number: draft.mobile_number.trim() || null,
-        is_public: draft.is_public,
+        is_public: draft.is_public
     };
     draft = { ...draft, _status: 'existing' };
 }

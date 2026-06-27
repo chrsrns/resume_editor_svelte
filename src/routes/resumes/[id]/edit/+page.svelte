@@ -285,7 +285,17 @@
     });
 
     async function handleUnifiedSave() {
-        if (!resume || hasValidationErrors) return;
+        if (!resume) return;
+
+        // Run all section validators before submitting; derived state recomputes on read.
+        basics.validate();
+        skills.validateAll();
+        education.validateAll();
+        work.validateAll();
+        portfolio.validateAll();
+        languages.validateAll();
+
+        if (hasValidationErrors) return;
 
         saving = true;
         error = null;

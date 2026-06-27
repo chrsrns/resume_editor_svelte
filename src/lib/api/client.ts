@@ -1,5 +1,6 @@
 import { get } from 'svelte/store';
 import { authToken, clearAuthToken } from '$lib/auth';
+import { clearCurrentUser } from '$lib/session';
 import type { ApiResponse } from '$lib/types';
 
 const DEFAULT_API_BASE_URL = '/api';
@@ -117,6 +118,7 @@ export async function apiRequest<T = unknown>(
 
     if (res.status === 401 && options.auth) {
         clearAuthToken();
+        clearCurrentUser();
     }
 
     if (!res.ok) {

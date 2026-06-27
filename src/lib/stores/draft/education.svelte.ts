@@ -61,7 +61,12 @@ export type EducationAction =
     | { type: 'createEducation'; tempId: number; payload: NewEducationRequest }
     | { type: 'updateEducation'; id: number; payload: UpdateEducationRequest }
     | { type: 'deleteEducation'; id: number }
-    | { type: 'createKeyPoint'; educationId: number; tempId: number; payload: NewEducationKeyPointRequest }
+    | {
+        type: 'createKeyPoint';
+        educationId: number;
+        tempId: number;
+        payload: NewEducationKeyPointRequest;
+    }
     | { type: 'updateKeyPoint'; id: number; payload: UpdateEducationKeyPointRequest }
     | { type: 'deleteKeyPoint'; id: number };
 
@@ -89,26 +94,21 @@ let error = $state<string | null>(null);
  * @param educations - The education data from the server
  * @param keyPointList - The key points data from the server
  */
-export function initialize(
-    educations: Education[],
-    keyPointList: EducationKeyPoint[]
-): void {
+export function initialize(educations: Education[], keyPointList: EducationKeyPoint[]): void {
     baselineEducations = [...educations];
     baselineKeyPoints = [...keyPointList];
 
-    drafts = educations
-        .sort(byDisplayOrder)
-        .map((e) => ({
-            id: e.id,
-            _status: 'existing',
-            education_stage: e.education_stage,
-            institution_name: e.institution_name,
-            degree: String(e.degree ?? ''),
-            start_date: e.start_date,
-            end_date: e.end_date ?? '',
-            description: e.description ?? '',
-            display_order: e.display_order == null ? '' : String(e.display_order),
-        }));
+    drafts = educations.sort(byDisplayOrder).map((e) => ({
+        id: e.id,
+        _status: 'existing',
+        education_stage: e.education_stage,
+        institution_name: e.institution_name,
+        degree: String(e.degree ?? ''),
+        start_date: e.start_date,
+        end_date: e.end_date ?? '',
+        description: e.description ?? '',
+        display_order: e.display_order == null ? '' : String(e.display_order)
+    }));
 
     // Initialize key points grouped by education ID
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -116,12 +116,14 @@ export function initialize(
         const educationKeyPoints = keyPointList
             .filter((kp) => kp.education_id === education.id)
             .sort(byDisplayOrder)
-            .map((kp): DraftItem<KeyPointDraft> => ({
-                id: kp.id,
-                _status: 'existing' as DraftStatus,
-                key_point: kp.key_point,
-                display_order: kp.display_order == null ? '' : String(kp.display_order),
-            }));
+            .map(
+                (kp): DraftItem<KeyPointDraft> => ({
+                    id: kp.id,
+                    _status: 'existing' as DraftStatus,
+                    key_point: kp.key_point,
+                    display_order: kp.display_order == null ? '' : String(kp.display_order)
+                })
+            );
         newKeyPoints[education.id] = educationKeyPoints;
     }
     keyPoints = newKeyPoints;
@@ -195,8 +197,8 @@ export function addEducation(draft: Omit<EducationDraft, 'id' | 'display_order'>
             id: tempId,
             _status: 'new',
             ...draft,
-            display_order: nextOrder,
-        },
+            display_order: nextOrder
+        }
     ];
     // Initialize empty key points for new education
     keyPoints = { ...keyPoints, [tempId]: [] };
@@ -218,9 +220,7 @@ export function updateEducation(id: number, partial: Partial<EducationDraft>): v
  * @param id - The education ID (real or temp)
  */
 export function removeEducation(id: number): void {
-    drafts = drafts.map((d) =>
-        d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d
-    );
+    drafts = drafts.map((d) => (d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d));
 }
 
 /**
@@ -242,9 +242,9 @@ export function addKeyPoint(
                 id: generateTempId(),
                 _status: 'new',
                 ...draft,
-                display_order: '',
-            },
-        ],
+                display_order: ''
+            }
+        ]
     };
 }
 
@@ -262,7 +262,7 @@ export function updateKeyPoint(id: number, partial: Partial<KeyPointDraft>): voi
         if (current && current.some((kp) => kp.id === id)) {
             keyPoints = {
                 ...keyPoints,
-                [numId]: current.map((kp) => (kp.id === id ? { ...kp, ...partial } : kp)),
+                [numId]: current.map((kp) => (kp.id === id ? { ...kp, ...partial } : kp))
             };
             return;
         }
@@ -283,7 +283,7 @@ export function removeKeyPoint(id: number): void {
                 ...keyPoints,
                 [numId]: current.map((kp) =>
                     kp.id === id ? { ...kp, _status: 'deleted' as DraftStatus } : kp
-                ),
+                )
             };
             return;
         }
@@ -311,7 +311,7 @@ export function reorderEducation(fromId: number, toId: number): void {
     // Update display_order based on new positions
     const updated = reordered.map((d, i) => ({
         ...d,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     // Merge back with deleted items
@@ -326,11 +326,7 @@ export function reorderEducation(fromId: number, toId: number): void {
  * @param fromId - The ID of the key point to move
  * @param toId - The ID of the target position
  */
-export function reorderKeyPoint(
-    educationId: number,
-    fromId: number,
-    toId: number
-): void {
+export function reorderKeyPoint(educationId: number, fromId: number, toId: number): void {
     const visible = getVisibleKeyPoints(educationId);
     const fromIndex = visible.findIndex((d) => d.id === fromId);
     const toIndex = visible.findIndex((d) => d.id === toId);
@@ -345,14 +341,14 @@ export function reorderKeyPoint(
     // Update display_order based on new positions
     const updated = reordered.map((d, i) => ({
         ...d,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     // Merge back with deleted items
     const deleted = (keyPoints[educationId] ?? []).filter((d) => d._status === 'deleted');
     keyPoints = {
         ...keyPoints,
-        [educationId]: [...updated, ...deleted],
+        [educationId]: [...updated, ...deleted]
     };
 }
 
@@ -416,7 +412,7 @@ export function validateKeyPoint(id: number): boolean {
                         ...keyPoints,
                         [numId]: current.map((kp) =>
                             kp.id === id ? setValidationError(kp, 'Key point is required') : kp
-                        ),
+                        )
                     };
                     valid = false;
                 }
@@ -426,7 +422,7 @@ export function validateKeyPoint(id: number): boolean {
                         ...keyPoints,
                         [numId]: current.map((kp) =>
                             kp.id === id ? setValidationError(kp, null) : kp
-                        ),
+                        )
                     };
                 }
 
@@ -435,6 +431,28 @@ export function validateKeyPoint(id: number): boolean {
         }
     }
     return false;
+}
+
+/**
+ * Validate all visible education drafts and their key points.
+ *
+ * @returns true if all visible items are valid, false otherwise
+ */
+export function validateAll(): boolean {
+    let valid = true;
+    for (const draft of getVisibleDrafts()) {
+        if (!validateEducation(draft.id)) {
+            valid = false;
+        }
+    }
+    for (const educationId of Object.keys(keyPoints)) {
+        for (const keyPoint of getVisibleKeyPoints(Number(educationId))) {
+            if (!validateKeyPoint(keyPoint.id)) {
+                valid = false;
+            }
+        }
+    }
+    return valid;
 }
 
 /**
@@ -469,18 +487,16 @@ export function isDirty(): boolean {
 
     // Compare education signatures
     const baselineEduSig = computeSignature(
-        baselineEducations
-            .sort(byDisplayOrder)
-            .map((e) => ({
-                id: e.id,
-                education_stage: e.education_stage,
-                institution_name: e.institution_name,
-                degree: e.degree,
-                start_date: e.start_date,
-                end_date: e.end_date,
-                description: e.description,
-                display_order: e.display_order,
-            }))
+        baselineEducations.sort(byDisplayOrder).map((e) => ({
+            id: e.id,
+            education_stage: e.education_stage,
+            institution_name: e.institution_name,
+            degree: e.degree,
+            start_date: e.start_date,
+            end_date: e.end_date,
+            description: e.description,
+            display_order: e.display_order
+        }))
     );
     const draftEduSig = computeSignature(
         drafts
@@ -493,7 +509,7 @@ export function isDirty(): boolean {
                 start_date: d.start_date,
                 end_date: toNullable(d.end_date),
                 description: toNullable(d.description),
-                display_order: toNumberOrNull(d.display_order),
+                display_order: toNumberOrNull(d.display_order)
             }))
             .sort(byDisplayOrder)
     );
@@ -503,14 +519,12 @@ export function isDirty(): boolean {
 
     // Compare key point signatures
     const baselineKpSig = computeSignature(
-        baselineKeyPoints
-            .sort(byDisplayOrder)
-            .map((kp) => ({
-                id: kp.id,
-                education_id: kp.education_id,
-                key_point: kp.key_point,
-                display_order: kp.display_order,
-            }))
+        baselineKeyPoints.sort(byDisplayOrder).map((kp) => ({
+            id: kp.id,
+            education_id: kp.education_id,
+            key_point: kp.key_point,
+            display_order: kp.display_order
+        }))
     );
     const draftKpList: Array<{
         id: number;
@@ -527,7 +541,7 @@ export function isDirty(): boolean {
                     id: kp.id,
                     education_id: numId,
                     key_point: kp.key_point.trim(),
-                    display_order: toNumberOrNull(kp.display_order),
+                    display_order: toNumberOrNull(kp.display_order)
                 });
             }
         }
@@ -605,9 +619,6 @@ export function getError(): string | null {
 export function computeDiff(): EducationAction[] {
     const actions: EducationAction[] = [];
 
-    // Build a temp ID to real ID map for new educations
-    const tempIdToRealId: Record<number, number> = {};
-
     // Process education actions first (parents)
     for (const draft of drafts) {
         if (draft._status === 'new') {
@@ -621,8 +632,8 @@ export function computeDiff(): EducationAction[] {
                     start_date: draft.start_date,
                     end_date: toNullable(draft.end_date),
                     description: toNullable(draft.description),
-                    display_order: toNumberOrNull(draft.display_order),
-                },
+                    display_order: toNumberOrNull(draft.display_order)
+                }
             });
         } else if (draft._status === 'deleted') {
             // Skip delete actions for items that were never saved (new-then-deleted)
@@ -657,7 +668,7 @@ export function computeDiff(): EducationAction[] {
                     actions.push({
                         type: 'updateEducation',
                         id: draft.id,
-                        payload,
+                        payload
                     });
                 }
             }
@@ -679,8 +690,8 @@ export function computeDiff(): EducationAction[] {
                         tempId: kp.id,
                         payload: {
                             key_point: kp.key_point.trim(),
-                            display_order: toNumberOrNull(kp.display_order),
-                        },
+                            display_order: toNumberOrNull(kp.display_order)
+                        }
                     });
                 } else if (kp._status === 'deleted') {
                     // Skip delete actions for items that were never saved (new-then-deleted)
@@ -700,7 +711,7 @@ export function computeDiff(): EducationAction[] {
                             actions.push({
                                 type: 'updateKeyPoint',
                                 id: kp.id,
-                                payload,
+                                payload
                             });
                         }
                     }
@@ -713,22 +724,28 @@ export function computeDiff(): EducationAction[] {
 }
 
 /**
- * Apply save results to drafts (update temp IDs with real IDs from server).
+ * Apply save results to drafts.
+ *
+ * Maps temp IDs for newly created items to real IDs and removes deleted items.
+ * Baseline is not updated here; call `commitBaseline()` after all save phases
+ * succeed so failed items remain dirty for retry.
  *
  * @param tempIdMap - Map of temp IDs to real IDs
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
     // Update education drafts
-    drafts = drafts.map((d) => {
-        if (d._status === 'new' && tempIdMap.has(d.id)) {
-            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-        }
-        if (d._status === 'deleted') {
-            // Remove deleted items from drafts
-            return null;
-        }
-        return d;
-    }).filter((d): d is DraftItem<EducationDraft> => d !== null);
+    drafts = drafts
+        .map((d) => {
+            if (d._status === 'new' && tempIdMap.has(d.id)) {
+                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+            }
+            if (d._status === 'deleted') {
+                // Remove deleted items from drafts
+                return null;
+            }
+            return d;
+        })
+        .filter((d): d is DraftItem<EducationDraft> => d !== null);
 
     // Update key points
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -742,7 +759,11 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
             const updated = current
                 .map((kp) => {
                     if (kp._status === 'new' && tempIdMap.has(kp.id)) {
-                        return { ...kp, id: tempIdMap.get(kp.id)!, _status: 'existing' as DraftStatus };
+                        return {
+                            ...kp,
+                            id: tempIdMap.get(kp.id)!,
+                            _status: 'existing' as DraftStatus
+                        };
                     }
                     if (kp._status === 'deleted') {
                         return null;
@@ -755,9 +776,12 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
         }
     }
     keyPoints = newKeyPoints;
+}
 
-    // Update baseline to match current draft state for successful saves
-    // Rebuild baseline from current drafts for existing items
+/**
+ * Commit the current draft state to the baseline after a successful save.
+ */
+export function commitBaseline(): void {
     // Get resume_id from existing baseline items (they should all have the same resume_id)
     const resumeId = baselineEducations[0]?.resume_id ?? 0;
 
@@ -776,7 +800,7 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                 description: toNullable(d.description),
                 display_order: toNumberOrNull(d.display_order),
                 active: existing?.active ?? true,
-                created_at: existing?.created_at ?? new Date().toISOString(),
+                created_at: existing?.created_at ?? ''
             };
         });
 
@@ -792,49 +816,9 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                     education_id: numId,
                     key_point: kp.key_point.trim(),
                     display_order: toNumberOrNull(kp.display_order),
-                    created_at: existing?.created_at ?? new Date().toISOString(),
+                    created_at: existing?.created_at ?? ''
                 });
             }
-        }
-    }
-}
-
-/**
- * Keep failed items in dirty state for retry.
- *
- * @param failedIds - Set of IDs that failed to save
- */
-export function keepFailedItems(failedIds: Set<number>): void {
-    // For education items, keep them as new or existing (don't mark as saved)
-    drafts = drafts.map((d) => {
-        if (failedIds.has(d.id)) {
-            // Keep the status as is (new or existing) so it stays dirty
-            return d;
-        }
-        // For successful items, mark as existing
-        if (d._status === 'new') {
-            return { ...d, _status: 'existing' as DraftStatus };
-        }
-        return d;
-    });
-
-    // For key points
-    for (const educationId of Object.keys(keyPoints)) {
-        const numId = Number(educationId);
-        const current = keyPoints[numId];
-        if (current) {
-            keyPoints = {
-                ...keyPoints,
-                [numId]: current.map((kp) => {
-                    if (failedIds.has(kp.id)) {
-                        return kp;
-                    }
-                    if (kp._status === 'new') {
-                        return { ...kp, _status: 'existing' as DraftStatus };
-                    }
-                    return kp;
-                }),
-            };
         }
     }
 }

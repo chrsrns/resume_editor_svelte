@@ -19,8 +19,7 @@ import {
     generateTempId,
     computeSignature,
     setValidationError,
-    toNumberOrNull,
-    toNullable
+    toNumberOrNull
 } from './shared';
 import { byDisplayOrder } from '$lib/components/sections/shared/displayOrderReorder';
 
@@ -88,14 +87,12 @@ export function initialize(languages: Language[], frameworkList: Framework[]): v
     baselineLanguages = [...languages];
     baselineFrameworks = [...frameworkList];
 
-    drafts = languages
-        .sort(byDisplayOrder)
-        .map((l) => ({
-            id: l.id,
-            _status: 'existing',
-            language_name: l.language_name,
-            display_order: l.display_order == null ? '' : String(l.display_order),
-        }));
+    drafts = languages.sort(byDisplayOrder).map((l) => ({
+        id: l.id,
+        _status: 'existing',
+        language_name: l.language_name,
+        display_order: l.display_order == null ? '' : String(l.display_order)
+    }));
 
     // Initialize frameworks grouped by language ID
     const newFrameworks: Record<number, DraftItem<FrameworkDraft>[]> = {};
@@ -103,12 +100,14 @@ export function initialize(languages: Language[], frameworkList: Framework[]): v
         const languageFrameworks = frameworkList
             .filter((f) => f.language_id === language.id)
             .sort(byDisplayOrder)
-            .map((f): DraftItem<FrameworkDraft> => ({
-                id: f.id,
-                _status: 'existing' as DraftStatus,
-                framework_name: f.framework_name,
-                display_order: f.display_order == null ? '' : String(f.display_order),
-            }));
+            .map(
+                (f): DraftItem<FrameworkDraft> => ({
+                    id: f.id,
+                    _status: 'existing' as DraftStatus,
+                    framework_name: f.framework_name,
+                    display_order: f.display_order == null ? '' : String(f.display_order)
+                })
+            );
         newFrameworks[language.id] = languageFrameworks;
     }
     frameworks = newFrameworks;
@@ -182,8 +181,8 @@ export function addLanguage(draft: Omit<LanguageDraft, 'id' | 'display_order'>):
             id: tempId,
             _status: 'new',
             ...draft,
-            display_order: nextOrder,
-        },
+            display_order: nextOrder
+        }
     ];
     // Initialize empty frameworks for new language
     frameworks = { ...frameworks, [tempId]: [] };
@@ -205,9 +204,7 @@ export function updateLanguage(id: number, partial: Partial<LanguageDraft>): voi
  * @param id - The language ID (real or temp)
  */
 export function removeLanguage(id: number): void {
-    drafts = drafts.map((d) =>
-        d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d
-    );
+    drafts = drafts.map((d) => (d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d));
 }
 
 /**
@@ -229,9 +226,9 @@ export function addFramework(
                 id: generateTempId(),
                 _status: 'new',
                 ...draft,
-                display_order: '',
-            },
-        ],
+                display_order: ''
+            }
+        ]
     };
 }
 
@@ -249,7 +246,7 @@ export function updateFramework(id: number, partial: Partial<FrameworkDraft>): v
         if (current && current.some((f) => f.id === id)) {
             frameworks = {
                 ...frameworks,
-                [numId]: current.map((f) => (f.id === id ? { ...f, ...partial } : f)),
+                [numId]: current.map((f) => (f.id === id ? { ...f, ...partial } : f))
             };
             return;
         }
@@ -270,7 +267,7 @@ export function removeFramework(id: number): void {
                 ...frameworks,
                 [numId]: current.map((f) =>
                     f.id === id ? { ...f, _status: 'deleted' as DraftStatus } : f
-                ),
+                )
             };
             return;
         }
@@ -296,7 +293,7 @@ export function reorder(fromId: number, toId: number): void {
     // Update display_order based on new positions
     const updated = newDrafts.map((d, i) => ({
         ...d,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     drafts = updated;
@@ -325,7 +322,7 @@ export function reorderFrameworks(languageId: number, fromId: number, toId: numb
     // Update display_order based on new positions
     const updated = newFrameworks.map((f, i) => ({
         ...f,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     frameworks = { ...frameworks, [languageId]: updated };
@@ -347,9 +344,7 @@ export function validateLanguage(id: number): void {
     }
 
     if (errors.length > 0) {
-        drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, errors.join(', ')) : d
-        );
+        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, errors.join(', ')) : d));
     } else {
         drafts = drafts.map((d) => (d.id === id ? setValidationError(d, null) : d));
     }
@@ -379,17 +374,34 @@ export function validateFramework(id: number): void {
                     ...frameworks,
                     [numId]: current.map((f) =>
                         f.id === id ? setValidationError(f, errors.join(', ')) : f
-                    ),
+                    )
                 };
             } else {
                 frameworks = {
                     ...frameworks,
-                    [numId]: current.map((f) => (f.id === id ? setValidationError(f, null) : f)),
+                    [numId]: current.map((f) => (f.id === id ? setValidationError(f, null) : f))
                 };
             }
             return;
         }
     }
+}
+
+/**
+ * Validate all visible languages and their frameworks.
+ *
+ * @returns true if all visible items are valid, false otherwise
+ */
+export function validateAll(): boolean {
+    for (const draft of getVisibleDrafts()) {
+        validateLanguage(draft.id);
+    }
+    for (const languageId of Object.keys(frameworks)) {
+        for (const framework of getVisibleFrameworks(Number(languageId))) {
+            validateFramework(framework.id);
+        }
+    }
+    return getValidationErrors().length === 0;
 }
 
 /**
@@ -407,13 +419,11 @@ export function isDirty(): boolean {
 
     // Check languages - normalize data before comparison
     const baselineLanguageSig = computeSignature(
-        baselineLanguages
-            .sort(byDisplayOrder)
-            .map((l) => ({
-                id: l.id,
-                language_name: l.language_name,
-                display_order: l.display_order,
-            }))
+        baselineLanguages.sort(byDisplayOrder).map((l) => ({
+            id: l.id,
+            language_name: l.language_name,
+            display_order: l.display_order
+        }))
     );
     const draftLanguageSig = computeSignature(
         drafts
@@ -421,7 +431,7 @@ export function isDirty(): boolean {
             .map((d) => ({
                 id: d.id,
                 language_name: d.language_name,
-                display_order: toNumberOrNull(d.display_order),
+                display_order: toNumberOrNull(d.display_order)
             }))
             .sort(byDisplayOrder)
     );
@@ -431,13 +441,11 @@ export function isDirty(): boolean {
 
     // Check frameworks - normalize data before comparison
     const baselineFrameworkSig = computeSignature(
-        baselineFrameworks
-            .sort(byDisplayOrder)
-            .map((f) => ({
-                id: f.id,
-                framework_name: f.framework_name,
-                display_order: f.display_order,
-            }))
+        baselineFrameworks.sort(byDisplayOrder).map((f) => ({
+            id: f.id,
+            framework_name: f.framework_name,
+            display_order: f.display_order
+        }))
     );
     const draftFrameworkSig = computeSignature(
         flatFrameworks
@@ -445,7 +453,7 @@ export function isDirty(): boolean {
             .map((f) => ({
                 id: f.id,
                 framework_name: f.framework_name,
-                display_order: toNumberOrNull(f.display_order),
+                display_order: toNumberOrNull(f.display_order)
             }))
             .sort(byDisplayOrder)
     );
@@ -483,26 +491,26 @@ export function getValidationErrors(): string[] {
  * Reset all drafts to the baseline.
  */
 export function resetToBaseline(): void {
-    drafts = baselineLanguages
-        .sort(byDisplayOrder)
-        .map((l) => ({
-            id: l.id,
-            _status: 'existing',
-            language_name: l.language_name,
-            display_order: l.display_order == null ? '' : String(l.display_order),
-        }));
+    drafts = baselineLanguages.sort(byDisplayOrder).map((l) => ({
+        id: l.id,
+        _status: 'existing',
+        language_name: l.language_name,
+        display_order: l.display_order == null ? '' : String(l.display_order)
+    }));
 
     const newFrameworks: Record<number, DraftItem<FrameworkDraft>[]> = {};
     for (const language of baselineLanguages) {
         const languageFrameworks = baselineFrameworks
             .filter((f) => f.language_id === language.id)
             .sort(byDisplayOrder)
-            .map((f): DraftItem<FrameworkDraft> => ({
-                id: f.id,
-                _status: 'existing' as DraftStatus,
-                framework_name: f.framework_name,
-                display_order: f.display_order == null ? '' : String(f.display_order),
-            }));
+            .map(
+                (f): DraftItem<FrameworkDraft> => ({
+                    id: f.id,
+                    _status: 'existing' as DraftStatus,
+                    framework_name: f.framework_name,
+                    display_order: f.display_order == null ? '' : String(f.display_order)
+                })
+            );
         newFrameworks[language.id] = languageFrameworks;
     }
     frameworks = newFrameworks;
@@ -522,8 +530,8 @@ export function computeDiff(): LanguageAction[] {
                 tempId: draft.id,
                 payload: {
                     language_name: draft.language_name,
-                    display_order: toNumberOrNull(draft.display_order),
-                },
+                    display_order: toNumberOrNull(draft.display_order)
+                }
             });
         } else if (draft._status === 'deleted') {
             // Skip delete actions for items that were never saved (new-then-deleted)
@@ -562,8 +570,8 @@ export function computeDiff(): LanguageAction[] {
                     tempId: f.id,
                     payload: {
                         framework_name: f.framework_name,
-                        display_order: toNumberOrNull(f.display_order),
-                    },
+                        display_order: toNumberOrNull(f.display_order)
+                    }
                 });
             } else if (f._status === 'deleted') {
                 // Skip delete actions for items that were never saved (new-then-deleted)
@@ -592,21 +600,27 @@ export function computeDiff(): LanguageAction[] {
 }
 
 /**
- * Apply save results from the server (update temp IDs to real IDs).
+ * Apply save results from the server.
+ *
+ * Maps temp IDs for newly created items to real IDs and removes deleted items.
+ * Baseline is not updated here; call `commitBaseline()` after all save phases
+ * succeed so failed items remain dirty for retry.
  *
  * @param tempIdMap - Map of temp IDs to real server IDs
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
     // Update language IDs - only mark successful creations as existing
-    drafts = drafts.map((d) => {
-        if (d._status === 'new' && tempIdMap.has(d.id)) {
-            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-        }
-        if (d._status === 'deleted') {
-            return null;
-        }
-        return d;
-    }).filter((d): d is DraftItem<LanguageDraft> => d !== null);
+    drafts = drafts
+        .map((d) => {
+            if (d._status === 'new' && tempIdMap.has(d.id)) {
+                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+            }
+            if (d._status === 'deleted') {
+                return null;
+            }
+            return d;
+        })
+        .filter((d): d is DraftItem<LanguageDraft> => d !== null);
 
     // Update framework IDs - only mark successful creations as existing
     const newFrameworks: Record<number, DraftItem<FrameworkDraft>[]> = {};
@@ -627,9 +641,12 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
             .filter((f): f is DraftItem<FrameworkDraft> => f !== null);
     }
     frameworks = newFrameworks;
+}
 
-    // Update baseline to match current draft state for successful saves
-    // Rebuild baseline from current drafts for existing items
+/**
+ * Commit the current draft state to the baseline after a successful save.
+ */
+export function commitBaseline(): void {
     const resumeId = baselineLanguages[0]?.resume_id ?? 0;
 
     baselineLanguages = drafts
@@ -641,7 +658,7 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                 resume_id: existing?.resume_id ?? resumeId,
                 language_name: d.language_name.trim(),
                 display_order: toNumberOrNull(d.display_order),
-                created_at: existing?.created_at ?? new Date().toISOString(),
+                created_at: existing?.created_at ?? ''
             };
         });
 
@@ -657,45 +674,10 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                     language_id: numLanguageId,
                     framework_name: fw.framework_name.trim(),
                     display_order: toNumberOrNull(fw.display_order),
-                    created_at: existing?.created_at ?? new Date().toISOString(),
+                    created_at: existing?.created_at ?? ''
                 });
             }
         }
-    }
-}
-
-/**
- * Keep failed items in dirty state for retry.
- *
- * @param failedIds - Set of IDs that failed to save
- */
-export function keepFailedItems(failedIds: Set<number>): void {
-    // Keep languages with failed saves as-is, mark successful new items as existing
-    drafts = drafts.map((d) => {
-        if (failedIds.has(d.id)) {
-            return d; // Keep status as-is
-        }
-        if (d._status === 'new') {
-            return { ...d, _status: 'existing' as DraftStatus };
-        }
-        return d;
-    });
-
-    // Keep frameworks with failed saves as-is, mark successful new items as existing
-    for (const languageId of Object.keys(frameworks)) {
-        const numLanguageId = Number(languageId);
-        frameworks = {
-            ...frameworks,
-            [numLanguageId]: frameworks[numLanguageId].map((f) => {
-                if (failedIds.has(f.id)) {
-                    return f; // Keep status as-is
-                }
-                if (f._status === 'new') {
-                    return { ...f, _status: 'existing' as DraftStatus };
-                }
-                return f;
-            }),
-        };
     }
 }
 

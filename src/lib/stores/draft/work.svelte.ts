@@ -60,7 +60,12 @@ export type WorkAction =
     | { type: 'createWork'; tempId: number; payload: NewWorkExperienceRequest }
     | { type: 'updateWork'; id: number; payload: UpdateWorkExperienceRequest }
     | { type: 'deleteWork'; id: number }
-    | { type: 'createKeyPoint'; workId: number; tempId: number; payload: NewWorkExperienceKeyPointRequest }
+    | {
+        type: 'createKeyPoint';
+        workId: number;
+        tempId: number;
+        payload: NewWorkExperienceKeyPointRequest;
+    }
     | { type: 'updateKeyPoint'; id: number; payload: UpdateWorkExperienceKeyPointRequest }
     | { type: 'deleteKeyPoint'; id: number };
 
@@ -88,25 +93,20 @@ let error = $state<string | null>(null);
  * @param works - The work experience data from the server
  * @param keyPointList - The key points data from the server
  */
-export function initialize(
-    works: WorkExperience[],
-    keyPointList: WorkExperienceKeyPoint[]
-): void {
+export function initialize(works: WorkExperience[], keyPointList: WorkExperienceKeyPoint[]): void {
     baselineWorks = [...works];
     baselineKeyPoints = [...keyPointList];
 
-    drafts = works
-        .sort(byDisplayOrder)
-        .map((w) => ({
-            id: w.id,
-            _status: 'existing',
-            job_title: w.job_title,
-            company_name: w.company_name ?? '',
-            start_date: w.start_date,
-            end_date: w.end_date ?? '',
-            description: w.description ?? '',
-            display_order: w.display_order == null ? '' : String(w.display_order),
-        }));
+    drafts = works.sort(byDisplayOrder).map((w) => ({
+        id: w.id,
+        _status: 'existing',
+        job_title: w.job_title,
+        company_name: w.company_name ?? '',
+        start_date: w.start_date,
+        end_date: w.end_date ?? '',
+        description: w.description ?? '',
+        display_order: w.display_order == null ? '' : String(w.display_order)
+    }));
 
     // Initialize key points grouped by work ID
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -114,12 +114,14 @@ export function initialize(
         const workKeyPoints = keyPointList
             .filter((kp) => kp.work_experience_id === work.id)
             .sort(byDisplayOrder)
-            .map((kp): DraftItem<KeyPointDraft> => ({
-                id: kp.id,
-                _status: 'existing' as DraftStatus,
-                key_point: kp.key_point,
-                display_order: kp.display_order == null ? '' : String(kp.display_order),
-            }));
+            .map(
+                (kp): DraftItem<KeyPointDraft> => ({
+                    id: kp.id,
+                    _status: 'existing' as DraftStatus,
+                    key_point: kp.key_point,
+                    display_order: kp.display_order == null ? '' : String(kp.display_order)
+                })
+            );
         newKeyPoints[work.id] = workKeyPoints;
     }
     keyPoints = newKeyPoints;
@@ -193,8 +195,8 @@ export function addWork(draft: Omit<WorkDraft, 'id' | 'display_order'>): void {
             id: tempId,
             _status: 'new',
             ...draft,
-            display_order: nextOrder,
-        },
+            display_order: nextOrder
+        }
     ];
     // Initialize empty key points for new work experience
     keyPoints = { ...keyPoints, [tempId]: [] };
@@ -216,9 +218,7 @@ export function updateWork(id: number, partial: Partial<WorkDraft>): void {
  * @param id - The work experience ID (real or temp)
  */
 export function removeWork(id: number): void {
-    drafts = drafts.map((d) =>
-        d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d
-    );
+    drafts = drafts.map((d) => (d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d));
 }
 
 /**
@@ -240,9 +240,9 @@ export function addKeyPoint(
                 id: generateTempId(),
                 _status: 'new',
                 ...draft,
-                display_order: '',
-            },
-        ],
+                display_order: ''
+            }
+        ]
     };
 }
 
@@ -260,7 +260,7 @@ export function updateKeyPoint(id: number, partial: Partial<KeyPointDraft>): voi
         if (current && current.some((kp) => kp.id === id)) {
             keyPoints = {
                 ...keyPoints,
-                [numId]: current.map((kp) => (kp.id === id ? { ...kp, ...partial } : kp)),
+                [numId]: current.map((kp) => (kp.id === id ? { ...kp, ...partial } : kp))
             };
             return;
         }
@@ -281,7 +281,7 @@ export function removeKeyPoint(id: number): void {
                 ...keyPoints,
                 [numId]: current.map((kp) =>
                     kp.id === id ? { ...kp, _status: 'deleted' as DraftStatus } : kp
-                ),
+                )
             };
             return;
         }
@@ -307,7 +307,7 @@ export function reorder(fromId: number, toId: number): void {
     // Update display_order based on new positions
     const updated = newDrafts.map((d, i) => ({
         ...d,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     drafts = updated;
@@ -336,7 +336,7 @@ export function reorderKeyPoints(workId: number, fromId: number, toId: number): 
     // Update display_order based on new positions
     const updated = newKeyPoints.map((kp, i) => ({
         ...kp,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     keyPoints = { ...keyPoints, [workId]: updated };
@@ -363,9 +363,7 @@ export function validateWork(id: number): boolean {
     }
 
     if (errors.length > 0) {
-        drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, errors.join(', ')) : d
-        );
+        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, errors.join(', ')) : d));
         return false;
     } else {
         drafts = drafts.map((d) => (d.id === id ? setValidationError(d, null) : d));
@@ -398,19 +396,41 @@ export function validateKeyPoint(id: number): boolean {
                     ...keyPoints,
                     [numId]: current.map((kp) =>
                         kp.id === id ? setValidationError(kp, errors.join(', ')) : kp
-                    ),
+                    )
                 };
                 return false;
             } else {
                 keyPoints = {
                     ...keyPoints,
-                    [numId]: current.map((kp) => (kp.id === id ? setValidationError(kp, null) : kp)),
+                    [numId]: current.map((kp) => (kp.id === id ? setValidationError(kp, null) : kp))
                 };
                 return true;
             }
         }
     }
     return false;
+}
+
+/**
+ * Validate all visible work experience drafts and their key points.
+ *
+ * @returns true if all visible items are valid, false otherwise
+ */
+export function validateAll(): boolean {
+    let valid = true;
+    for (const draft of getVisibleDrafts()) {
+        if (!validateWork(draft.id)) {
+            valid = false;
+        }
+    }
+    for (const workId of Object.keys(keyPoints)) {
+        for (const keyPoint of getVisibleKeyPoints(Number(workId))) {
+            if (!validateKeyPoint(keyPoint.id)) {
+                valid = false;
+            }
+        }
+    }
+    return valid;
 }
 
 /**
@@ -428,17 +448,15 @@ export function isDirty(): boolean {
 
     // Check work experiences - normalize data before comparison
     const baselineWorkSig = computeSignature(
-        baselineWorks
-            .sort(byDisplayOrder)
-            .map((w) => ({
-                id: w.id,
-                job_title: w.job_title,
-                company_name: w.company_name ?? '',
-                start_date: w.start_date,
-                end_date: w.end_date ?? '',
-                description: w.description ?? '',
-                display_order: w.display_order,
-            }))
+        baselineWorks.sort(byDisplayOrder).map((w) => ({
+            id: w.id,
+            job_title: w.job_title,
+            company_name: w.company_name ?? '',
+            start_date: w.start_date,
+            end_date: w.end_date ?? '',
+            description: w.description ?? '',
+            display_order: w.display_order
+        }))
     );
     const draftWorkSig = computeSignature(
         drafts
@@ -450,7 +468,7 @@ export function isDirty(): boolean {
                 start_date: d.start_date,
                 end_date: d.end_date,
                 description: d.description,
-                display_order: toNumberOrNull(d.display_order),
+                display_order: toNumberOrNull(d.display_order)
             }))
             .sort(byDisplayOrder)
     );
@@ -460,13 +478,11 @@ export function isDirty(): boolean {
 
     // Check key points - normalize data before comparison
     const baselineKeyPointSig = computeSignature(
-        baselineKeyPoints
-            .sort(byDisplayOrder)
-            .map((kp) => ({
-                id: kp.id,
-                key_point: kp.key_point,
-                display_order: kp.display_order,
-            }))
+        baselineKeyPoints.sort(byDisplayOrder).map((kp) => ({
+            id: kp.id,
+            key_point: kp.key_point,
+            display_order: kp.display_order
+        }))
     );
     const draftKeyPointSig = computeSignature(
         flatKeyPoints
@@ -474,7 +490,7 @@ export function isDirty(): boolean {
             .map((kp) => ({
                 id: kp.id,
                 key_point: kp.key_point,
-                display_order: toNumberOrNull(kp.display_order),
+                display_order: toNumberOrNull(kp.display_order)
             }))
             .sort(byDisplayOrder)
     );
@@ -512,30 +528,30 @@ export function getValidationErrors(): string[] {
  * Reset all drafts to the baseline.
  */
 export function resetToBaseline(): void {
-    drafts = baselineWorks
-        .sort(byDisplayOrder)
-        .map((w) => ({
-            id: w.id,
-            _status: 'existing',
-            job_title: w.job_title,
-            company_name: w.company_name ?? '',
-            start_date: w.start_date,
-            end_date: w.end_date ?? '',
-            description: w.description ?? '',
-            display_order: w.display_order == null ? '' : String(w.display_order),
-        }));
+    drafts = baselineWorks.sort(byDisplayOrder).map((w) => ({
+        id: w.id,
+        _status: 'existing',
+        job_title: w.job_title,
+        company_name: w.company_name ?? '',
+        start_date: w.start_date,
+        end_date: w.end_date ?? '',
+        description: w.description ?? '',
+        display_order: w.display_order == null ? '' : String(w.display_order)
+    }));
 
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
     for (const work of baselineWorks) {
         const workKeyPoints = baselineKeyPoints
             .filter((kp) => kp.work_experience_id === work.id)
             .sort(byDisplayOrder)
-            .map((kp): DraftItem<KeyPointDraft> => ({
-                id: kp.id,
-                _status: 'existing' as DraftStatus,
-                key_point: kp.key_point,
-                display_order: kp.display_order == null ? '' : String(kp.display_order),
-            }));
+            .map(
+                (kp): DraftItem<KeyPointDraft> => ({
+                    id: kp.id,
+                    _status: 'existing' as DraftStatus,
+                    key_point: kp.key_point,
+                    display_order: kp.display_order == null ? '' : String(kp.display_order)
+                })
+            );
         newKeyPoints[work.id] = workKeyPoints;
     }
     keyPoints = newKeyPoints;
@@ -559,8 +575,8 @@ export function computeDiff(): WorkAction[] {
                     start_date: draft.start_date,
                     end_date: toNullable(draft.end_date),
                     description: toNullable(draft.description),
-                    display_order: toNumberOrNull(draft.display_order),
-                },
+                    display_order: toNumberOrNull(draft.display_order)
+                }
             });
         } else if (draft._status === 'deleted') {
             // Skip delete actions for items that were never saved (new-then-deleted)
@@ -611,8 +627,8 @@ export function computeDiff(): WorkAction[] {
                     tempId: kp.id,
                     payload: {
                         key_point: kp.key_point,
-                        display_order: toNumberOrNull(kp.display_order),
-                    },
+                        display_order: toNumberOrNull(kp.display_order)
+                    }
                 });
             } else if (kp._status === 'deleted') {
                 // Skip delete actions for items that were never saved (new-then-deleted)
@@ -641,21 +657,27 @@ export function computeDiff(): WorkAction[] {
 }
 
 /**
- * Apply save results from the server (update temp IDs to real IDs).
+ * Apply save results from the server.
+ *
+ * Maps temp IDs for newly created items to real IDs and removes deleted items.
+ * Baseline is not updated here; call `commitBaseline()` after all save phases
+ * succeed so failed items remain dirty for retry.
  *
  * @param tempIdMap - Map of temp IDs to real server IDs
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
     // Update work experience IDs - only mark successful creations as existing
-    drafts = drafts.map((d) => {
-        if (d._status === 'new' && tempIdMap.has(d.id)) {
-            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-        }
-        if (d._status === 'deleted') {
-            return null;
-        }
-        return d;
-    }).filter((d): d is DraftItem<WorkDraft> => d !== null);
+    drafts = drafts
+        .map((d) => {
+            if (d._status === 'new' && tempIdMap.has(d.id)) {
+                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+            }
+            if (d._status === 'deleted') {
+                return null;
+            }
+            return d;
+        })
+        .filter((d): d is DraftItem<WorkDraft> => d !== null);
 
     // Update key point IDs - only mark successful creations as existing
     const newKeyPoints: Record<number, DraftItem<KeyPointDraft>[]> = {};
@@ -676,9 +698,12 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
             .filter((kp): kp is DraftItem<KeyPointDraft> => kp !== null);
     }
     keyPoints = newKeyPoints;
+}
 
-    // Update baseline to match current draft state for successful saves
-    // Rebuild baseline from current drafts for existing items
+/**
+ * Commit the current draft state to the baseline after a successful save.
+ */
+export function commitBaseline(): void {
     const resumeId = baselineWorks[0]?.resume_id ?? 0;
 
     baselineWorks = drafts
@@ -695,7 +720,7 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                 description: toNullable(d.description),
                 display_order: toNumberOrNull(d.display_order),
                 active: existing?.active ?? true,
-                created_at: existing?.created_at ?? new Date().toISOString(),
+                created_at: existing?.created_at ?? ''
             };
         });
 
@@ -712,45 +737,10 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                     key_point: kp.key_point.trim(),
                     display_order: toNumberOrNull(kp.display_order),
                     active: existing?.active ?? true,
-                    created_at: existing?.created_at ?? new Date().toISOString(),
+                    created_at: existing?.created_at ?? ''
                 });
             }
         }
-    }
-}
-
-/**
- * Keep failed items in dirty state for retry.
- *
- * @param failedIds - Set of IDs that failed to save
- */
-export function keepFailedItems(failedIds: Set<number>): void {
-    // Keep work experiences with failed saves as-is, mark successful new items as existing
-    drafts = drafts.map((d) => {
-        if (failedIds.has(d.id)) {
-            return d; // Keep status as-is
-        }
-        if (d._status === 'new') {
-            return { ...d, _status: 'existing' as DraftStatus };
-        }
-        return d;
-    });
-
-    // Keep key points with failed saves as-is, mark successful new items as existing
-    for (const workId of Object.keys(keyPoints)) {
-        const numWorkId = Number(workId);
-        keyPoints = {
-            ...keyPoints,
-            [numWorkId]: keyPoints[numWorkId].map((kp) => {
-                if (failedIds.has(kp.id)) {
-                    return kp; // Keep status as-is
-                }
-                if (kp._status === 'new') {
-                    return { ...kp, _status: 'existing' as DraftStatus };
-                }
-                return kp;
-            }),
-        };
     }
 }
 

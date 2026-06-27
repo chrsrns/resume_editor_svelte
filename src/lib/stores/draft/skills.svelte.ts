@@ -64,15 +64,13 @@ let error = $state<string | null>(null);
  */
 export function initialize(skills: Skill[]): void {
     baselineSkills = [...skills];
-    drafts = skills
-        .sort(byDisplayOrder)
-        .map((s) => ({
-            id: s.id,
-            _status: 'existing',
-            skill_name: s.skill_name,
-            confidence_percentage: String(s.confidence_percentage),
-            display_order: s.display_order == null ? '' : String(s.display_order),
-        }));
+    drafts = skills.sort(byDisplayOrder).map((s) => ({
+        id: s.id,
+        _status: 'existing',
+        skill_name: s.skill_name,
+        confidence_percentage: String(s.confidence_percentage),
+        display_order: s.display_order == null ? '' : String(s.display_order)
+    }));
 }
 
 /**
@@ -117,8 +115,8 @@ export function add(draft: Omit<SkillDraft, 'id' | 'display_order'>): void {
             id: generateTempId(),
             _status: 'new',
             ...draft,
-            display_order: nextOrder,
-        },
+            display_order: nextOrder
+        }
     ];
 }
 
@@ -138,9 +136,7 @@ export function update(id: number, partial: Partial<SkillDraft>): void {
  * @param id - The skill ID (real or temp)
  */
 export function remove(id: number): void {
-    drafts = drafts.map((d) =>
-        d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d
-    );
+    drafts = drafts.map((d) => (d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d));
 }
 
 /**
@@ -164,7 +160,7 @@ export function reorder(fromId: number, toId: number): void {
     // Update display_order based on new positions
     const updated = reordered.map((d, i) => ({
         ...d,
-        display_order: String((i + 1) * 10),
+        display_order: String((i + 1) * 10)
     }));
 
     // Merge back with deleted items
@@ -207,17 +203,30 @@ export function validate(id: number): boolean {
 }
 
 /**
+ * Validate all visible skill drafts.
+ *
+ * @returns true if all visible drafts are valid, false otherwise
+ */
+export function validateAll(): boolean {
+    let valid = true;
+    for (const draft of getVisibleDrafts()) {
+        if (!validate(draft.id)) {
+            valid = false;
+        }
+    }
+    return valid;
+}
+
+/**
  * Check if any draft has unsaved changes compared to the baseline.
  */
 export function isDirty(): boolean {
     const baselineSig = computeSignature(
-        baselineSkills
-            .sort(byDisplayOrder)
-            .map((s) => ({
-                skill_name: s.skill_name,
-                confidence_percentage: s.confidence_percentage,
-                display_order: s.display_order,
-            }))
+        baselineSkills.sort(byDisplayOrder).map((s) => ({
+            skill_name: s.skill_name,
+            confidence_percentage: s.confidence_percentage,
+            display_order: s.display_order
+        }))
     );
     const draftSig = computeSignature(
         drafts
@@ -227,7 +236,7 @@ export function isDirty(): boolean {
             .map((d) => ({
                 skill_name: d.skill_name.trim(),
                 confidence_percentage: Number(d.confidence_percentage),
-                display_order: d.display_order,
+                display_order: d.display_order
             }))
     );
     return baselineSig !== draftSig || drafts.some((d) => d._status === 'new');
@@ -290,8 +299,8 @@ export function computeDiff(): SkillAction[] {
                 payload: {
                     skill_name: draft.skill_name.trim(),
                     confidence_percentage: Number(draft.confidence_percentage),
-                    display_order: toNumberOrNull(draft.display_order),
-                },
+                    display_order: toNumberOrNull(draft.display_order)
+                }
             });
         } else if (draft._status === 'deleted') {
             // Skip delete actions for items that were never saved (new-then-deleted)
@@ -325,22 +334,30 @@ export function computeDiff(): SkillAction[] {
 /**
  * Apply successful save results.
  *
+ * Maps temp IDs for newly created items to real IDs and removes deleted items.
+ * Baseline is not updated here; call `commitBaseline()` after all save phases
+ * succeed so failed items remain dirty for retry.
+ *
  * @param tempIdMap - Map of temp IDs to real server IDs
  */
 export function applySaveResults(tempIdMap: Map<number, number>): void {
-    // Map over full drafts array (including deleted)
-    drafts = drafts.map((d) => {
-        if (d._status === 'new' && tempIdMap.has(d.id)) {
-            return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-        }
-        if (d._status === 'deleted') {
-            return null;
-        }
-        return d;
-    }).filter((d): d is DraftItem<SkillDraft> => d !== null);
+    drafts = drafts
+        .map((d) => {
+            if (d._status === 'new' && tempIdMap.has(d.id)) {
+                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
+            }
+            if (d._status === 'deleted') {
+                return null;
+            }
+            return d;
+        })
+        .filter((d): d is DraftItem<SkillDraft> => d !== null);
+}
 
-    // Update baseline to match current draft state for successful saves
-    // Rebuild baseline from current drafts for existing items
+/**
+ * Commit the current draft state to the baseline after a successful save.
+ */
+export function commitBaseline(): void {
     const resumeId = baselineSkills[0]?.resume_id ?? 0;
 
     baselineSkills = drafts
@@ -353,24 +370,7 @@ export function applySaveResults(tempIdMap: Map<number, number>): void {
                 skill_name: d.skill_name.trim(),
                 confidence_percentage: Number(d.confidence_percentage),
                 display_order: toNumberOrNull(d.display_order),
-                created_at: existing?.created_at ?? new Date().toISOString(),
+                created_at: existing?.created_at ?? ''
             };
         });
-}
-
-/**
- * Keep failed items in dirty state for retry.
- *
- * @param failedIds - Set of IDs that failed to save
- */
-export function keepFailedItems(failedIds: Set<number>): void {
-    drafts = drafts.map((d) => {
-        if (failedIds.has(d.id)) {
-            return d; // Keep status as-is so it stays dirty
-        }
-        if (d._status === 'new') {
-            return { ...d, _status: 'existing' as DraftStatus };
-        }
-        return d;
-    });
 }
