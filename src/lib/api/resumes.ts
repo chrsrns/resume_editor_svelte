@@ -1,6 +1,7 @@
 import { get } from 'svelte/store';
 import { apiRequest, ApiError, getApiBaseUrl } from './client';
-import { authToken } from '$lib/auth';
+import { authToken, clearAuthToken } from '$lib/auth';
+import { clearCurrentUser } from '$lib/session';
 import type { Resume, NewResumeRequest, UpdateResumeRequest } from '$lib/types';
 
 export async function listResumes(): Promise<Resume[]> {
@@ -51,6 +52,10 @@ export async function exportResumeMarkdown(id: number): Promise<Blob> {
     const res = await fetch(url, { method: 'GET', headers });
 
     if (!res.ok) {
+        if (res.status === 401 && token) {
+            clearAuthToken();
+            clearCurrentUser();
+        }
         const text = await res.text();
         let message = 'Export failed';
         try {
@@ -77,6 +82,11 @@ export async function importResumeMarkdown(markdown: string): Promise<Resume> {
     }
 
     const res = await fetch(url, { method: 'POST', headers, body: markdown });
+
+    if (res.status === 401 && token) {
+        clearAuthToken();
+        clearCurrentUser();
+    }
 
     const text = await res.text();
     let parsed: { body?: unknown };
