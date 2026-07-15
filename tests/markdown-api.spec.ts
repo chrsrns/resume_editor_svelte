@@ -265,3 +265,72 @@ test('import sends Content-Type text/markdown', async ({ page }) => {
     const request = await requestPromise;
     expect(request.headers()['content-type']).toMatch(/text\/markdown/);
 });
+
+// --- V3: 401 on export clears token and currentUser ---
+
+test('export 401 clears auth token and currentUser', async ({ page }) => {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await mockApiResponse(page, `**/api/resume/${resumeId}`, 200, resume);
+    await mockEmptySections(page);
+
+    await page.route(`**/api/resume/${resumeId}/export/markdown`, async (route) => {
+        await route.fulfill({
+            status: 401,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: 'Unauthorized' })
+        });
+    });
+
+    await page.goto(`/resume_editor/resumes/${resumeId}`);
+    await waitForApp(page);
+
+    await page.getByRole('button', { name: 'Export Markdown', exact: true }).click();
+
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('Unauthorized')).toBeVisible();
+
+    const token = await page.evaluate(() => localStorage.getItem('resume_api_token'));
+    expect(token).toBeNull();
+
+    await expect(page.getByRole('link', { name: 'Edit Resume' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
+});
+
+// --- V3: 401 on import clears token ---
+
+test('import 401 clears auth token', async ({ page }) => {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await mockApiResponse(page, '**/api/resumes', 200, [resume]);
+
+    await page.route('**/api/resume/import/markdown', async (route) => {
+        await route.fulfill({
+            status: 401,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: 'Unauthorized' })
+        });
+    });
+
+    await page.goto('/resume_editor/resumes');
+    await waitForApp(page);
+
+    const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        page.getByRole('button', { name: 'Import Markdown', exact: true }).click()
+    ]);
+    await fileChooser.setFiles({
+        name: 'resume.md',
+        mimeType: 'text/markdown',
+        buffer: Buffer.from('# Resume\n')
+    });
+
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('Unauthorized')).toBeVisible();
+
+    const token = await page.evaluate(() => localStorage.getItem('resume_api_token'));
+    expect(token).toBeNull();
+
+    await expect(page.getByRole('button', { name: 'Import Markdown', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Login to create' })).toBeVisible();
+});
