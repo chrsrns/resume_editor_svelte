@@ -80,7 +80,10 @@
             label="Executive summary"
             value={draft.executive_summary}
             oninput={(e) =>
-                handleFieldChange('executive_summary', (e.currentTarget as HTMLTextAreaElement).value)}
+                handleFieldChange(
+                    'executive_summary',
+                    (e.currentTarget as HTMLTextAreaElement).value
+                )}
             onblur={handleBlur}
             maxlength={5000}
             rows={4}

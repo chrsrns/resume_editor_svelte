@@ -2,6 +2,7 @@
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import TextArea from '$lib/components/ui/TextArea.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+    import type { NewResumeRequest } from '$lib/types';
     import Save from '@lucide/svelte/icons/save';
     import Image from '@lucide/svelte/icons/image';
 
@@ -27,7 +28,7 @@
         showSubmitButton?: boolean;
         initial?: BasicsFormData;
         submitLabel?: string;
-        onsubmit?: (payload: any) => void;
+        onsubmit?: (payload: NewResumeRequest) => void;
     } = $props();
 
     let name = $state('');
@@ -53,20 +54,6 @@
             is_public = initial.is_public ?? false;
         }
     });
-
-    function handleFieldChange(
-        field: keyof BasicsFormData,
-        value: string | boolean
-    ) {
-        if (field === 'name') name = value as string;
-        else if (field === 'email') email = value as string;
-        else if (field === 'profile_image_url') profile_image_url = value as string;
-        else if (field === 'location') location = value as string;
-        else if (field === 'github_url') github_url = value as string;
-        else if (field === 'mobile_number') mobile_number = value as string;
-        else if (field === 'executive_summary') executive_summary = value as string;
-        else if (field === 'is_public') is_public = value as boolean;
-    }
 
     function validate(): boolean {
         if (!name.trim()) {
@@ -109,12 +96,7 @@
 
 <div class="form-container">
     <form class="form" id={formId} onsubmit={submit}>
-        <TextInput
-            label="Name"
-            bind:value={name}
-            required
-            title="Full name shown on the resume."
-        />
+        <TextInput label="Name" bind:value={name} required title="Full name shown on the resume." />
 
         <TextInput
             label="Email"

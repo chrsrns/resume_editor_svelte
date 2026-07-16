@@ -86,7 +86,9 @@ test('executive summary over 5000 chars blocks save and shows validation', async
     const saveButton = page.getByRole('button', { name: 'Save', exact: true });
     await saveButton.click();
 
-    await expect(page.getByText('Executive summary must be 5,000 characters or less')).toBeVisible();
+    await expect(
+        page.getByText('Executive summary must be 5,000 characters or less')
+    ).toBeVisible();
     await expect(saveButton).toBeDisabled();
 });
 
