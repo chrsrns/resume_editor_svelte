@@ -17,7 +17,7 @@
         }
     });
 
-    async function handleSubmit(payload: NewResumeRequest & { is_public: boolean }) {
+    async function handleSubmit(payload: NewResumeRequest) {
         error = null;
         loading = true;
 

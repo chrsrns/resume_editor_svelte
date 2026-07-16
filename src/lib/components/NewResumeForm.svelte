@@ -1,6 +1,8 @@
 <script lang="ts">
     import TextInput from '$lib/components/ui/TextInput.svelte';
+    import TextArea from '$lib/components/ui/TextArea.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+    import type { NewResumeRequest } from '$lib/types';
     import Save from '@lucide/svelte/icons/save';
     import Image from '@lucide/svelte/icons/image';
 
@@ -11,6 +13,7 @@
         location: string;
         github_url: string;
         mobile_number: string;
+        executive_summary?: string;
         is_public: boolean;
     };
 
@@ -25,7 +28,7 @@
         showSubmitButton?: boolean;
         initial?: BasicsFormData;
         submitLabel?: string;
-        onsubmit?: (payload: any) => void;
+        onsubmit?: (payload: NewResumeRequest) => void;
     } = $props();
 
     let name = $state('');
@@ -34,7 +37,9 @@
     let location = $state('');
     let github_url = $state('');
     let mobile_number = $state('');
+    let executive_summary = $state('');
     let is_public = $state(false);
+    let validationError = $state<string | null>(null);
 
     // Initialize from initial if provided
     $effect(() => {
@@ -45,25 +50,35 @@
             location = initial.location ?? '';
             github_url = initial.github_url ?? '';
             mobile_number = initial.mobile_number ?? '';
+            executive_summary = initial.executive_summary ?? '';
             is_public = initial.is_public ?? false;
         }
     });
 
-    function handleFieldChange(
-        field: keyof BasicsFormData,
-        value: string | boolean
-    ) {
-        if (field === 'name') name = value as string;
-        else if (field === 'email') email = value as string;
-        else if (field === 'profile_image_url') profile_image_url = value as string;
-        else if (field === 'location') location = value as string;
-        else if (field === 'github_url') github_url = value as string;
-        else if (field === 'mobile_number') mobile_number = value as string;
-        else if (field === 'is_public') is_public = value as boolean;
+    function validate(): boolean {
+        if (!name.trim()) {
+            validationError = 'Name is required';
+            return false;
+        }
+        if (!email.trim()) {
+            validationError = 'Email is required';
+            return false;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            validationError = 'Invalid email format';
+            return false;
+        }
+        if (executive_summary.trim().length > 5000) {
+            validationError = 'Executive summary must be 5,000 characters or less';
+            return false;
+        }
+        validationError = null;
+        return true;
     }
 
     function submit(e: Event) {
         e.preventDefault();
+        if (!validate()) return;
         if (onsubmit) {
             onsubmit({
                 name: name.trim(),
@@ -72,6 +87,7 @@
                 location: location.trim() || null,
                 github_url: github_url.trim() || null,
                 mobile_number: mobile_number.trim() || null,
+                executive_summary: executive_summary.trim() || null,
                 is_public
             });
         }
@@ -80,12 +96,7 @@
 
 <div class="form-container">
     <form class="form" id={formId} onsubmit={submit}>
-        <TextInput
-            label="Name"
-            bind:value={name}
-            required
-            title="Full name shown on the resume."
-        />
+        <TextInput label="Name" bind:value={name} required title="Full name shown on the resume." />
 
         <TextInput
             label="Email"
@@ -119,6 +130,15 @@
             title="Optional. Phone number for contact."
         />
 
+        <TextArea
+            label="Executive summary"
+            bind:value={executive_summary}
+            maxlength={5000}
+            rows={4}
+            maxRows={8}
+            title="Optional. A short professional summary."
+        />
+
         <label class="checkbox">
             <input
                 type="checkbox"
@@ -127,6 +147,10 @@
             />
             <span>Public</span>
         </label>
+
+        {#if validationError}
+            <p class="error-message">{validationError}</p>
+        {/if}
 
         {#if showSubmitButton}
             <Button type="submit">
@@ -236,5 +260,11 @@
 
     .checkbox input {
         cursor: pointer;
+    }
+
+    .error-message {
+        margin: 0;
+        font-size: 13px;
+        color: var(--color-error);
     }
 </style>

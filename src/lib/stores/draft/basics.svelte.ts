@@ -20,6 +20,7 @@ type BasicsDraft = {
     location: string;
     github_url: string;
     mobile_number: string;
+    executive_summary: string;
     is_public: boolean;
 };
 
@@ -34,6 +35,7 @@ type BaselineBasics = {
     location: string | null;
     github_url: string | null;
     mobile_number: string | null;
+    executive_summary: string | null;
     is_public: boolean;
 };
 
@@ -47,6 +49,7 @@ let draft = $state<DraftItem<BasicsDraft>>({
     location: '',
     github_url: '',
     mobile_number: '',
+    executive_summary: '',
     is_public: false,
     _status: 'existing'
 });
@@ -67,6 +70,7 @@ export function initialize(resume: Resume): void {
         location: resume.location,
         github_url: resume.github_url,
         mobile_number: resume.mobile_number,
+        executive_summary: resume.executive_summary ?? null,
         is_public: resume.is_public
     };
     draft = {
@@ -78,6 +82,7 @@ export function initialize(resume: Resume): void {
         location: resume.location ?? '',
         github_url: resume.github_url ?? '',
         mobile_number: resume.mobile_number ?? '',
+        executive_summary: resume.executive_summary ?? '',
         is_public: resume.is_public
     };
 }
@@ -126,6 +131,12 @@ export function validate(): boolean {
         valid = false;
     }
 
+    // Executive summary max length
+    if (draft.executive_summary.trim().length > 5000) {
+        draft = setValidationError(draft, 'Executive summary must be 5,000 characters or less');
+        valid = false;
+    }
+
     if (valid) {
         draft = setValidationError(draft, null);
     }
@@ -152,6 +163,7 @@ export function isDirty(): boolean {
         location: draft.location.trim() || null,
         github_url: draft.github_url.trim() || null,
         mobile_number: draft.mobile_number.trim() || null,
+        executive_summary: draft.executive_summary.trim() || null,
         is_public: draft.is_public
     });
     return sig !== computeSignature(baseline);
@@ -170,6 +182,7 @@ export function resetToBaseline(): void {
         location: baseline.location ?? '',
         github_url: baseline.github_url ?? '',
         mobile_number: baseline.mobile_number ?? '',
+        executive_summary: baseline.executive_summary ?? '',
         is_public: baseline.is_public
     };
     error = null;
@@ -214,6 +227,7 @@ export function toUpdatePayload(): UpdateResumeRequest {
         location: draft.location.trim() || null,
         github_url: draft.github_url.trim() || null,
         mobile_number: draft.mobile_number.trim() || null,
+        executive_summary: draft.executive_summary.trim() || null,
         is_public: draft.is_public
     };
 }
@@ -230,6 +244,7 @@ export function commitBaseline(): void {
         location: draft.location.trim() || null,
         github_url: draft.github_url.trim() || null,
         mobile_number: draft.mobile_number.trim() || null,
+        executive_summary: draft.executive_summary.trim() || null,
         is_public: draft.is_public
     };
     draft = { ...draft, _status: 'existing' };
