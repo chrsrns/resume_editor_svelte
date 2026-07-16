@@ -70,7 +70,7 @@ export function initialize(resume: Resume): void {
         location: resume.location,
         github_url: resume.github_url,
         mobile_number: resume.mobile_number,
-        executive_summary: resume.executive_summary,
+        executive_summary: resume.executive_summary ?? null,
         is_public: resume.is_public
     };
     draft = {
