@@ -1,6 +1,7 @@
 <script lang="ts">
     import { basics } from '$lib/stores/draft';
     import TextInput from '$lib/components/ui/TextInput.svelte';
+    import TextArea from '$lib/components/ui/TextArea.svelte';
     import Image from '@lucide/svelte/icons/image';
 
     let { formId }: { formId?: string } = $props();
@@ -73,6 +74,18 @@
             oninput={(e) =>
                 handleFieldChange('mobile_number', (e.currentTarget as HTMLInputElement).value)}
             title="Optional. Phone number for contact."
+        />
+
+        <TextArea
+            label="Executive summary"
+            value={draft.executive_summary}
+            oninput={(e) =>
+                handleFieldChange('executive_summary', (e.currentTarget as HTMLTextAreaElement).value)}
+            onblur={handleBlur}
+            maxlength={5000}
+            rows={4}
+            maxRows={8}
+            title="Optional. A short professional summary."
         />
 
         <label class="checkbox">
