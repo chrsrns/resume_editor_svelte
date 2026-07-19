@@ -162,7 +162,8 @@
     .select {
         flex: 0 1 auto;
         min-width: max-content;
-        padding: var(--space-2-5) calc(var(--space-6) + var(--space-1)) var(--space-2-5) var(--space-3);
+        padding: var(--space-2-5) calc(var(--space-6) + var(--space-1)) var(--space-2-5)
+            var(--space-3);
         border: none;
         border-right: 1px solid var(--color-border);
         border-radius: 0;

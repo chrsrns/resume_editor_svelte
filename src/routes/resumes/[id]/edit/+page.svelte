@@ -652,11 +652,11 @@
         transform: translateX(-50%);
         background: var(--color-text);
         color: var(--color-surface);
-        padding: 4px 8px;
+        padding: var(--space-1) var(--space-2);
         border-radius: var(--radius-sm);
         font-size: 12px;
         white-space: nowrap;
-        margin-bottom: 4px;
+        margin-bottom: var(--space-1);
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.2s;

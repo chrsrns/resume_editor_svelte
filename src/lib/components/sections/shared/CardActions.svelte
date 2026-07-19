@@ -27,7 +27,7 @@
 
     .actions.compact {
         /* To counter card flex gap */
-        margin-top: -10px;
-        margin-bottom: -10px;
+        margin-top: calc(-1 * var(--space-2-5));
+        margin-bottom: calc(-1 * var(--space-2-5));
     }
 </style>
