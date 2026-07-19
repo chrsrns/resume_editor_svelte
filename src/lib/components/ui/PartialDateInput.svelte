@@ -27,7 +27,24 @@
         { length: currentYear + 10 - 1900 + 1 },
         (_, i) => String(1900 + i)
     );
-    const months = Array.from({ length: 12 }, (_, i) => String(i + 1));
+    const MONTH_NAMES = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December'
+    ];
+    const months = Array.from({ length: 12 }, (_, i) => ({
+        value: String(i + 1),
+        label: MONTH_NAMES[i]
+    }));
 
     const maxDay = $derived(
         selected.year && selected.month ? getDaysInMonth(selected.year, selected.month) : 31
@@ -97,8 +114,8 @@
             onchange={(e) => handleMonth((e.currentTarget as HTMLSelectElement).value)}
         >
             <option value="">Month</option>
-            {#each months as m (m)}
-                <option value={m}>{m}</option>
+            {#each months as m (m.value)}
+                <option value={m.value}>{m.label}</option>
             {/each}
         </select>
         <select
