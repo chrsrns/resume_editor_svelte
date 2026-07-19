@@ -16,11 +16,7 @@
         disabled?: boolean;
     }>();
 
-    let selected = $state<PartialDate>({ year: '', month: '', day: '' });
-
-    $effect(() => {
-        selected = parsePartialDate(value);
-    });
+    const selected = $derived(parsePartialDate(value));
 
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: currentYear + 10 - 1900 + 1 }, (_, i) => String(1900 + i));
@@ -58,112 +54,140 @@
         return next;
     }
 
-    function emit() {
-        oninput?.(formatPartialDate(selected));
+    function emit(next: PartialDate) {
+        oninput?.(formatPartialDate(clampDay(next)));
     }
 
     function handleYear(year: string) {
         if (!year) {
-            selected = { year: '', month: '', day: '' };
+            emit({ year: '', month: '', day: '' });
         } else {
-            selected = clampDay({ ...selected, year, month: selected.month, day: selected.day });
+            emit({ year, month: selected.month, day: selected.day });
         }
-        emit();
     }
 
     function handleMonth(month: string) {
         if (!month) {
-            selected = { ...selected, month: '', day: '' };
+            emit({ year: selected.year, month: '', day: '' });
         } else {
-            selected = clampDay({ ...selected, month, day: selected.day });
+            emit({ year: selected.year, month, day: selected.day });
         }
-        emit();
     }
 
     function handleDay(day: string) {
-        selected = { ...selected, day };
-        emit();
+        emit({ year: selected.year, month: selected.month, day });
     }
 </script>
 
-<div class="partialDate" data-field-width="content" {title}>
+<div
+    class="partialDate"
+    class:disabled
+    data-field-width="content"
+    {title}
+    role={label ? 'group' : undefined}
+    aria-label={label}
+>
     {#if label}
         <span class="labelText">{label}</span>
     {/if}
-    <div class="selects">
-        <select
-            aria-label={label ? `${label} year` : 'Year'}
-            class="select"
-            {disabled}
-            value={selected.year}
-            onchange={(e) => handleYear((e.currentTarget as HTMLSelectElement).value)}
-        >
-            <option value="">Year</option>
-            {#each years as y (y)}
-                <option value={y}>{y}</option>
-            {/each}
-        </select>
-        <select
-            aria-label={label ? `${label} month` : 'Month'}
-            class="select"
-            disabled={disabled || !selected.year}
-            value={selected.month}
-            onchange={(e) => handleMonth((e.currentTarget as HTMLSelectElement).value)}
-        >
-            <option value="">Month</option>
-            {#each months as m (m.value)}
-                <option value={m.value}>{m.label}</option>
-            {/each}
-        </select>
-        <select
-            aria-label={label ? `${label} day` : 'Day'}
-            class="select"
-            disabled={disabled || !selected.month}
-            value={selected.day}
-            onchange={(e) => handleDay((e.currentTarget as HTMLSelectElement).value)}
-        >
-            <option value="">Day</option>
-            {#each days as d (d)}
-                <option value={d}>{d}</option>
-            {/each}
-        </select>
-    </div>
+    <select
+        aria-label={label ? `${label} year` : 'Year'}
+        class="select"
+        {disabled}
+        value={selected.year}
+        onchange={(e) => handleYear((e.currentTarget as HTMLSelectElement).value)}
+    >
+        <option value="">Year</option>
+        {#each years as y (y)}
+            <option value={y}>{y}</option>
+        {/each}
+    </select>
+    <select
+        aria-label={label ? `${label} month` : 'Month'}
+        class="select"
+        disabled={disabled || !selected.year}
+        value={selected.month}
+        onchange={(e) => handleMonth((e.currentTarget as HTMLSelectElement).value)}
+    >
+        <option value="">Month</option>
+        {#each months as m (m.value)}
+            <option value={m.value}>{m.label}</option>
+        {/each}
+    </select>
+    <select
+        aria-label={label ? `${label} day` : 'Day'}
+        class="select"
+        disabled={disabled || !selected.month}
+        value={selected.day}
+        onchange={(e) => handleDay((e.currentTarget as HTMLSelectElement).value)}
+    >
+        <option value="">Day</option>
+        {#each days as d (d)}
+            <option value={d}>{d}</option>
+        {/each}
+    </select>
 </div>
 
 <style>
     .partialDate {
+        position: relative;
         display: flex;
-        flex-direction: column;
-        gap: 6px;
+        align-items: stretch;
+        box-sizing: border-box;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+    }
+
+    .partialDate.disabled {
+        opacity: 0.6;
+    }
+
+    .partialDate.disabled .select:disabled {
+        opacity: 1;
     }
 
     .labelText {
-        font-size: 12px;
+        position: absolute;
+        top: -8px;
+        left: 12px;
+        padding: 0 4px;
+        font-size: 11px;
         color: var(--color-muted);
-    }
-
-    .selects {
-        display: flex;
-        gap: var(--space-2);
+        background: var(--color-surface);
+        pointer-events: none;
+        z-index: 1;
     }
 
     .select {
         flex: 0 1 auto;
         min-width: max-content;
-        padding: 10px 8px;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-        background: var(--color-surface);
+        padding: 10px 28px 10px 12px;
+        border: none;
+        border-right: 1px solid var(--color-border);
+        border-radius: 0;
+        background: transparent;
         color: var(--color-text);
-        font-size: 14px;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+
+    .select:last-child {
+        border-right: none;
     }
 
     .select:disabled {
         opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .select:hover:not(:disabled):not(:focus-visible) {
+        background: var(--color-background);
     }
 
     .select:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
+        background: var(--color-primary-light);
+        color: var(--color-primary);
+        outline: none;
     }
 </style>
