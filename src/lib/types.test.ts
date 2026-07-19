@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     parsePartialDate,
     formatPartialDate,
+    formatPartialDateLong,
     getPartialDatePrecision,
     validatePartialDate,
     isPartialDateRangeValid,
@@ -41,6 +42,32 @@ describe('formatPartialDate', () => {
 
     it('returns empty when year missing', () => {
         expect(formatPartialDate({ year: '', month: '6', day: '5' })).toBe('');
+    });
+});
+
+describe('formatPartialDateLong', () => {
+    it('renders year only', () => {
+        expect(formatPartialDateLong({ year: '2020', month: '', day: '' })).toBe('2020');
+    });
+
+    it('renders month-year as "MMMM YYYY"', () => {
+        expect(formatPartialDateLong({ year: '2020', month: '6', day: '' })).toBe('June 2020');
+    });
+
+    it('renders full date as "D MMMM YYYY"', () => {
+        expect(formatPartialDateLong({ year: '2020', month: '6', day: '5' })).toBe('5 June 2020');
+    });
+
+    it('strips leading zeros from day and month', () => {
+        expect(formatPartialDateLong({ year: '2020', month: '06', day: '05' })).toBe('5 June 2020');
+    });
+
+    it('returns empty when year missing', () => {
+        expect(formatPartialDateLong({ year: '', month: '6', day: '5' })).toBe('');
+    });
+
+    it('falls back to month-year for invalid day', () => {
+        expect(formatPartialDateLong({ year: '2020', month: '4', day: '31' })).toBe('April 2020');
     });
 });
 

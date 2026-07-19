@@ -29,6 +29,7 @@
         WorkExperience,
         WorkExperienceKeyPoint
     } from '$lib/types';
+    import { parsePartialDate, formatPartialDateLong } from '$lib/types';
     import { currentUser } from '$lib/session';
     import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
     import IconTabBar from '$lib/components/IconTabBar.svelte';
@@ -263,7 +264,10 @@
     }
 
     function formatDateRange(start: string, end: string | null): string {
-        return `${start} - ${end && end.trim().length > 0 ? end : 'Present'}`;
+        const startDisplay = formatPartialDateLong(parsePartialDate(start));
+        const endDisplay =
+            end && end.trim().length > 0 ? formatPartialDateLong(parsePartialDate(end)) : 'Present';
+        return `${startDisplay} - ${endDisplay}`;
     }
 
     async function handleExport() {

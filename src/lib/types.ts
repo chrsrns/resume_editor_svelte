@@ -318,6 +318,36 @@ export function formatPartialDate(date: PartialDate): string {
     return `${date.year}-${month}-${day}`;
 }
 
+const MONTH_NAMES = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+];
+
+export function formatPartialDateLong(date: PartialDate): string {
+    if (!date.year) return '';
+    const year = Number(date.year);
+    if (!Number.isFinite(year)) return '';
+    if (!date.month) return String(year);
+    const month = Number(date.month);
+    if (!Number.isFinite(month) || month < 1 || month > 12) return String(year);
+    const monthName = MONTH_NAMES[month - 1];
+    if (!date.day) return `${monthName} ${year}`;
+    const day = Number(date.day);
+    const maxDay = getDaysInMonth(String(year), String(month));
+    if (!Number.isInteger(day) || day < 1 || day > maxDay) return `${monthName} ${year}`;
+    return `${day} ${monthName} ${year}`;
+}
+
 export function getPartialDatePrecision(date: PartialDate): 'year' | 'month' | 'day' | null {
     if (!date.year) return null;
     if (!date.month) return 'year';
@@ -358,7 +388,10 @@ export function isPartialDateRangeValid(start: string, end: string | null): bool
     if (!end || !end.trim()) return true;
     if (!start) return false;
 
-    function canonicalRange(iso: string, endOfPeriod: boolean): { year: number; month: number; day: number } {
+    function canonicalRange(
+        iso: string,
+        endOfPeriod: boolean
+    ): { year: number; month: number; day: number } {
         const parts = iso.split('-').map((p) => Number(p));
         const year = Number(parts[0]);
         const month = Number(parts[1] ?? (endOfPeriod ? 12 : 1));
