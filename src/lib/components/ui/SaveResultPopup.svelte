@@ -89,7 +89,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: var(--color-overlay);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -131,7 +131,7 @@
     }
 
     .icon.success {
-        color: var(--color-success, #22c55e);
+        color: var(--color-success);
     }
 
     .icon.error {
@@ -143,7 +143,7 @@
         border: none;
         color: var(--color-muted);
         cursor: pointer;
-        padding: 4px;
+        padding: var(--space-1);
         border-radius: var(--radius-sm);
         display: flex;
         align-items: center;
@@ -153,6 +153,11 @@
     .close-button:hover {
         background: var(--color-background);
         color: var(--color-text);
+    }
+
+    .close-button:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 
     .popup-content {

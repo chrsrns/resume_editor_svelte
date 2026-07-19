@@ -46,7 +46,7 @@
         align-items: center;
         justify-content: center;
         border-radius: var(--radius-pill);
-        padding: 4px 10px;
+        padding: var(--space-1) var(--space-2-5);
         font-size: 12px;
         line-height: 1;
         border: 1px solid transparent;
@@ -54,19 +54,19 @@
     }
 
     .activeStatus.sm {
-        padding: 3px 8px;
+        padding: var(--space-1) var(--space-2);
         font-size: 11px;
     }
 
     .activeStatus.md {
-        padding: 4px 10px;
+        padding: var(--space-1) var(--space-2-5);
         font-size: 12px;
     }
 
     .activeStatus.active {
-        background: #dcfce7;
-        border-color: #16a34a;
-        color: #166534;
+        background: var(--color-success-light);
+        border-color: var(--color-success);
+        color: var(--color-success-dark);
     }
 
     .activeStatus.inactive {
@@ -76,8 +76,8 @@
     }
 
     .activeStatus.unknown {
-        background: #fef9c3;
-        border-color: #eab308;
-        color: #854d0e;
+        background: var(--color-warning-light);
+        border-color: var(--color-warning);
+        color: var(--color-warning-dark);
     }
 </style>

@@ -187,7 +187,7 @@
         align-items: center;
         justify-content: center;
         gap: var(--space-2);
-        color: var(--color-text-muted);
+        color: var(--color-muted);
     }
 
     .preview-empty span {
@@ -211,6 +211,6 @@
     .error-message {
         margin: 0;
         font-size: 13px;
-        color: var(--color-error);
+        color: var(--color-danger);
     }
 </style>

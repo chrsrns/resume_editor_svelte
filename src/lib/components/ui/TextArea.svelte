@@ -170,7 +170,7 @@
 
     .uiField.above {
         flex-direction: column;
-        gap: 6px;
+        gap: var(--space-1-5);
     }
 
     .uiField.floating {
@@ -179,7 +179,7 @@
 
     .textarea {
         box-sizing: border-box;
-        padding: 10px 12px;
+        padding: var(--space-2-5) var(--space-3);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-sm);
         background: var(--color-surface);
@@ -187,8 +187,13 @@
         resize: vertical;
     }
 
+    .textarea:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
     .uiField.floating .textarea {
-        padding: 10px 12px;
+        padding: var(--space-2-5) var(--space-3);
     }
 
     .label {
@@ -202,8 +207,8 @@
 
     .uiField.floating .label {
         position: absolute;
-        left: 12px;
-        top: 22px;
+        left: var(--space-3);
+        top: calc(var(--space-5) + var(--space-0-5));
         transform: translateY(-50%);
         font-size: 13px;
         pointer-events: none;
@@ -217,11 +222,11 @@
 
     .uiField.floating.hasValue .label,
     .uiField.floating:focus-within .label {
-        top: -8px;
+        top: calc(-1 * var(--space-2));
         transform: translateY(0);
         font-size: 11px;
-        background: white;
-        padding: 0 4px;
+        background: var(--color-surface);
+        padding: 0 var(--space-1);
     }
 
     .uiField.floating:focus-within .label {

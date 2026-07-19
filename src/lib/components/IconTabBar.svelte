@@ -47,8 +47,8 @@
     .tab {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 8px 14px;
+        gap: var(--space-1-5);
+        padding: var(--space-2) var(--space-3-5);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-pill);
         background: var(--color-surface);
@@ -68,7 +68,7 @@
     .tab.active {
         border-color: var(--color-primary);
         background: var(--color-primary);
-        color: white;
+        color: var(--color-surface);
     }
 
     .tab:focus-visible {

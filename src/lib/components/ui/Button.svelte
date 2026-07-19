@@ -6,6 +6,7 @@
         type = 'button',
         disabled = false,
         title,
+        href,
         onclick,
         class: className = '',
         icon,
@@ -15,6 +16,7 @@
         type?: 'button' | 'submit' | 'reset';
         disabled?: boolean;
         title?: string;
+        href?: string;
         onclick?: (event: MouseEvent) => void;
         class?: string;
         icon?: import('svelte').Snippet;
@@ -28,28 +30,38 @@
     }
 </script>
 
-<button class={classes()} {type} {disabled} {title} {onclick}>
-    {#if icon}
-        <span class="iconWrap">{@render icon()}</span>
-    {/if}
-    {@render children()}
-</button>
+{#if href}
+    <a class={classes()} {href} {title} {onclick}>
+        {#if icon}
+            <span class="iconWrap">{@render icon()}</span>
+        {/if}
+        {@render children()}
+    </a>
+{:else}
+    <button class={classes()} {type} {disabled} {title} {onclick}>
+        {#if icon}
+            <span class="iconWrap">{@render icon()}</span>
+        {/if}
+        {@render children()}
+    </button>
+{/if}
 
 <style>
     .button {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 10px 14px;
+        gap: var(--space-1-5);
+        padding: var(--space-2-5) var(--space-3-5);
         border: 1px solid var(--color-primary);
         border-radius: var(--radius-sm);
         background: var(--color-primary);
-        color: white;
+        color: var(--color-surface);
         cursor: pointer;
         flex: 0 0 auto;
         font-size: 14px;
         font-weight: 500;
         line-height: 1;
+        text-decoration: none;
     }
 
     .button:hover:not([disabled]) {
@@ -57,8 +69,13 @@
         border-color: var(--color-primary-dark);
     }
 
+    .button:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
     .button.secondary {
-        background: white;
+        background: var(--color-surface);
         color: var(--color-text);
         border-color: var(--color-border);
     }

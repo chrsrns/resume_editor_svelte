@@ -32,7 +32,7 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 12px;
+        gap: var(--space-3);
     }
 
     .title {
@@ -47,6 +47,6 @@
     }
 
     .body {
-        margin-top: 12px;
+        margin-top: var(--space-3);
     }
 </style>

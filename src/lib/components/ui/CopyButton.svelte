@@ -23,9 +23,9 @@
 
 <button class="copyButton" type="button" title={copied ? 'Copied!' : 'Copy'} onclick={handleClick}>
     {#if copied}
-        <Check size={14} />
+        <Check size={16} />
     {:else}
-        <Copy size={14} />
+        <Copy size={16} />
     {/if}
 </button>
 

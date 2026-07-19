@@ -66,7 +66,7 @@
                             width="40"
                             height="60"
                             rx="4"
-                            fill="#4f46e5"
+                            fill="var(--color-primary)"
                             opacity="0.9"
                         />
                         <rect
@@ -75,7 +75,7 @@
                             width="30"
                             height="4"
                             rx="2"
-                            fill="white"
+                            fill="var(--color-surface)"
                             opacity="0.8"
                         />
                         <rect
@@ -84,31 +84,31 @@
                             width="20"
                             height="4"
                             rx="2"
-                            fill="white"
+                            fill="var(--color-surface)"
                             opacity="0.6"
                         />
-                        <circle cx="32" cy="38" r="3" fill="#22c55e" />
-                        <circle cx="32" cy="50" r="3" fill="#22c55e" />
-                        <circle cx="32" cy="62" r="3" fill="#22c55e" />
+                        <circle cx="32" cy="38" r="3" fill="var(--color-success)" />
+                        <circle cx="32" cy="50" r="3" fill="var(--color-success)" />
+                        <circle cx="32" cy="62" r="3" fill="var(--color-success)" />
 
                         <!-- Connection Lines -->
                         <path
                             d="M45 40 L60 40"
-                            stroke="#4f46e5"
+                            stroke="var(--color-primary)"
                             stroke-width="2"
                             stroke-dasharray="4 4"
                             opacity="0.6"
                         />
                         <path
                             d="M60 25 L75 25"
-                            stroke="#4f46e5"
+                            stroke="var(--color-primary)"
                             stroke-width="2"
                             stroke-dasharray="4 4"
                             opacity="0.6"
                         />
                         <path
                             d="M60 55 L75 55"
-                            stroke="#4f46e5"
+                            stroke="var(--color-primary)"
                             stroke-width="2"
                             stroke-dasharray="4 4"
                             opacity="0.6"
@@ -121,7 +121,7 @@
                             width="40"
                             height="30"
                             rx="4"
-                            fill="#0ea5e9"
+                            fill="var(--color-primary)"
                             opacity="0.9"
                         />
                         <rect
@@ -130,7 +130,7 @@
                             width="30"
                             height="2"
                             rx="1"
-                            fill="white"
+                            fill="var(--color-surface)"
                             opacity="0.8"
                         />
                         <rect
@@ -139,7 +139,7 @@
                             width="20"
                             height="2"
                             rx="1"
-                            fill="white"
+                            fill="var(--color-surface)"
                             opacity="0.6"
                         />
                         <rect
@@ -148,7 +148,7 @@
                             width="25"
                             height="2"
                             rx="1"
-                            fill="white"
+                            fill="var(--color-surface)"
                             opacity="0.6"
                         />
 
@@ -159,7 +159,7 @@
                             width="40"
                             height="30"
                             rx="4"
-                            fill="#8b5cf6"
+                            fill="var(--color-primary)"
                             opacity="0.9"
                         />
                         <rect
@@ -168,7 +168,7 @@
                             width="30"
                             height="2"
                             rx="1"
-                            fill="white"
+                            fill="var(--color-surface)"
                             opacity="0.8"
                         />
                         <rect
@@ -177,7 +177,7 @@
                             width="15"
                             height="2"
                             rx="1"
-                            fill="white"
+                            fill="var(--color-surface)"
                             opacity="0.6"
                         />
                         <rect
@@ -186,7 +186,7 @@
                             width="20"
                             height="2"
                             rx="1"
-                            fill="white"
+                            fill="var(--color-surface)"
                             opacity="0.6"
                         />
                     </svg>
@@ -223,35 +223,35 @@
                             >
                                 <path
                                     d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-                                    stroke="#4f46e5"
+                                    stroke="var(--color-primary)"
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                 />
                                 <path
                                     d="M14 2V8H20"
-                                    stroke="#4f46e5"
+                                    stroke="var(--color-primary)"
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                 />
                                 <path
                                     d="M16 13H8"
-                                    stroke="#4f46e5"
+                                    stroke="var(--color-primary)"
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                 />
                                 <path
                                     d="M16 17H8"
-                                    stroke="#4f46e5"
+                                    stroke="var(--color-primary)"
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                 />
                                 <path
                                     d="M10 9H9H8"
-                                    stroke="#4f46e5"
+                                    stroke="var(--color-primary)"
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
@@ -278,14 +278,14 @@
                             >
                                 <path
                                     d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z"
-                                    stroke="#8b5cf6"
+                                    stroke="var(--color-primary)"
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                 />
                                 <path
                                     d="M9 22V12H15V22"
-                                    stroke="#8b5cf6"
+                                    stroke="var(--color-primary)"
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
@@ -317,7 +317,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: var(--color-overlay);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -358,7 +358,7 @@
         border: none;
         color: var(--color-muted);
         cursor: pointer;
-        padding: 4px;
+        padding: var(--space-1);
         border-radius: var(--radius-sm);
         display: flex;
         align-items: center;
@@ -371,6 +371,11 @@
     .close-button:hover {
         background: var(--color-background);
         color: var(--color-text);
+    }
+
+    .close-button:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 
     .dialog-content {
@@ -441,6 +446,11 @@
         transform: translateY(-2px);
     }
 
+    .card:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
     .card-icon {
         flex-shrink: 0;
         display: flex;
@@ -461,7 +471,7 @@
         font-size: 14px;
         font-weight: 600;
         color: var(--color-text);
-        margin-bottom: 2px;
+        margin-bottom: var(--space-0-5);
     }
 
     .card-subtitle {

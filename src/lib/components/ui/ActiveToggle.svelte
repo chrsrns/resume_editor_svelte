@@ -35,7 +35,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 10px 14px;
+        padding: var(--space-2-5) var(--space-3-5);
         border: 1px solid var(--color-primary);
         border-radius: var(--radius-sm);
         background: var(--color-primary);

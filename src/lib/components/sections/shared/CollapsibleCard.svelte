@@ -226,7 +226,7 @@
 
     .collapsible.dropOver {
         outline: 2px dashed var(--color-primary);
-        outline-offset: 4px;
+        outline-offset: var(--space-1);
     }
 
     .header {
@@ -250,7 +250,7 @@
 
     .title:focus-visible {
         outline: 2px solid var(--color-primary);
-        outline-offset: 6px;
+        outline-offset: var(--space-1-5);
         border-radius: var(--radius-sm);
     }
 

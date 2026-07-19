@@ -204,6 +204,6 @@
     .error-message {
         margin: 0;
         font-size: 13px;
-        color: var(--color-error);
+        color: var(--color-danger);
     }
 </style>

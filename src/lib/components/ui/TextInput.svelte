@@ -121,7 +121,7 @@
 
     .uiField.above {
         flex-direction: column;
-        gap: 6px;
+        gap: var(--space-1-5);
     }
 
     .uiField.floating {
@@ -130,18 +130,23 @@
 
     .input {
         box-sizing: border-box;
-        padding: 10px 12px;
+        padding: var(--space-2-5) var(--space-3);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-sm);
         background: var(--color-surface);
     }
 
+    .input:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
     .uiField.floating .input {
-        padding: 10px 12px;
+        padding: var(--space-2-5) var(--space-3);
     }
 
     .uiField.floating.date .input {
-        padding: 10px 12px;
+        padding: var(--space-2-5) var(--space-3);
     }
 
     .label {
@@ -155,7 +160,7 @@
 
     .uiField.floating .label {
         position: absolute;
-        left: 12px;
+        left: var(--space-3);
         top: 50%;
         transform: translateY(-50%);
         font-size: 13px;
@@ -169,20 +174,20 @@
     }
 
     .uiField.floating.date .label {
-        top: -8px;
+        top: calc(-1 * var(--space-2));
         transform: translateY(0);
         font-size: 11px;
-        background: white;
-        padding: 0 4px;
+        background: var(--color-surface);
+        padding: 0 var(--space-1);
     }
 
     .uiField.floating.hasValue .label,
     .uiField.floating:focus-within .label {
-        top: -8px;
+        top: calc(-1 * var(--space-2));
         transform: translateY(0);
         font-size: 11px;
-        background: white;
-        padding: 0 4px;
+        background: var(--color-surface);
+        padding: 0 var(--space-1);
     }
 
     .uiField.floating:focus-within .label {
@@ -190,14 +195,14 @@
     }
 
     .input.small {
-        padding: 10px 8px;
+        padding: var(--space-2-5) var(--space-2);
     }
 
     .uiField.floating .input.small {
-        padding: 18px 8px 8px;
+        padding: var(--space-4-5) var(--space-2) var(--space-2);
     }
 
     .uiField.floating.date .input.small {
-        padding: 10px 8px;
+        padding: var(--space-2-5) var(--space-2);
     }
 </style>

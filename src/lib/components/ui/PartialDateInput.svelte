@@ -149,9 +149,9 @@
 
     .labelText {
         position: absolute;
-        top: -8px;
-        left: 12px;
-        padding: 0 4px;
+        top: calc(-1 * var(--space-2));
+        left: var(--space-3);
+        padding: 0 var(--space-1);
         font-size: 11px;
         color: var(--color-muted);
         background: var(--color-surface);
@@ -162,7 +162,7 @@
     .select {
         flex: 0 1 auto;
         min-width: max-content;
-        padding: 10px 28px 10px 12px;
+        padding: var(--space-2-5) calc(var(--space-6) + var(--space-1)) var(--space-2-5) var(--space-3);
         border: none;
         border-right: 1px solid var(--color-border);
         border-radius: 0;
@@ -186,8 +186,7 @@
     }
 
     .select:focus-visible {
-        background: var(--color-primary-light);
-        color: var(--color-primary);
-        outline: none;
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 </style>

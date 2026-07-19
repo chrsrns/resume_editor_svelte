@@ -45,6 +45,6 @@
 
     .cardInner.dropOver {
         outline: 2px dashed var(--color-primary);
-        outline-offset: 4px;
+        outline-offset: var(--space-1);
     }
 </style>
