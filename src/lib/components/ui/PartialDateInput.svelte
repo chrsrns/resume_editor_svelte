@@ -121,8 +121,8 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        flex: 0 1 180px;
-        min-width: 150px;
+        flex: 0 1 auto;
+        min-width: max-content;
     }
 
     .labelText {
@@ -136,8 +136,8 @@
     }
 
     .select {
-        flex: 1 1 0;
-        min-width: 0;
+        flex: 0 1 auto;
+        min-width: max-content;
         padding: 10px 8px;
         border: 1px solid var(--color-border);
         border-radius: var(--radius-sm);
