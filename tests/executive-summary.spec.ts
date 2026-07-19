@@ -66,7 +66,21 @@ test('executive summary renders with line breaks on detail view', async ({ page 
     await waitForApp(page);
 
     await expect(page.getByRole('heading', { name: 'Summary', level: 3 })).toBeVisible();
+    await expect(page.locator('.summaryCard .copyButton')).toBeVisible();
     await expect(page.locator('.summary')).toHaveText(summary);
+});
+
+test('executive summary card shows placeholder when empty', async ({ page }) => {
+    await mockApiResponse(page, '**/api/auth/me', 200, null);
+    await mockApiResponse(page, `**/api/resume/${resumeId}`, 200, resume);
+    await mockEmptySections(page);
+
+    await page.goto(`/resume_editor/resumes/${resumeId}`);
+    await waitForApp(page);
+
+    await expect(page.getByRole('heading', { name: 'Summary', level: 3 })).toBeVisible();
+    await expect(page.getByText('No summary')).toBeVisible();
+    await expect(page.locator('.summary')).not.toBeVisible();
 });
 
 test('executive summary over 5000 chars blocks save and shows validation', async ({ page }) => {

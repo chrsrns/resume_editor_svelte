@@ -33,6 +33,7 @@
     import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
     import IconTabBar from '$lib/components/IconTabBar.svelte';
     import FieldRow from '$lib/components/FieldRow.svelte';
+    import ExecutiveSummaryCard from '$lib/components/ExecutiveSummaryCard.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import ErrorDialog from '$lib/components/ui/ErrorDialog.svelte';
     import Eye from '@lucide/svelte/icons/eye';
@@ -343,6 +344,8 @@
         aria-labelledby="tab-basics"
         tabindex="0"
     >
+        <ExecutiveSummaryCard summary={resume.executive_summary} />
+
         <div class="card">
             <FieldRow
                 Icon={Eye}
@@ -366,13 +369,6 @@
                 copyable={!!resume.github_url}
             />
             <FieldRow Icon={Phone} label="Mobile" value={resume.mobile_number ?? '-'} />
-
-            {#if resume.executive_summary}
-                <div class="summary-block">
-                    <h3>Summary</h3>
-                    <p class="summary">{resume.executive_summary}</p>
-                </div>
-            {/if}
         </div>
     </div>
 
@@ -799,26 +795,5 @@
         .linkGroup {
             justify-content: flex-start;
         }
-    }
-
-    .summary-block {
-        margin-top: var(--space-4);
-        padding-top: var(--space-4);
-        border-top: 1px solid var(--color-border);
-    }
-
-    .summary-block h3 {
-        margin: 0 0 var(--space-2);
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--color-text);
-    }
-
-    .summary-block .summary {
-        margin: 0;
-        white-space: pre-line;
-        color: var(--color-text);
-        font-size: 14px;
-        line-height: 1.5;
     }
 </style>

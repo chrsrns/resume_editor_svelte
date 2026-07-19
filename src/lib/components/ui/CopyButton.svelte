@@ -50,4 +50,9 @@
         color: var(--color-primary);
         background: var(--color-primary-light);
     }
+
+    .copyButton:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
 </style>
