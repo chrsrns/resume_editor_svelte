@@ -357,7 +357,6 @@
                 <CardActions>
                     <ActiveToggle
                         active={d.active}
-                        size="sm"
                         title="Hide this entry from non-owners"
                         onchange={(active) => onUpdateEducation(d.id, { active })}
                     />

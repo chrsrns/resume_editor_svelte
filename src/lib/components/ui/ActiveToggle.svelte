@@ -1,14 +1,12 @@
 <script lang="ts">
     let {
         active = $bindable(),
-        size = 'md',
         title,
         class: className = '',
         style,
         onchange
     } = $props<{
         active: boolean;
-        size?: 'sm' | 'md';
         title?: string;
         class?: string;
         style?: string;
@@ -23,7 +21,7 @@
 
 <button
     {style}
-    class="activeToggle {size} {active ? 'active' : 'inactive'} {className}"
+    class="activeToggle {active ? 'active' : 'inactive'} {className}"
     {title}
     onclick={toggle}
     aria-pressed={active}
@@ -37,35 +35,37 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: var(--radius-pill);
-        padding: 4px 10px;
-        font-size: 12px;
-        line-height: 1;
-        border: 1px solid transparent;
-        white-space: nowrap;
+        padding: 10px 14px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+        color: var(--color-text);
         cursor: pointer;
-        background: none;
+        flex: 0 0 auto;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1;
+        white-space: nowrap;
     }
 
-    .activeToggle.sm {
-        padding: 3px 8px;
-        font-size: 11px;
-    }
-
-    .activeToggle.md {
-        padding: 4px 10px;
-        font-size: 12px;
+    .activeToggle:hover {
+        background: var(--color-background);
+        border-color: var(--color-muted);
     }
 
     .activeToggle.active {
-        background: #dcfce7;
-        border-color: #16a34a;
-        color: #166534;
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--color-surface);
     }
 
-    .activeToggle.inactive {
-        background: var(--color-background);
-        border-color: var(--color-border);
-        color: var(--color-muted);
+    .activeToggle.active:hover {
+        background: var(--color-primary-dark);
+        border-color: var(--color-primary-dark);
+    }
+
+    .activeToggle:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 </style>
