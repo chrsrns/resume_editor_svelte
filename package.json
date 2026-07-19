@@ -13,7 +13,8 @@
         "format": "prettier --write .",
         "lint": "prettier --check . && eslint .",
         "test": "playwright test",
-        "test:e2e:ui": "playwright test --ui"
+        "test:e2e:ui": "playwright test --ui",
+        "test:unit": "vitest run"
     },
     "devDependencies": {
         "@eslint/compat": "^1.4.0",
@@ -34,7 +35,8 @@
         "svelte-check": "^4.3.4",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.48.1",
-        "vite": "^7.2.6"
+        "vite": "^7.2.6",
+        "vitest": "^2.1.8"
     },
     "dependencies": {
         "@lucide/svelte": "^1.20.0"
