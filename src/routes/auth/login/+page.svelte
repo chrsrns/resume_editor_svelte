@@ -6,6 +6,7 @@
     import { refreshCurrentUser } from '$lib/session';
     import type { ApiError } from '$lib/api/client';
     import TextInput from '$lib/components/ui/TextInput.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
 
     let email = $state('');
     let password = $state('');
@@ -48,9 +49,9 @@
         <p class="error">{error}</p>
     {/if}
 
-    <button class="button" type="submit" disabled={loading}>
+    <Button type="submit" disabled={loading}>
         {loading ? 'Signing in…' : 'Sign in'}
-    </button>
+    </Button>
 </form>
 
 <p class="muted">
@@ -61,31 +62,21 @@
 <style>
     .form {
         display: grid;
-        gap: 12px;
+        gap: var(--space-3);
         max-width: 420px;
     }
 
-    .button {
-        justify-self: start;
-        padding: 10px 14px;
-        border: 1px solid #0f172a;
-        border-radius: 8px;
-        background: #0f172a;
-        color: white;
-        cursor: pointer;
-    }
-
-    .button[disabled] {
-        opacity: 0.7;
-        cursor: not-allowed;
+    a:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 
     .error {
-        color: #b91c1c;
+        color: var(--color-danger);
         margin: 0;
     }
 
     .muted {
-        color: #475569;
+        color: var(--color-muted);
     }
 </style>

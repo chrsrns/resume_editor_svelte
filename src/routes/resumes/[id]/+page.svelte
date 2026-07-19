@@ -690,7 +690,7 @@
 
     .bulletList {
         margin: 0;
-        padding-left: 18px;
+        padding-left: var(--space-4-5);
         color: var(--color-text);
         display: flex;
         flex-direction: column;
@@ -705,7 +705,7 @@
     }
 
     .chip {
-        padding: 6px 10px;
+        padding: var(--space-1-5) var(--space-2-5);
         border-radius: var(--radius-pill);
         background: var(--color-primary-light);
         color: var(--color-primary);
@@ -723,6 +723,11 @@
 
     .link:hover {
         text-decoration: underline;
+    }
+
+    .link:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 
     .linkGroup {
@@ -762,13 +767,13 @@
     }
 
     .skillMeta {
-        margin: 4px 0 0;
+        margin: var(--space-1) 0 0;
         color: var(--color-muted);
         font-size: 13px;
     }
 
     .skillTrack {
-        height: 10px;
+        height: var(--space-2-5);
         border-radius: var(--radius-pill);
         background: var(--color-border);
         overflow: hidden;

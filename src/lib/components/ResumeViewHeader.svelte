@@ -3,6 +3,7 @@
     import Pencil from '@lucide/svelte/icons/pencil';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import FileDown from '@lucide/svelte/icons/file-down';
+    import Button from '$lib/components/ui/Button.svelte';
     import type { Resume } from '$lib/types';
 
     let { resume, canEdit, onExport } = $props<{
@@ -29,21 +30,21 @@
     </div>
     <div class="actions">
         {#if onExport}
-            <button class="btnSecondary" type="button" onclick={onExport}>
-                <FileDown size={16} />
+            <Button variant="secondary" onclick={onExport}>
+                {#snippet icon()}<FileDown size={16} />{/snippet}
                 Export Markdown
-            </button>
+            </Button>
         {/if}
         {#if canEdit}
-            <a class="btnPrimary" href={resolve(`/resumes/${resume.id}/edit`)}>
-                <Pencil size={16} />
+            <Button href={resolve(`/resumes/${resume.id}/edit`)}>
+                {#snippet icon()}<Pencil size={16} />{/snippet}
                 Edit Resume
-            </a>
+            </Button>
         {/if}
-        <a class="btnSecondary" href={resolve('/resumes')}>
-            <ChevronLeft size={16} />
+        <Button variant="secondary" href={resolve('/resumes')}>
+            {#snippet icon()}<ChevronLeft size={16} />{/snippet}
             Back
-        </a>
+        </Button>
     </div>
 </div>
 
@@ -115,47 +116,6 @@
         gap: var(--space-3);
         flex-wrap: wrap;
         align-items: center;
-    }
-
-    .btnPrimary,
-    .btnSecondary {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 14px;
-        border-radius: var(--radius-sm);
-        font-size: 14px;
-        font-weight: 500;
-        text-decoration: none;
-        line-height: 1;
-    }
-
-    .btnPrimary {
-        background: var(--color-primary);
-        color: white;
-        border: 1px solid var(--color-primary);
-    }
-
-    .btnPrimary:hover {
-        background: var(--color-primary-dark);
-        border-color: var(--color-primary-dark);
-    }
-
-    .btnSecondary {
-        background: white;
-        color: var(--color-text);
-        border: 1px solid var(--color-border);
-        cursor: pointer;
-    }
-
-    .btnSecondary:hover {
-        background: var(--color-background);
-        border-color: var(--color-muted);
-    }
-
-    .btnSecondary:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
     }
 
     @media (max-width: 640px) {

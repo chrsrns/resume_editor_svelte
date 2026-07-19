@@ -80,7 +80,7 @@
     </div>
     <div class="actions">
         {#if $authToken}
-            <a class="button" href={resolve('/resumes/new')}>New resume</a>
+            <Button href={resolve('/resumes/new')}>New resume</Button>
             <Button variant="secondary" onclick={triggerImport} disabled={importBusy}>
                 {#snippet icon()}<FileUp size={16} />{/snippet}
                 Import Markdown
@@ -93,7 +93,7 @@
                 class="hidden-file-input"
             />
         {:else}
-            <a class="button" href={resolve('/auth/login')}>Login to create</a>
+            <Button href={resolve('/auth/login')}>Login to create</Button>
         {/if}
     </div>
 </div>
@@ -144,12 +144,12 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 16px;
+        gap: var(--space-4);
     }
 
     .actions {
         display: flex;
-        gap: 10px;
+        gap: var(--space-2-5);
         align-items: center;
         flex-wrap: wrap;
     }
@@ -158,72 +158,68 @@
         display: none;
     }
 
-    .button {
-        padding: 10px 14px;
-        border: 1px solid #0f172a;
-        border-radius: 8px;
-        background: #0f172a;
-        color: white;
-        text-decoration: none;
-    }
-
     .list {
         list-style: none;
         padding: 0;
-        margin: 16px 0;
+        margin: var(--space-4) 0;
         display: grid;
-        gap: 10px;
+        gap: var(--space-2-5);
     }
 
     .item {
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        background: white;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
     }
 
     .itemLink {
         display: block;
-        padding: 12px 14px;
+        padding: var(--space-3) var(--space-3-5);
         color: inherit;
         text-decoration: none;
+    }
+
+    .itemLink:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 
     .titleRow {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-2);
         flex-wrap: wrap;
     }
 
     .meta {
-        color: #475569;
+        color: var(--color-muted);
         font-size: 13px;
-        margin-top: 4px;
+        margin-top: var(--space-1);
     }
 
     .tag {
         font-size: 12px;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background: #e2e8f0;
-        color: #0f172a;
+        padding: var(--space-0-5) var(--space-2);
+        border-radius: var(--radius-pill);
+        background: var(--color-background);
+        color: var(--color-text);
     }
 
     .tag.private {
-        background: #fee2e2;
-        color: #7f1d1d;
+        background: var(--color-danger-light);
+        color: var(--color-danger-dark);
     }
 
     .tag.mine {
-        background: #dcfce7;
-        color: #14532d;
+        background: var(--color-success-light);
+        color: var(--color-success-dark);
     }
 
     .error {
-        color: #b91c1c;
+        color: var(--color-danger);
     }
 
     .muted {
-        color: #475569;
+        color: var(--color-muted);
     }
 </style>

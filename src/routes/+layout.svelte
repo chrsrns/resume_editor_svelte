@@ -132,7 +132,7 @@
     .navLink {
         color: var(--color-text);
         text-decoration: none;
-        padding: 6px 8px;
+        padding: var(--space-1-5) var(--space-2);
         border-radius: var(--radius-sm);
         font-weight: 500;
         font-size: 14px;
@@ -143,10 +143,15 @@
         color: var(--color-primary);
     }
 
+    .navLink:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
     .user {
         color: var(--color-muted);
         font-size: 13px;
-        padding: 6px 10px;
+        padding: var(--space-1-5) var(--space-2-5);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-pill);
         background: var(--color-background);
@@ -155,8 +160,8 @@
     .navButton {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 8px 12px;
+        gap: var(--space-1-5);
+        padding: var(--space-2) var(--space-3);
         border: 1px solid var(--color-text);
         border-radius: var(--radius-sm);
         background: var(--color-text);
@@ -169,6 +174,11 @@
     .navButton:hover {
         background: var(--color-primary);
         border-color: var(--color-primary);
+    }
+
+    .navButton:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 
     .main {
