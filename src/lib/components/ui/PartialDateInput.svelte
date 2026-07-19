@@ -89,7 +89,7 @@
     }
 </script>
 
-<div class="partialDate" {title}>
+<div class="partialDate" data-field-width="content" {title}>
     {#if label}
         <span class="labelText">{label}</span>
     {/if}
@@ -138,8 +138,6 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        flex: 0 1 auto;
-        min-width: max-content;
     }
 
     .labelText {

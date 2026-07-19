@@ -52,6 +52,8 @@
         return ['input', small ? 'small' : '', className].filter(Boolean).join(' ');
     }
 
+    const dataFieldWidth = $derived(small ? 'small' : type === 'date' ? 'date' : 'grow');
+
     function fieldClasses() {
         const hasValue = value.trim().length > 0;
         return [
@@ -72,7 +74,7 @@
 </script>
 
 {#if label}
-    <label class={fieldClasses()}>
+    <label class={fieldClasses()} data-field-width={dataFieldWidth}>
         {#if labelVariant === 'above'}
             <span class="label">{label}</span>
         {/if}
@@ -97,6 +99,7 @@
     <input
         {...rest}
         class={inputClasses()}
+        data-field-width={dataFieldWidth}
         {value}
         {type}
         {placeholder}
