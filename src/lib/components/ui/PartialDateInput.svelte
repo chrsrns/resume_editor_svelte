@@ -92,7 +92,7 @@
         <select
             aria-label="{label ? `${label} month` : 'Month'}"
             class="select"
-            {disabled}
+            disabled={disabled || !selected.year}
             value={selected.month}
             onchange={(e) => handleMonth((e.currentTarget as HTMLSelectElement).value)}
         >
@@ -104,7 +104,7 @@
         <select
             aria-label="{label ? `${label} day` : 'Day'}"
             class="select"
-            {disabled}
+            disabled={disabled || !selected.month}
             value={selected.day}
             onchange={(e) => handleDay((e.currentTarget as HTMLSelectElement).value)}
         >

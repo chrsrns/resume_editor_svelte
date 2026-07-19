@@ -21,3 +21,9 @@ You MUST use this tool whenever writing Svelte code before sending it to the use
 
 Generates a Svelte Playground link with the provided code.
 After completing the code, ask the user if they want a playground link. Only call this tool after user confirmation and NEVER if code was written to files in their project.
+
+## Project Verification Commands
+
+- `npm run check` — svelte-kit sync + svelte-check + TypeScript strict.
+- `npm run test:unit` — Vitest unit tests for pure helpers under `src/**/*.{test,spec}.{js,ts}`.
+- `npm run test` — Playwright E2E suite (uses `npm run dev` via `playwright.config.ts`).
