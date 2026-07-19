@@ -27,7 +27,7 @@
     aria-pressed={active}
     type="button"
 >
-    {active ? 'Active' : 'Inactive'}
+    {active ? 'Deactivate' : 'Activate'}
 </button>
 
 <style>

@@ -54,7 +54,12 @@ async function openEditPage(page: Page) {
             updated_at: ''
         }
     ]);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences/${workId}/key_points`, 200, []);
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/work_experiences/${workId}/key_points`,
+        200,
+        []
+    );
     await mockEmptySections(page);
 
     await page.goto(`/resume_editor/resumes/${resumeId}/edit?tab=work`);
@@ -90,8 +95,8 @@ test('toggling active state sends update on save', async ({ page }) => {
     });
 
     await page.getByRole('button', { name: 'Engineer — Co' }).click();
-    await page.getByRole('button', { name: 'Active', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Inactive', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Deactivate', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Activate', exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
