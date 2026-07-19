@@ -224,7 +224,7 @@
                 {#snippet titleHeader()}
                     <div>{d.language_name.trim()}</div>
                 {/snippet}
-                <FieldsWrap style="padding-top: 6px;">
+                <FieldsWrap top>
                     <TextInput
                         label="Language"
                         value={d.language_name}

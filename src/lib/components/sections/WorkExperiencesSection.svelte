@@ -269,7 +269,7 @@
                         </div>
                     </div>
                 {/snippet}
-                <FieldsWrap style="padding-top: 6px;">
+                <FieldsWrap top>
                     <TextInput
                         label="Job title"
                         value={d.job_title}

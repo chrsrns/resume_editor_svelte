@@ -292,7 +292,7 @@
                         </div>
                     </div>
                 {/snippet}
-                <FieldsWrap style="padding-top: 6px;">
+                <FieldsWrap top>
                     <TextInput
                         label="Stage"
                         value={d.education_stage}

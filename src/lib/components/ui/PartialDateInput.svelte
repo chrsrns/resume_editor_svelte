@@ -23,10 +23,7 @@
     });
 
     const currentYear = new Date().getFullYear();
-    const years = Array.from(
-        { length: currentYear + 10 - 1900 + 1 },
-        (_, i) => String(1900 + i)
-    );
+    const years = Array.from({ length: currentYear + 10 - 1900 + 1 }, (_, i) => String(1900 + i));
     const MONTH_NAMES = [
         'January',
         'February',
@@ -95,7 +92,7 @@
     {/if}
     <div class="selects">
         <select
-            aria-label="{label ? `${label} year` : 'Year'}"
+            aria-label={label ? `${label} year` : 'Year'}
             class="select"
             {disabled}
             value={selected.year}
@@ -107,7 +104,7 @@
             {/each}
         </select>
         <select
-            aria-label="{label ? `${label} month` : 'Month'}"
+            aria-label={label ? `${label} month` : 'Month'}
             class="select"
             disabled={disabled || !selected.year}
             value={selected.month}
@@ -119,7 +116,7 @@
             {/each}
         </select>
         <select
-            aria-label="{label ? `${label} day` : 'Day'}"
+            aria-label={label ? `${label} day` : 'Day'}
             class="select"
             disabled={disabled || !selected.month}
             value={selected.day}

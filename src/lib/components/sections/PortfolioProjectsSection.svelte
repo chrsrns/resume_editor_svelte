@@ -341,7 +341,7 @@
                         <div>{d.project_name.trim()}</div>
                     </div>
                 {/snippet}
-                <FieldsWrap style="padding-top: 6px;">
+                <FieldsWrap top>
                     <TextInput
                         label="Project name"
                         bind:value={d.project_name}
