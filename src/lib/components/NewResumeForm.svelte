@@ -171,7 +171,7 @@
                 </div>
             {:else}
                 <div class="preview-empty">
-                    <Image size={32} aria-hidden="true" />
+                    <Image size={20} aria-hidden="true" />
                     <span>Add a profile image URL to preview it here.</span>
                 </div>
             {/if}
