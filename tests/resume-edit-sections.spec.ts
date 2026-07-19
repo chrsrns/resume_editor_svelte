@@ -136,7 +136,10 @@ test('add education with key point and save', async ({ page }) => {
     await page.getByRole('tab', { name: 'Education', exact: true }).click();
     await page.getByRole('textbox', { name: 'Stage (e.g. Bachelor)' }).fill('Bachelor');
     await page.getByRole('textbox', { name: 'Institution' }).fill('Uni');
-    await page.getByRole('textbox', { name: 'Start date' }).fill('2020-01-01');
+    const educationPanel = page.locator('#panel-education');
+    await educationPanel.getByLabel('Start date year').selectOption('2020');
+    await educationPanel.getByLabel('Start date month').selectOption('1');
+    await educationPanel.getByLabel('Start date day').selectOption('1');
     await page.getByRole('button', { name: 'Add education', exact: true }).click();
 
     await page.getByRole('button', { name: 'Bachelor — Uni' }).click();
@@ -178,7 +181,10 @@ test('partial save keeps failed section dirty and cleans successful sections', a
     await page.getByRole('tab', { name: 'Education', exact: true }).click();
     await page.getByRole('textbox', { name: 'Stage (e.g. Bachelor)' }).fill('Bachelor');
     await page.getByRole('textbox', { name: 'Institution' }).fill('Uni');
-    await page.getByRole('textbox', { name: 'Start date' }).fill('2020-01-01');
+    const educationPanel = page.locator('#panel-education');
+    await educationPanel.getByLabel('Start date year').selectOption('2020');
+    await educationPanel.getByLabel('Start date month').selectOption('1');
+    await educationPanel.getByLabel('Start date day').selectOption('1');
     await page.getByRole('button', { name: 'Add education', exact: true }).click();
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -269,7 +275,10 @@ test('delete work and key point removes child before parent', async ({ page }) =
     await page.getByRole('tab', { name: 'Work', exact: true }).click();
     await page.getByRole('textbox', { name: 'Job title' }).fill('Engineer');
     await page.getByRole('textbox', { name: 'Company' }).fill('Co');
-    await page.getByRole('textbox', { name: 'Start date' }).fill('2020-01-01');
+    const workPanel = page.locator('#panel-work');
+    await workPanel.getByLabel('Start date year').selectOption('2020');
+    await workPanel.getByLabel('Start date month').selectOption('1');
+    await workPanel.getByLabel('Start date day').selectOption('1');
     await page.getByRole('button', { name: 'Add work experience', exact: true }).click();
 
     await page.getByRole('button', { name: 'Engineer — Co' }).click();

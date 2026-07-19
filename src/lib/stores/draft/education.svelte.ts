@@ -13,6 +13,7 @@ import type {
     NewEducationKeyPointRequest,
     UpdateEducationKeyPointRequest
 } from '$lib/types';
+import { parsePartialDate, validatePartialDate, isPartialDateRangeValid } from '$lib/types';
 import {
     type DraftItem,
     type DraftStatus,
@@ -364,34 +365,41 @@ export function validateEducation(id: number): boolean {
     const draft = drafts.find((d) => d.id === id);
     if (!draft) return false;
 
-    let valid = true;
+    const errors: string[] = [];
 
     if (!draft.education_stage.trim()) {
-        drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, 'Education stage is required') : d
-        );
-        valid = false;
+        errors.push('Education stage is required');
     }
 
     if (!draft.institution_name.trim()) {
-        drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, 'Institution name is required') : d
-        );
-        valid = false;
+        errors.push('Institution name is required');
     }
 
-    if (!draft.start_date.trim()) {
-        drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, 'Start date is required') : d
-        );
-        valid = false;
+    const startDateError = validatePartialDate(parsePartialDate(draft.start_date));
+    if (startDateError) {
+        errors.push(`Start date: ${startDateError}`);
     }
 
-    if (valid) {
-        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, null) : d));
+    if (draft.end_date.trim()) {
+        const endDateError = validatePartialDate(parsePartialDate(draft.end_date));
+        if (endDateError) {
+            errors.push(`End date: ${endDateError}`);
+        }
     }
 
-    return valid;
+    if (!startDateError && !errors.some((e) => e.startsWith('End date:'))) {
+        if (!isPartialDateRangeValid(draft.start_date, draft.end_date)) {
+            errors.push('End date must be on or after start date');
+        }
+    }
+
+    if (errors.length > 0) {
+        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, errors.join('; ')) : d));
+        return false;
+    }
+
+    drafts = drafts.map((d) => (d.id === id ? setValidationError(d, null) : d));
+    return true;
 }
 
 /**

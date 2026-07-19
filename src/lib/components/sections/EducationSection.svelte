@@ -11,6 +11,7 @@
     import Button from '$lib/components/ui/Button.svelte';
     import TextArea from '$lib/components/ui/TextArea.svelte';
     import TextInput from '$lib/components/ui/TextInput.svelte';
+    import PartialDateInput from '$lib/components/ui/PartialDateInput.svelte';
     import ActiveStatus from '../ui/ActiveStatus.svelte';
     import ActiveToggle from '../ui/ActiveToggle.svelte';
     import Plus from '@lucide/svelte/icons/plus';
@@ -228,17 +229,19 @@
                 bind:value={newDegree}
                 title="Optional. Degree/qualification name."
             />
-            <TextInput
+            <PartialDateInput
                 label="Start date"
-                type="date"
-                bind:value={newStart}
+                value={newStart}
+                oninput={(value) => (newStart = value)}
                 title="Start date for this education."
+                disabled={saving}
             />
-            <TextInput
+            <PartialDateInput
                 label="End date"
-                type="date"
-                bind:value={newEnd}
+                value={newEnd}
+                oninput={(value) => (newEnd = value)}
                 title="Optional. End date (leave blank if ongoing)."
+                disabled={saving}
             />
         </FieldsWrap>
         <TextArea
@@ -320,27 +323,25 @@
                         onblur={() => onValidateEducation(d.id)}
                         title="Optional. Degree/qualification name."
                     />
-                    <TextInput
+                    <PartialDateInput
                         label="Start date"
-                        type="date"
                         value={d.start_date}
-                        oninput={(e) =>
-                            onUpdateEducation(d.id, {
-                                start_date: (e.currentTarget as HTMLInputElement).value
-                            })}
-                        onblur={() => onValidateEducation(d.id)}
+                        oninput={(value) => {
+                            onUpdateEducation(d.id, { start_date: value });
+                            onValidateEducation(d.id);
+                        }}
                         title="Start date."
+                        disabled={saving}
                     />
-                    <TextInput
+                    <PartialDateInput
                         label="End date"
-                        type="date"
                         value={d.end_date}
-                        oninput={(e) =>
-                            onUpdateEducation(d.id, {
-                                end_date: (e.currentTarget as HTMLInputElement).value
-                            })}
-                        onblur={() => onValidateEducation(d.id)}
+                        oninput={(value) => {
+                            onUpdateEducation(d.id, { end_date: value });
+                            onValidateEducation(d.id);
+                        }}
                         title="Optional. End date."
+                        disabled={saving}
                     />
                 </FieldsWrap>
                 <TextArea

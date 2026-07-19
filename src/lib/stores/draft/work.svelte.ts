@@ -13,6 +13,7 @@ import type {
     NewWorkExperienceKeyPointRequest,
     UpdateWorkExperienceKeyPointRequest
 } from '$lib/types';
+import { parsePartialDate, validatePartialDate, isPartialDateRangeValid } from '$lib/types';
 import {
     type DraftItem,
     type DraftStatus,
@@ -360,12 +361,26 @@ export function validateWork(id: number): boolean {
         errors.push('Job title is required');
     }
 
-    if (!draft.start_date.trim()) {
-        errors.push('Start date is required');
+    const startDateError = validatePartialDate(parsePartialDate(draft.start_date));
+    if (startDateError) {
+        errors.push(`Start date: ${startDateError}`);
+    }
+
+    if (draft.end_date.trim()) {
+        const endDateError = validatePartialDate(parsePartialDate(draft.end_date));
+        if (endDateError) {
+            errors.push(`End date: ${endDateError}`);
+        }
+    }
+
+    if (!startDateError && !errors.some((e) => e.startsWith('End date:'))) {
+        if (!isPartialDateRangeValid(draft.start_date, draft.end_date)) {
+            errors.push('End date must be on or after start date');
+        }
     }
 
     if (errors.length > 0) {
-        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, errors.join(', ')) : d));
+        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, errors.join('; ')) : d));
         return false;
     } else {
         drafts = drafts.map((d) => (d.id === id ? setValidationError(d, null) : d));
