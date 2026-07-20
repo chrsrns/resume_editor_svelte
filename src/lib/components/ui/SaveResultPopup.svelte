@@ -59,7 +59,7 @@
                     <div class="errors">
                         <h3>Errors ({errors.length})</h3>
                         <ul>
-                            {#each errors as error}
+                            {#each errors as error, i (i)}
                                 <li>
                                     <strong>{error.section}:</strong>
                                     {error.error}

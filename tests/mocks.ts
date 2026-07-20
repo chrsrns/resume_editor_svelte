@@ -1,6 +1,11 @@
 import type { Page, Request } from '@playwright/test';
 
-export type MethodHandlers = Partial<Record<string, { status: number; body: unknown; callback?: (request: Request) => void | Promise<void> }>>;
+export type MethodHandlers = Partial<
+    Record<
+        string,
+        { status: number; body: unknown; callback?: (request: Request) => void | Promise<void> }
+    >
+>;
 
 export const mockApiResponse = <T>(page: Page, url: string | RegExp, status: number, body: T) => {
     return page.route(url, async (route) => {

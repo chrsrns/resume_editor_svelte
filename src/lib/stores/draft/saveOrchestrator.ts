@@ -177,7 +177,8 @@ async function processEducationSection(resumeId: number): Promise<{ errors: Sect
         keyPointDeletes.map((action) => deleteEducationKeyPoint(action.id))
     );
     for (const result of childDeleteResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Education key points'));
+        if (result.status === 'rejected')
+            errors.push(errorFromReason(result.reason, 'Education key points'));
     }
     education.commitBaseline();
 
@@ -250,7 +251,8 @@ async function processWorkSection(resumeId: number): Promise<{ errors: SectionEr
         keyPointDeletes.map((action) => deleteWorkExperienceKeyPoint(action.id))
     );
     for (const result of childDeleteResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Work key points'));
+        if (result.status === 'rejected')
+            errors.push(errorFromReason(result.reason, 'Work key points'));
     }
     work.commitBaseline();
 
@@ -326,7 +328,9 @@ async function processPortfolioSection(resumeId: number): Promise<{ errors: Sect
             errors.push(errorFromReason(result.reason, 'Portfolio technologies'));
         }
     }
-    portfolio.applySaveResults(new Map([...projectTempIdMap, ...keyPointTempIdMap, ...technologyTempIdMap]));
+    portfolio.applySaveResults(
+        new Map([...projectTempIdMap, ...keyPointTempIdMap, ...technologyTempIdMap])
+    );
     portfolio.commitBaseline();
 
     const updateResults = await Promise.allSettled([
@@ -417,7 +421,8 @@ async function processLanguagesSection(resumeId: number): Promise<{ errors: Sect
         frameworkDeletes.map((action) => deleteFramework(action.id))
     );
     for (const result of childDeleteResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Language frameworks'));
+        if (result.status === 'rejected')
+            errors.push(errorFromReason(result.reason, 'Language frameworks'));
     }
     languages.commitBaseline();
 

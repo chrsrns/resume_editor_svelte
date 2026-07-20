@@ -42,15 +42,30 @@ async function openEditPage(
     await mockApiResponse(page, '**/api/auth/me', 200, user);
     await mockApiResponse(page, `**/api/resume/${resumeId}`, 200, resume);
     await mockApiResponse(page, `**/api/resume/${resumeId}/skills`, 200, sections.skills ?? []);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/education`, 200, sections.education ?? []);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences`, 200, sections.work ?? []);
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/education`,
+        200,
+        sections.education ?? []
+    );
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/work_experiences`,
+        200,
+        sections.work ?? []
+    );
     await mockApiResponse(
         page,
         `**/api/resume/${resumeId}/portfolio_projects`,
         200,
         sections.portfolio ?? []
     );
-    await mockApiResponse(page, `**/api/resume/${resumeId}/languages`, 200, sections.languages ?? []);
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/languages`,
+        200,
+        sections.languages ?? []
+    );
 
     const url = tab
         ? `/resume_editor/resumes/${resumeId}/edit?tab=${tab}`
@@ -764,7 +779,10 @@ test('adding and immediately deleting a skill does not create it', async ({ page
     await page.getByRole('button', { name: 'Add', exact: true }).first().click();
 
     const panel = page.locator('#panel-skills');
-    await panel.getByRole('group', { name: 'Skill' }).getByRole('button', { name: 'Delete' }).click();
+    await panel
+        .getByRole('group', { name: 'Skill' })
+        .getByRole('button', { name: 'Delete' })
+        .click();
 
     await expect(panel.getByRole('group', { name: 'Skill' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeHidden();

@@ -1,5 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-import { mockApiResponse, mockApiFailure, setAuthToken } from './mocks';
+import { test, expect } from '@playwright/test';
+import { mockApiResponse, setAuthToken } from './mocks';
 
 const resumeId = 1;
 const resumeUrl = `**/api/resume/${resumeId}`;

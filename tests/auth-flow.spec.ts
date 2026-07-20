@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { mockApiResponse, setAuthToken } from './mocks';
+import { mockApiResponse } from './mocks';
 import type { Resume } from '$lib/types';
 
 async function waitForApp(page: Page) {

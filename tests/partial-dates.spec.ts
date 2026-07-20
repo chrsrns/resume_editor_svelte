@@ -48,7 +48,7 @@ async function openEditPage(page: Page) {
 test('education year-only saves start_date as YYYY', async ({ page }) => {
     await openEditPage(page);
 
-    let savedPayload: any;
+    let savedPayload: { start_date: string; end_date: string | null } | null = null;
     await mockApiMethods(page, `**/api/resume/${resumeId}/education`, {
         GET: { status: 200, body: [] },
         POST: {
@@ -67,7 +67,10 @@ test('education year-only saves start_date as YYYY', async ({ page }) => {
                 updated_at: ''
             },
             callback: (req) => {
-                savedPayload = req.postDataJSON();
+                savedPayload = req.postDataJSON() as {
+                    start_date: string;
+                    end_date: string | null;
+                } | null;
             }
         }
     });
@@ -81,14 +84,14 @@ test('education year-only saves start_date as YYYY', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
-    expect(savedPayload.start_date).toBe('2020');
-    expect(savedPayload.end_date).toBeNull();
+    expect(savedPayload?.start_date).toBe('2020');
+    expect(savedPayload?.end_date).toBeNull();
 });
 
 test('education month-year start and end save as YYYY-MM', async ({ page }) => {
     await openEditPage(page);
 
-    let savedPayload: any;
+    let savedPayload: { start_date: string; end_date: string | null } | null = null;
     await mockApiMethods(page, `**/api/resume/${resumeId}/education`, {
         GET: { status: 200, body: [] },
         POST: {
@@ -107,7 +110,10 @@ test('education month-year start and end save as YYYY-MM', async ({ page }) => {
                 updated_at: ''
             },
             callback: (req) => {
-                savedPayload = req.postDataJSON();
+                savedPayload = req.postDataJSON() as {
+                    start_date: string;
+                    end_date: string | null;
+                } | null;
             }
         }
     });
@@ -124,14 +130,14 @@ test('education month-year start and end save as YYYY-MM', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
-    expect(savedPayload.start_date).toBe('2020-09');
-    expect(savedPayload.end_date).toBe('2021-06');
+    expect(savedPayload?.start_date).toBe('2020-09');
+    expect(savedPayload?.end_date).toBe('2021-06');
 });
 
 test('education full-date clamps day when year changes to non-leap', async ({ page }) => {
     await openEditPage(page);
 
-    let savedPayload: any;
+    let savedPayload: { start_date: string; end_date: string | null } | null = null;
     await mockApiMethods(page, `**/api/resume/${resumeId}/education`, {
         GET: { status: 200, body: [] },
         POST: {
@@ -150,7 +156,10 @@ test('education full-date clamps day when year changes to non-leap', async ({ pa
                 updated_at: ''
             },
             callback: (req) => {
-                savedPayload = req.postDataJSON();
+                savedPayload = req.postDataJSON() as {
+                    start_date: string;
+                    end_date: string | null;
+                } | null;
             }
         }
     });
@@ -168,7 +177,7 @@ test('education full-date clamps day when year changes to non-leap', async ({ pa
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
-    expect(savedPayload.start_date).toBe('2021-02-28');
+    expect(savedPayload?.start_date).toBe('2021-02-28');
 });
 
 test('education invalid date range blocks save', async ({ page }) => {
@@ -190,7 +199,7 @@ test('education invalid date range blocks save', async ({ page }) => {
 test('work full-date and month-year round-trip', async ({ page }) => {
     await openEditPage(page);
 
-    let savedPayload: any;
+    let savedPayload: { start_date: string; end_date: string | null } | null = null;
     await mockApiMethods(page, `**/api/resume/${resumeId}/work_experiences`, {
         GET: { status: 200, body: [] },
         POST: {
@@ -208,7 +217,10 @@ test('work full-date and month-year round-trip', async ({ page }) => {
                 updated_at: ''
             },
             callback: (req) => {
-                savedPayload = req.postDataJSON();
+                savedPayload = req.postDataJSON() as {
+                    start_date: string;
+                    end_date: string | null;
+                } | null;
             }
         }
     });
@@ -226,8 +238,8 @@ test('work full-date and month-year round-trip', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
-    expect(savedPayload.start_date).toBe('2020-06-15');
-    expect(savedPayload.end_date).toBe('2021-03');
+    expect(savedPayload?.start_date).toBe('2020-06-15');
+    expect(savedPayload?.end_date).toBe('2021-03');
 });
 
 test('day select is disabled until month is chosen', async ({ page }) => {

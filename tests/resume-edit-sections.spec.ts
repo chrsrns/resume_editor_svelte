@@ -143,8 +143,14 @@ test('add education with key point and save', async ({ page }) => {
     await page.getByRole('button', { name: 'Add education', exact: true }).click();
 
     await page.getByRole('button', { name: 'Bachelor — Uni' }).click();
-    await page.getByRole('group', { name: 'Education' }).getByRole('textbox', { name: 'Add key point' }).fill("Dean's list");
-    await page.getByRole('group', { name: 'Education' }).getByRole('button', { name: 'Add', exact: true }).click();
+    await page
+        .getByRole('group', { name: 'Education' })
+        .getByRole('textbox', { name: 'Add key point' })
+        .fill("Dean's list");
+    await page
+        .getByRole('group', { name: 'Education' })
+        .getByRole('button', { name: 'Add', exact: true })
+        .click();
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
@@ -282,8 +288,14 @@ test('delete work and key point removes child before parent', async ({ page }) =
     await page.getByRole('button', { name: 'Add work experience', exact: true }).click();
 
     await page.getByRole('button', { name: 'Engineer — Co' }).click();
-    await page.getByRole('group', { name: 'Work experience' }).getByRole('textbox', { name: 'Add key point' }).fill('Shipped feature');
-    await page.getByRole('group', { name: 'Work experience' }).getByRole('button', { name: 'Add', exact: true }).click();
+    await page
+        .getByRole('group', { name: 'Work experience' })
+        .getByRole('textbox', { name: 'Add key point' })
+        .fill('Shipped feature');
+    await page
+        .getByRole('group', { name: 'Work experience' })
+        .getByRole('button', { name: 'Add', exact: true })
+        .click();
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
@@ -301,19 +313,30 @@ test('delete work and key point removes child before parent', async ({ page }) =
         DELETE: {
             status: 204,
             body: {},
-            callback: () => { deleteOrder.push('work'); }
+            callback: () => {
+                deleteOrder.push('work');
+            }
         }
     });
     await mockApiMethods(page, `**/api/work_experience_key_points/${keyPointId}`, {
         DELETE: {
             status: 204,
             body: {},
-            callback: () => { deleteOrder.push('keyPoint'); }
+            callback: () => {
+                deleteOrder.push('keyPoint');
+            }
         }
     });
 
-    await page.getByRole('group', { name: 'Work experience key point' }).getByRole('button', { name: 'Delete', exact: true }).click();
-    await page.getByRole('group', { name: 'Work experience' }).getByRole('button', { name: 'Delete', exact: true }).first().click();
+    await page
+        .getByRole('group', { name: 'Work experience key point' })
+        .getByRole('button', { name: 'Delete', exact: true })
+        .click();
+    await page
+        .getByRole('group', { name: 'Work experience' })
+        .getByRole('button', { name: 'Delete', exact: true })
+        .first()
+        .click();
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
