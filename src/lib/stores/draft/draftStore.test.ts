@@ -3,6 +3,7 @@ import {
     createDraftListStore,
     createChildGroupStore,
     createDraftItemStore,
+    createParentChildSection,
     type DraftListState,
     type ChildGroupState,
     type DraftItemState
@@ -525,5 +526,377 @@ describe('createDraftItemStore', () => {
 
         expect(store.getDraft().name).toBe('A');
         expect(store.isDirty()).toBe(false);
+    });
+});
+
+describe('createParentChildSection', () => {
+    type PostDraft = {
+        id: number;
+        title: string;
+        display_order: string;
+    };
+
+    type PostBaseline = {
+        id: number;
+        title: string;
+        display_order: number | null;
+        created_at: string;
+    };
+
+    type CommentDraft = {
+        id: number;
+        text: string;
+        display_order: string;
+    };
+
+    type CommentBaseline = {
+        id: number;
+        post_id: number;
+        text: string;
+        display_order: number | null;
+        created_at: string;
+    };
+
+    type TagDraft = {
+        id: number;
+        name: string;
+        display_order: string;
+    };
+
+    type TagBaseline = {
+        id: number;
+        post_id: number;
+        name: string;
+        display_order: number | null;
+        created_at: string;
+    };
+
+    function createParentStore() {
+        const state: DraftListState<PostDraft, PostBaseline> = {
+            drafts: [],
+            baseline: [],
+            saving: false,
+            error: null
+        };
+
+        return createDraftListStore<PostDraft, PostBaseline>(state, {
+            toDraft: (b) => ({
+                id: b.id,
+                title: b.title,
+                display_order: b.display_order == null ? '' : String(b.display_order)
+            }),
+            toBaseline: (d, existing, meta) => ({
+                id: d.id,
+                title: d.title.trim(),
+                display_order: toNumberOrNull(d.display_order),
+                created_at: existing?.created_at ?? meta?.created_at ?? ''
+            }),
+            normalizeDraft: (d) => ({ title: d.title.trim() }),
+            normalizeBaseline: (b) => ({ title: b.title }),
+            validate: (d) => {
+                if (!d.title.trim()) return 'Title is required';
+                return null;
+            },
+            buildCreatePayload: (d) => ({
+                title: d.title.trim(),
+                display_order: toNumberOrNull(d.display_order)
+            }),
+            buildUpdatePayload: (d, b) => {
+                const payload: Partial<PostBaseline> = {};
+                if (d.title.trim() !== b.title) payload.title = d.title.trim();
+                const order = toNumberOrNull(d.display_order);
+                if (order !== b.display_order) payload.display_order = order;
+                return payload;
+            },
+            actionType: { create: 'createPost', update: 'updatePost', delete: 'deletePost' }
+        });
+    }
+
+    function createCommentStore() {
+        const state: ChildGroupState<CommentDraft, CommentBaseline> = {
+            draftsMap: {},
+            baselineMap: {},
+            baseline: []
+        };
+
+        return createChildGroupStore<CommentDraft, CommentBaseline, 'postId'>(state, {
+            toDraft: (b) => ({
+                id: b.id,
+                text: b.text,
+                display_order: b.display_order == null ? '' : String(b.display_order)
+            }),
+            toBaseline: (d, postId, existing, meta) => ({
+                id: d.id,
+                post_id: postId,
+                text: d.text.trim(),
+                display_order: toNumberOrNull(d.display_order),
+                created_at: existing?.created_at ?? meta?.created_at ?? ''
+            }),
+            normalizeDraft: (d) => ({ text: d.text.trim() }),
+            normalizeBaseline: (b) => ({ text: b.text }),
+            validate: (d) => {
+                if (!d.text.trim()) return 'Text is required';
+                return null;
+            },
+            buildCreatePayload: (d) => ({
+                text: d.text.trim(),
+                display_order: toNumberOrNull(d.display_order)
+            }),
+            buildUpdatePayload: (d, b) => {
+                const payload: Partial<CommentBaseline> = {};
+                if (d.text.trim() !== b.text) payload.text = d.text.trim();
+                const order = toNumberOrNull(d.display_order);
+                if (order !== b.display_order) payload.display_order = order;
+                return payload;
+            },
+            actionType: { create: 'createComment', update: 'updateComment', delete: 'deleteComment' },
+            getParentId: (b) => b.post_id,
+            parentIdField: 'postId',
+            getMeta: (b) => ({ created_at: b.created_at })
+        });
+    }
+
+    function createTagStore() {
+        const state: ChildGroupState<TagDraft, TagBaseline> = {
+            draftsMap: {},
+            baselineMap: {},
+            baseline: []
+        };
+
+        return createChildGroupStore<TagDraft, TagBaseline, 'postId'>(state, {
+            toDraft: (b) => ({
+                id: b.id,
+                name: b.name,
+                display_order: b.display_order == null ? '' : String(b.display_order)
+            }),
+            toBaseline: (d, postId, existing, meta) => ({
+                id: d.id,
+                post_id: postId,
+                name: d.name.trim(),
+                display_order: toNumberOrNull(d.display_order),
+                created_at: existing?.created_at ?? meta?.created_at ?? ''
+            }),
+            normalizeDraft: (d) => ({ name: d.name.trim() }),
+            normalizeBaseline: (b) => ({ name: b.name }),
+            validate: (d) => {
+                if (!d.name.trim()) return 'Name is required';
+                return null;
+            },
+            buildCreatePayload: (d) => ({
+                name: d.name.trim(),
+                display_order: toNumberOrNull(d.display_order)
+            }),
+            buildUpdatePayload: (d, b) => {
+                const payload: Partial<TagBaseline> = {};
+                if (d.name.trim() !== b.name) payload.name = d.name.trim();
+                const order = toNumberOrNull(d.display_order);
+                if (order !== b.display_order) payload.display_order = order;
+                return payload;
+            },
+            actionType: { create: 'createTag', update: 'updateTag', delete: 'deleteTag' },
+            getParentId: (b) => b.post_id,
+            parentIdField: 'postId',
+            getMeta: (b) => ({ created_at: b.created_at })
+        });
+    }
+
+    function createSection() {
+        resetTempIdCounter();
+        const parentStore = createParentStore();
+        const commentStore = createCommentStore();
+        const tagStore = createTagStore();
+
+        const section = createParentChildSection(parentStore, {
+            comments: { label: 'Comment', store: commentStore },
+            tags: { label: 'Tag', store: tagStore }
+        }, 'Post');
+
+        return { parentStore, commentStore, tagStore, section };
+    }
+
+    it('initializes parent and children grouped by parent', () => {
+        const { section } = createSection();
+        section.initialize(
+            [
+                { id: 1, title: 'A', display_order: 1, created_at: '' },
+                { id: 2, title: 'B', display_order: 2, created_at: '' }
+            ],
+            {
+                comments: [
+                    { id: 10, post_id: 1, text: 'c1', display_order: 1, created_at: '' },
+                    { id: 11, post_id: 2, text: 'c2', display_order: 1, created_at: '' }
+                ],
+                tags: []
+            }
+        );
+
+        expect(section.getVisibleDrafts()).toHaveLength(2);
+        expect(section.children.comments.getVisibleChildren(1)).toHaveLength(1);
+        expect(section.children.comments.getVisibleChildren(2)).toHaveLength(1);
+        expect(section.children.tags.getVisibleChildren(1)).toHaveLength(0);
+    });
+
+    it('addParent adds child groups for all children', () => {
+        const { section } = createSection();
+        section.initialize([], { comments: [], tags: [] });
+
+        const id = section.addParent({ title: 'New' });
+
+        expect(section.getVisibleDrafts()).toHaveLength(1);
+        expect(section.children.comments.getChildren(id)).toHaveLength(0);
+        expect(section.children.tags.getChildren(id)).toHaveLength(0);
+
+        section.children.comments.addChild(id, { text: 'Comment' });
+        section.children.tags.addChild(id, { name: 'Tag' });
+
+        expect(section.children.comments.getVisibleChildren(id)).toHaveLength(1);
+        expect(section.children.tags.getVisibleChildren(id)).toHaveLength(1);
+    });
+
+    it('removeParent for temp id removes child groups', () => {
+        const { section } = createSection();
+        section.initialize([], { comments: [], tags: [] });
+
+        const id = section.addParent({ title: 'Temp' });
+        section.children.comments.addChild(id, { text: 'c' });
+        section.children.tags.addChild(id, { name: 't' });
+        section.removeParent(id);
+
+        expect(section.getVisibleDrafts()).toHaveLength(0);
+        expect(section.children.comments.getVisibleChildren(id)).toHaveLength(0);
+        expect(section.children.tags.getVisibleChildren(id)).toHaveLength(0);
+        expect(section.isDirty()).toBe(false);
+    });
+
+    it('removeParent for real id marks all existing children deleted', () => {
+        const { section } = createSection();
+        section.initialize(
+            [{ id: 1, title: 'A', display_order: 1, created_at: '' }],
+            {
+                comments: [{ id: 10, post_id: 1, text: 'c', display_order: 1, created_at: '' }],
+                tags: [{ id: 20, post_id: 1, name: 't', display_order: 1, created_at: '' }]
+            }
+        );
+
+        section.removeParent(1);
+
+        expect(section.getVisibleDrafts()).toHaveLength(0);
+        expect(section.children.comments.getVisibleChildren(1)).toHaveLength(0);
+        expect(section.children.tags.getVisibleChildren(1)).toHaveLength(0);
+
+        const actions = section.computeDiff();
+        expect(actions).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ type: 'deleteComment', id: 10 }),
+                expect.objectContaining({ type: 'deleteTag', id: 20 }),
+                expect.objectContaining({ type: 'deletePost', id: 1 })
+            ])
+        );
+    });
+
+    it('validateAll and getValidationErrors aggregate parent and children with labels', () => {
+        const { section } = createSection();
+        section.initialize([], { comments: [], tags: [] });
+
+        const id = section.addParent({ title: '' });
+        section.children.comments.addChild(id, { text: '' });
+
+        expect(section.validateAll()).toBe(false);
+
+        const errors = section.getValidationErrors();
+        expect(errors).toContain('Post: Title is required');
+        expect(errors).toContain('Comment: Text is required');
+    });
+
+    it('isDirty aggregates parent and child state', () => {
+        const { section } = createSection();
+        section.initialize([{ id: 1, title: 'A', display_order: 1, created_at: '' }], { comments: [], tags: [] });
+
+        expect(section.isDirty()).toBe(false);
+        section.updateParent(1, { title: 'B' });
+        expect(section.isDirty()).toBe(true);
+
+        section.resetToBaseline();
+        expect(section.isDirty()).toBe(false);
+
+        section.children.comments.addChild(1, { text: 'c' });
+        expect(section.isDirty()).toBe(true);
+    });
+
+    it('applySaveResults remaps parent and child temp ids', () => {
+        const { section } = createSection();
+        section.initialize([], { comments: [], tags: [] });
+
+        const parentId = section.addParent({ title: 'New' });
+        section.children.comments.addChild(parentId, { text: 'c' });
+
+        section.applySaveResults(new Map([
+            [parentId, 100],
+            [-2, 50]
+        ]));
+
+        expect(section.getVisibleDrafts()[0].id).toBe(100);
+        expect(section.children.comments.getVisibleChildren(100)).toHaveLength(1);
+        expect(section.children.comments.getVisibleChildren(100)[0].id).toBe(50);
+    });
+
+    it('commitBaseline updates baseline for parent and children', () => {
+        const { section } = createSection();
+        section.initialize([], { comments: [], tags: [] });
+
+        const parentId = section.addParent({ title: 'New' });
+        section.children.comments.addChild(parentId, { text: 'c' });
+
+        section.applySaveResults(new Map([
+            [parentId, 100],
+            [-2, 50]
+        ]));
+        section.commitBaseline();
+
+        expect(section.isDirty()).toBe(false);
+        expect(section.getBaseline()[0].id).toBe(100);
+        expect(section.children.comments.getBaseline()[0].post_id).toBe(100);
+    });
+
+    it('computeDiff includes parent and child actions with parentIdField', () => {
+        const { section } = createSection();
+        section.initialize([], { comments: [], tags: [] });
+
+        const parentId = section.addParent({ title: 'New' });
+        section.children.comments.addChild(parentId, { text: 'c' });
+
+        const actions = section.computeDiff();
+        expect(actions).toHaveLength(2);
+        expect(actions).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ type: 'createPost', tempId: -1 }),
+                expect.objectContaining({
+                    type: 'createComment',
+                    postId: -1,
+                    tempId: -2,
+                    payload: { text: 'c', display_order: null }
+                })
+            ])
+        );
+    });
+
+    it('resetToBaseline restores parent and children', () => {
+        const { section } = createSection();
+        section.initialize(
+            [{ id: 1, title: 'A', display_order: 1, created_at: '' }],
+            {
+                comments: [{ id: 10, post_id: 1, text: 'c', display_order: 1, created_at: '' }],
+                tags: []
+            }
+        );
+
+        section.updateParent(1, { title: 'B' });
+        section.children.comments.updateChild(10, { text: 'updated' });
+
+        section.resetToBaseline();
+
+        expect(section.getVisibleDrafts()[0].title).toBe('A');
+        expect(section.children.comments.getVisibleChildren(1)[0].text).toBe('c');
+        expect(section.isDirty()).toBe(false);
     });
 });

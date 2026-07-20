@@ -30,8 +30,11 @@ export type {
     ChildGroupState,
     DraftItemStore,
     DraftItemStoreConfig,
-    DraftItemState
+    DraftItemState,
+    ParentChildSection
 } from './draftStore';
+
+export { createParentChildSection } from './draftStore';
 
 export function createDraftListStore<
     TDraft extends { id: number; display_order: string },

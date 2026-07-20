@@ -760,6 +760,230 @@ export function createChildGroupStore<
     };
 }
 
+export interface ParentChildSection<
+    TPDraft extends { id: number; display_order: string },
+    TPBaseline extends { id: number; display_order: number | null },
+    TChildren extends Record<string, { label: string; store: ChildGroupStore<any, any> }>
+> {
+    parent: DraftListStore<TPDraft, TPBaseline>;
+    children: { [K in keyof TChildren]: TChildren[K]['store'] };
+    getDrafts(): DraftItem<TPDraft>[];
+    getVisibleDrafts(): DraftItem<TPDraft>[];
+    getBaseline(): TPBaseline[];
+    initialize(
+        parentData: TPBaseline[],
+        childrenData: {
+            [K in keyof TChildren]: TChildren[K] extends { store: ChildGroupStore<any, infer TB> }
+                ? TB[]
+                : never;
+        }
+    ): void;
+    addParent(draft: Omit<TPDraft, 'id' | 'display_order'>): number;
+    updateParent(id: number, partial: Partial<TPDraft>): void;
+    removeParent(id: number): void;
+    reorderParents(fromId: number, toId: number): void;
+    validateParent(id: number): boolean;
+    validateAll(): boolean;
+    getValidationErrors(): string[];
+    isDirty(): boolean;
+    resetToBaseline(): void;
+    applySaveResults(tempIdMap: Map<number, number>): void;
+    commitBaseline(): void;
+    computeDiff(): DraftAction[];
+    getSaving(): boolean;
+    setSaving(value: boolean): void;
+    getError(): string | null;
+    setError(value: string | null): void;
+}
+
+export function createParentChildSection<
+    TPDraft extends { id: number; display_order: string },
+    TPBaseline extends { id: number; display_order: number | null },
+    TChildren extends Record<string, { label: string; store: ChildGroupStore<any, any> }>
+>(
+    parentStore: DraftListStore<TPDraft, TPBaseline>,
+    children: TChildren,
+    parentLabel: string
+): ParentChildSection<TPDraft, TPBaseline, TChildren> {
+    function getChildStores(): ChildGroupStore<any, any>[] {
+        return (Object.values(children) as { label: string; store: ChildGroupStore<any, any> }[]).map(
+            (c) => c.store
+        );
+    }
+
+    function initialize(
+        parentData: TPBaseline[],
+        childrenData: {
+            [K in keyof TChildren]: TChildren[K] extends { store: ChildGroupStore<any, infer TB> }
+                ? TB[]
+                : never;
+        }
+    ): void {
+        parentStore.initialize(parentData);
+        const dataMap = childrenData as unknown as Record<string, unknown[]>;
+        for (const [key, child] of Object.entries(children) as [
+            string,
+            { label: string; store: ChildGroupStore<any, any> }
+        ][]) {
+            const data = dataMap[key] ?? [];
+            child.store.initialize(data as any);
+        }
+    }
+
+    function getDrafts(): DraftItem<TPDraft>[] {
+        return parentStore.getDrafts();
+    }
+
+    function getVisibleDrafts(): DraftItem<TPDraft>[] {
+        return parentStore.getVisibleDrafts();
+    }
+
+    function getBaseline(): TPBaseline[] {
+        return parentStore.getBaseline();
+    }
+
+    function addParent(draft: Omit<TPDraft, 'id' | 'display_order'>): number {
+        const id = parentStore.add(draft);
+        for (const child of getChildStores()) {
+            child.addGroup(id);
+        }
+        return id;
+    }
+
+    function removeParent(id: number): void {
+        parentStore.remove(id);
+        for (const child of getChildStores()) {
+            if (id < 0) {
+                child.removeGroup(id);
+            } else {
+                child.removeAllInGroup(id);
+            }
+        }
+    }
+
+    function updateParent(id: number, partial: Partial<TPDraft>): void {
+        parentStore.update(id, partial);
+    }
+
+    function reorderParents(fromId: number, toId: number): void {
+        parentStore.reorder(fromId, toId);
+    }
+
+    function validateParent(id: number): boolean {
+        return parentStore.validate(id);
+    }
+
+    function validateAll(): boolean {
+        let valid = parentStore.validateAll();
+        for (const child of getChildStores()) {
+            if (!child.validateAll()) {
+                valid = false;
+            }
+        }
+        return valid;
+    }
+
+    function getValidationErrors(): string[] {
+        const errors: string[] = [];
+        for (const error of parentStore.getValidationErrors()) {
+            errors.push(`${parentLabel}: ${error}`);
+        }
+        for (const { label, store } of Object.values(children) as {
+            label: string;
+            store: ChildGroupStore<any, any>;
+        }[]) {
+            for (const error of store.getValidationErrors()) {
+                errors.push(`${label}: ${error}`);
+            }
+        }
+        return errors;
+    }
+
+    function isDirty(): boolean {
+        if (parentStore.isDirty()) return true;
+        for (const child of getChildStores()) {
+            if (child.isDirty()) return true;
+        }
+        return false;
+    }
+
+    function resetToBaseline(): void {
+        parentStore.resetToBaseline();
+        for (const child of getChildStores()) {
+            child.resetToBaseline();
+        }
+    }
+
+    function applySaveResults(tempIdMap: Map<number, number>): void {
+        parentStore.applySaveResults(tempIdMap);
+        for (const child of getChildStores()) {
+            child.applySaveResults(tempIdMap);
+        }
+    }
+
+    function commitBaseline(): void {
+        parentStore.commitBaseline();
+        for (const child of getChildStores()) {
+            child.commitBaseline();
+        }
+    }
+
+    function computeDiff(): DraftAction[] {
+        const actions: DraftAction[] = [];
+        actions.push(...parentStore.computeDiff());
+        for (const child of getChildStores()) {
+            actions.push(...child.computeDiff());
+        }
+        return actions;
+    }
+
+    function getSaving(): boolean {
+        return parentStore.getSaving();
+    }
+
+    function setSaving(value: boolean): void {
+        parentStore.setSaving(value);
+    }
+
+    function getError(): string | null {
+        return parentStore.getError();
+    }
+
+    function setError(value: string | null): void {
+        parentStore.setError(value);
+    }
+
+    const childStores = {} as { [K in keyof TChildren]: TChildren[K]['store'] };
+    for (const key of Object.keys(children)) {
+        (childStores as any)[key] = (children as any)[key].store;
+    }
+
+    return {
+        parent: parentStore,
+        children: childStores,
+        getDrafts,
+        getVisibleDrafts,
+        getBaseline,
+        initialize,
+        addParent,
+        updateParent,
+        removeParent,
+        reorderParents,
+        validateParent,
+        validateAll,
+        getValidationErrors,
+        isDirty,
+        resetToBaseline,
+        applySaveResults,
+        commitBaseline,
+        computeDiff,
+        getSaving,
+        setSaving,
+        getError,
+        setError
+    };
+}
+
 export interface DraftItemState<TDraft extends { id: number }, TBaseline extends { id: number }> {
     draft: DraftItem<TDraft> | null;
     baseline: TBaseline | null;
