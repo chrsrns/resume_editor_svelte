@@ -13,7 +13,11 @@ import type {
     UpdateEducationKeyPointRequest
 } from '$lib/types';
 import { parsePartialDate, validatePartialDate, isPartialDateRangeValid } from '$lib/types';
-import { createDraftListStore, createChildGroupStore, createParentChildSection } from './draftStore.svelte';
+import {
+    createDraftListStore,
+    createChildGroupStore,
+    createParentChildSection
+} from './draftStore.svelte';
 import { toNumberOrNull, toNullable } from './shared';
 
 type EducationDraft = {
@@ -204,9 +208,13 @@ const keyPointsStore = createChildGroupStore<KeyPointDraft, EducationKeyPoint, '
     getMeta: (kp) => ({ created_at: kp.created_at })
 });
 
-const section = createParentChildSection(educationStore, {
-    keyPoints: { label: 'Key point', store: keyPointsStore }
-}, 'Education');
+const section = createParentChildSection(
+    educationStore,
+    {
+        keyPoints: { label: 'Key point', store: keyPointsStore }
+    },
+    'Education'
+);
 
 export const initialize = (educations: Education[], keyPoints: EducationKeyPoint[]): void =>
     section.initialize(educations, { keyPoints });

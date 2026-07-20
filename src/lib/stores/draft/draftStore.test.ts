@@ -649,7 +649,11 @@ describe('createParentChildSection', () => {
                 if (order !== b.display_order) payload.display_order = order;
                 return payload;
             },
-            actionType: { create: 'createComment', update: 'updateComment', delete: 'deleteComment' },
+            actionType: {
+                create: 'createComment',
+                update: 'updateComment',
+                delete: 'deleteComment'
+            },
             getParentId: (b) => b.post_id,
             parentIdField: 'postId',
             getMeta: (b) => ({ created_at: b.created_at })
@@ -706,10 +710,14 @@ describe('createParentChildSection', () => {
         const commentStore = createCommentStore();
         const tagStore = createTagStore();
 
-        const section = createParentChildSection(parentStore, {
-            comments: { label: 'Comment', store: commentStore },
-            tags: { label: 'Tag', store: tagStore }
-        }, 'Post');
+        const section = createParentChildSection(
+            parentStore,
+            {
+                comments: { label: 'Comment', store: commentStore },
+                tags: { label: 'Tag', store: tagStore }
+            },
+            'Post'
+        );
 
         return { parentStore, commentStore, tagStore, section };
     }
@@ -770,13 +778,10 @@ describe('createParentChildSection', () => {
 
     it('removeParent for real id marks all existing children deleted', () => {
         const { section } = createSection();
-        section.initialize(
-            [{ id: 1, title: 'A', display_order: 1, created_at: '' }],
-            {
-                comments: [{ id: 10, post_id: 1, text: 'c', display_order: 1, created_at: '' }],
-                tags: [{ id: 20, post_id: 1, name: 't', display_order: 1, created_at: '' }]
-            }
-        );
+        section.initialize([{ id: 1, title: 'A', display_order: 1, created_at: '' }], {
+            comments: [{ id: 10, post_id: 1, text: 'c', display_order: 1, created_at: '' }],
+            tags: [{ id: 20, post_id: 1, name: 't', display_order: 1, created_at: '' }]
+        });
 
         section.removeParent(1);
 
@@ -810,7 +815,10 @@ describe('createParentChildSection', () => {
 
     it('isDirty aggregates parent and child state', () => {
         const { section } = createSection();
-        section.initialize([{ id: 1, title: 'A', display_order: 1, created_at: '' }], { comments: [], tags: [] });
+        section.initialize([{ id: 1, title: 'A', display_order: 1, created_at: '' }], {
+            comments: [],
+            tags: []
+        });
 
         expect(section.isDirty()).toBe(false);
         section.updateParent(1, { title: 'B' });
@@ -830,10 +838,12 @@ describe('createParentChildSection', () => {
         const parentId = section.addParent({ title: 'New' });
         section.children.comments.addChild(parentId, { text: 'c' });
 
-        section.applySaveResults(new Map([
-            [parentId, 100],
-            [-2, 50]
-        ]));
+        section.applySaveResults(
+            new Map([
+                [parentId, 100],
+                [-2, 50]
+            ])
+        );
 
         expect(section.getVisibleDrafts()[0].id).toBe(100);
         expect(section.children.comments.getVisibleChildren(100)).toHaveLength(1);
@@ -847,10 +857,12 @@ describe('createParentChildSection', () => {
         const parentId = section.addParent({ title: 'New' });
         section.children.comments.addChild(parentId, { text: 'c' });
 
-        section.applySaveResults(new Map([
-            [parentId, 100],
-            [-2, 50]
-        ]));
+        section.applySaveResults(
+            new Map([
+                [parentId, 100],
+                [-2, 50]
+            ])
+        );
         section.commitBaseline();
 
         expect(section.isDirty()).toBe(false);
@@ -882,13 +894,10 @@ describe('createParentChildSection', () => {
 
     it('resetToBaseline restores parent and children', () => {
         const { section } = createSection();
-        section.initialize(
-            [{ id: 1, title: 'A', display_order: 1, created_at: '' }],
-            {
-                comments: [{ id: 10, post_id: 1, text: 'c', display_order: 1, created_at: '' }],
-                tags: []
-            }
-        );
+        section.initialize([{ id: 1, title: 'A', display_order: 1, created_at: '' }], {
+            comments: [{ id: 10, post_id: 1, text: 'c', display_order: 1, created_at: '' }],
+            tags: []
+        });
 
         section.updateParent(1, { title: 'B' });
         section.children.comments.updateChild(10, { text: 'updated' });

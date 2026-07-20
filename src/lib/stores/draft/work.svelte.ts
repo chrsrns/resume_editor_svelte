@@ -13,7 +13,11 @@ import type {
     UpdateWorkExperienceKeyPointRequest
 } from '$lib/types';
 import { parsePartialDate, validatePartialDate, isPartialDateRangeValid } from '$lib/types';
-import { createDraftListStore, createChildGroupStore, createParentChildSection } from './draftStore.svelte';
+import {
+    createDraftListStore,
+    createChildGroupStore,
+    createParentChildSection
+} from './draftStore.svelte';
 import { toNumberOrNull, toNullable } from './shared';
 
 type WorkDraft = {
@@ -192,9 +196,13 @@ const keyPointsStore = createChildGroupStore<KeyPointDraft, WorkExperienceKeyPoi
     getMeta: (kp) => ({ created_at: kp.created_at })
 });
 
-const section = createParentChildSection(workStore, {
-    keyPoints: { label: 'Key point', store: keyPointsStore }
-}, 'Work experience');
+const section = createParentChildSection(
+    workStore,
+    {
+        keyPoints: { label: 'Key point', store: keyPointsStore }
+    },
+    'Work experience'
+);
 
 export const initialize = (works: WorkExperience[], keyPoints: WorkExperienceKeyPoint[]): void =>
     section.initialize(works, { keyPoints });

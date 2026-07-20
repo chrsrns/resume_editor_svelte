@@ -12,7 +12,11 @@ import type {
     NewFrameworkRequest,
     UpdateFrameworkRequest
 } from '$lib/types';
-import { createDraftListStore, createChildGroupStore, createParentChildSection } from './draftStore.svelte';
+import {
+    createDraftListStore,
+    createChildGroupStore,
+    createParentChildSection
+} from './draftStore.svelte';
 import { toNumberOrNull } from './shared';
 
 type LanguageDraft = {
@@ -113,9 +117,13 @@ const frameworksStore = createChildGroupStore<FrameworkDraft, Framework, 'langua
     getMeta: (f) => ({ created_at: f.created_at })
 });
 
-const section = createParentChildSection(languagesStore, {
-    frameworks: { label: 'Framework', store: frameworksStore }
-}, 'Language');
+const section = createParentChildSection(
+    languagesStore,
+    {
+        frameworks: { label: 'Framework', store: frameworksStore }
+    },
+    'Language'
+);
 
 export const initialize = (languages: Language[], frameworks: Framework[]): void =>
     section.initialize(languages, { frameworks });

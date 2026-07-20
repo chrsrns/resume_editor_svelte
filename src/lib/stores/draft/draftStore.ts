@@ -806,9 +806,9 @@ export function createParentChildSection<
     parentLabel: string
 ): ParentChildSection<TPDraft, TPBaseline, TChildren> {
     function getChildStores(): ChildGroupStore<any, any>[] {
-        return (Object.values(children) as { label: string; store: ChildGroupStore<any, any> }[]).map(
-            (c) => c.store
-        );
+        return (
+            Object.values(children) as { label: string; store: ChildGroupStore<any, any> }[]
+        ).map((c) => c.store);
     }
 
     function initialize(

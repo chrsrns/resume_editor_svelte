@@ -15,7 +15,11 @@ import type {
     NewPortfolioTechnologyRequest,
     UpdatePortfolioTechnologyRequest
 } from '$lib/types';
-import { createDraftListStore, createChildGroupStore, createParentChildSection } from './draftStore.svelte';
+import {
+    createDraftListStore,
+    createChildGroupStore,
+    createParentChildSection
+} from './draftStore.svelte';
 import { toNumberOrNull, toNullable } from './shared';
 
 type ProjectDraft = {
@@ -230,10 +234,14 @@ const technologiesStore = createChildGroupStore<TechnologyDraft, PortfolioTechno
     getMeta: (t) => ({ created_at: t.created_at })
 });
 
-const section = createParentChildSection(projectsStore, {
-    keyPoints: { label: 'Key point', store: keyPointsStore },
-    technologies: { label: 'Technology', store: technologiesStore }
-}, 'Project');
+const section = createParentChildSection(
+    projectsStore,
+    {
+        keyPoints: { label: 'Key point', store: keyPointsStore },
+        technologies: { label: 'Technology', store: technologiesStore }
+    },
+    'Project'
+);
 
 export const initialize = (
     projects: PortfolioProject[],
