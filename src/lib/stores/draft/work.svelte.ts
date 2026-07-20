@@ -1,8 +1,7 @@
 /**
  * Draft module for work experience with nested key points.
  *
- * This is now a thin composition layer over `createDraftListStore` (work)
- * and `createChildGroupStore` (key points).
+ * Thin config + alias layer over `createParentChildSection`.
  */
 
 import type {
@@ -14,7 +13,7 @@ import type {
     UpdateWorkExperienceKeyPointRequest
 } from '$lib/types';
 import { parsePartialDate, validatePartialDate, isPartialDateRangeValid } from '$lib/types';
-import { createDraftListStore, createChildGroupStore } from './draftStore.svelte';
+import { createDraftListStore, createChildGroupStore, createParentChildSection } from './draftStore.svelte';
 import { toNumberOrNull, toNullable } from './shared';
 
 type WorkDraft = {
@@ -193,79 +192,34 @@ const keyPointsStore = createChildGroupStore<KeyPointDraft, WorkExperienceKeyPoi
     getMeta: (kp) => ({ created_at: kp.created_at })
 });
 
-export function initialize(works: WorkExperience[], keyPoints: WorkExperienceKeyPoint[]): void {
-    workStore.initialize(works);
-    keyPointsStore.initialize(keyPoints);
-}
+const section = createParentChildSection(workStore, {
+    keyPoints: { label: 'Key point', store: keyPointsStore }
+}, 'Work experience');
+
+export const initialize = (works: WorkExperience[], keyPoints: WorkExperienceKeyPoint[]): void =>
+    section.initialize(works, { keyPoints });
 
 export const getDrafts = workStore.getDrafts;
 export const getVisibleDrafts = workStore.getVisibleDrafts;
 export const getBaseline = workStore.getBaseline;
 export const getBaselineKeyPoints = keyPointsStore.getBaseline;
 
-export function addWork(draft: Omit<WorkDraft, 'id' | 'display_order'>): void {
-    const id = workStore.add(draft);
-    keyPointsStore.addGroup(id);
-}
-
+export const addWork = section.addParent;
 export const updateWork = workStore.update;
-
-export function removeWork(id: number): void {
-    workStore.remove(id);
-    if (id < 0) {
-        keyPointsStore.removeGroup(id);
-    } else {
-        keyPointsStore.removeAllInGroup(id);
-    }
-}
-
+export const removeWork = section.removeParent;
 export const reorder = workStore.reorder;
 
-export function validateWork(id: number): boolean {
-    return workStore.validate(id);
-}
+export const validateWork = workStore.validate;
+export const validateKeyPoint = keyPointsStore.validateChild;
 
-export function validateKeyPoint(id: number): boolean {
-    return keyPointsStore.validateChild(id);
-}
+export const validateAll = section.validateAll;
+export const getValidationErrors = section.getValidationErrors;
+export const isDirty = section.isDirty;
+export const resetToBaseline = section.resetToBaseline;
+export const applySaveResults = section.applySaveResults;
+export const commitBaseline = section.commitBaseline;
 
-export function validateAll(): boolean {
-    return workStore.validateAll() && keyPointsStore.validateAll();
-}
-
-export function getValidationErrors(): string[] {
-    return [
-        ...workStore.getValidationErrors().map((e) => `Work experience: ${e}`),
-        ...keyPointsStore.getValidationErrors().map((e) => `Key point: ${e}`)
-    ];
-}
-
-export function isDirty(): boolean {
-    return workStore.isDirty() || keyPointsStore.isDirty();
-}
-
-export function resetToBaseline(): void {
-    workStore.resetToBaseline();
-    keyPointsStore.resetToBaseline();
-}
-
-export function applySaveResults(tempIdMap: Map<number, number>): void {
-    workStore.applySaveResults(tempIdMap);
-    keyPointsStore.applySaveResults(tempIdMap);
-}
-
-export function commitBaseline(): void {
-    workStore.commitBaseline();
-    keyPointsStore.commitBaseline();
-}
-
-export function addKeyPoint(
-    workId: number,
-    draft: Omit<KeyPointDraft, 'id' | 'display_order'>
-): void {
-    keyPointsStore.addChild(workId, draft);
-}
-
+export const addKeyPoint = keyPointsStore.addChild;
 export const updateKeyPoint = keyPointsStore.updateChild;
 export const removeKeyPoint = keyPointsStore.removeChild;
 export const reorderKeyPoints = keyPointsStore.reorderChildren;
@@ -279,5 +233,5 @@ export const getError = workStore.getError;
 export const setError = workStore.setError;
 
 export function computeDiff(): WorkAction[] {
-    return [...workStore.computeDiff(), ...keyPointsStore.computeDiff()] as unknown as WorkAction[];
+    return section.computeDiff() as unknown as WorkAction[];
 }
