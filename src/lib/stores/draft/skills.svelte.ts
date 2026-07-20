@@ -1,26 +1,13 @@
 /**
  * Draft module for skills.
  *
- * This module manages the draft state for the skills section,
- * which is a flat list of skill items with confidence percentages.
+ * This is now a thin configuration layer over `createDraftListStore`.
  */
 
 import type { Skill, NewSkillRequest, UpdateSkillRequest } from '$lib/types';
-import {
-    type DraftItem,
-    type DraftStatus,
-    generateTempId,
-    computeSignature,
-    setValidationError,
-    toNumberOrNull
-} from './shared';
-import { byDisplayOrder } from '$lib/components/sections/shared/displayOrderReorder';
+import { createDraftListStore } from './draftStore.svelte';
+import { toNumberOrNull } from './shared';
 
-/**
- * Draft data shape for a skill.
- * All fields are strings for easier form binding.
- * The id field is included for tracking.
- */
 type SkillDraft = {
     id: number;
     skill_name: string;
@@ -28,359 +15,84 @@ type SkillDraft = {
     display_order: string;
 };
 
-/**
- * Baseline data shape (matches server response).
- */
-type BaselineSkill = Skill;
-
-/**
- * Action type for save orchestrator.
- */
 export type SkillAction =
     | { type: 'create'; tempId: number; payload: NewSkillRequest }
     | { type: 'update'; id: number; payload: UpdateSkillRequest }
     | { type: 'delete'; id: number };
 
-/**
- * Result of a save operation.
- */
-export type SkillActionResult = {
-    action: SkillAction;
-    success: boolean;
-    realId?: number;
-    error?: string;
-};
-
-// State
-let baselineSkills: BaselineSkill[] = [];
-let drafts = $state<DraftItem<SkillDraft>[]>([]);
-let saving = $state(false);
-let error = $state<string | null>(null);
-
-/**
- * Initialize the draft module with server data.
- *
- * @param skills - The skills data from the server
- */
-export function initialize(skills: Skill[]): void {
-    baselineSkills = [...skills];
-    drafts = skills.sort(byDisplayOrder).map((s) => ({
+const store = createDraftListStore<SkillDraft, Skill>({
+    toDraft: (s) => ({
         id: s.id,
-        _status: 'existing',
         skill_name: s.skill_name,
         confidence_percentage: String(s.confidence_percentage),
         display_order: s.display_order == null ? '' : String(s.display_order)
-    }));
-}
-
-/**
- * Get all draft items (including deleted ones).
- */
-export function getDrafts(): DraftItem<SkillDraft>[] {
-    return drafts;
-}
-
-/**
- * Get visible draft items (excluding deleted ones).
- */
-export function getVisibleDrafts(): DraftItem<SkillDraft>[] {
-    return drafts.filter((d) => d._status !== 'deleted');
-}
-
-/**
- * Get the baseline server data.
- */
-export function getBaseline(): BaselineSkill[] {
-    return baselineSkills;
-}
-
-/**
- * Add a new skill draft.
- *
- * @param draft - The skill data (without id and display_order)
- */
-export function add(draft: Omit<SkillDraft, 'id' | 'display_order'>): void {
-    // Calculate next display order (max existing + 10, or 10 if none exist)
-    const maxOrder = drafts
-        .filter((d) => d._status !== 'deleted')
-        .reduce((max, d) => {
-            const order = toNumberOrNull(d.display_order) ?? 0;
-            return order > max ? order : max;
-        }, 0);
-    const nextOrder = String(maxOrder + 10);
-    const nextId = generateTempId();
-
-    drafts = [
-        ...drafts,
-        {
-            id: nextId,
-            _status: 'new',
-            ...draft,
-            display_order: nextOrder
+    }),
+    toBaseline: (d, existing, meta) => ({
+        id: d.id,
+        resume_id: existing?.resume_id ?? meta?.resume_id ?? 0,
+        skill_name: d.skill_name.trim(),
+        confidence_percentage: Number(d.confidence_percentage),
+        display_order: toNumberOrNull(d.display_order),
+        created_at: existing?.created_at ?? meta?.created_at ?? ''
+    }),
+    normalizeDraft: (d) => ({
+        skill_name: d.skill_name.trim(),
+        confidence_percentage: Number(d.confidence_percentage)
+    }),
+    normalizeBaseline: (b) => ({
+        skill_name: b.skill_name,
+        confidence_percentage: b.confidence_percentage
+    }),
+    validate: (d) => {
+        if (!d.skill_name.trim()) return 'Skill name is required';
+        if (d.confidence_percentage.trim() === '') return 'Confidence is required';
+        const confidence = Number(d.confidence_percentage);
+        if (Number.isNaN(confidence) || confidence < 0 || confidence > 100) {
+            return 'Confidence must be 0–100';
         }
-    ];
-
-    validate(nextId);
-}
-
-/**
- * Update an existing skill draft.
- *
- * @param id - The skill ID (real or temp)
- * @param partial - Partial data to update
- */
-export function update(id: number, partial: Partial<SkillDraft>): void {
-    drafts = drafts.map((d) => (d.id === id ? { ...d, ...partial } : d));
-}
-
-/**
- * Remove a skill draft (marks as deleted).
- *
- * @param id - The skill ID (real or temp)
- */
-export function remove(id: number): void {
-    drafts = drafts.map((d) => (d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d));
-}
-
-/**
- * Reorder skills locally.
- *
- * @param fromId - The ID of the item to move
- * @param toId - The ID of the target position
- */
-export function reorder(fromId: number, toId: number): void {
-    const visible = getVisibleDrafts();
-    const fromIndex = visible.findIndex((d) => d.id === fromId);
-    const toIndex = visible.findIndex((d) => d.id === toId);
-    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
-        return;
-    }
-
-    const reordered = [...visible];
-    const [item] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, item);
-
-    // Update display_order based on new positions
-    const updated = reordered.map((d, i) => ({
-        ...d,
-        display_order: String((i + 1) * 10)
-    }));
-
-    // Merge back with deleted items
-    const deleted = drafts.filter((d) => d._status === 'deleted');
-    drafts = [...updated, ...deleted];
-}
-
-/**
- * Validate a specific skill draft.
- *
- * @param id - The skill ID to validate
- * @returns true if valid, false otherwise
- */
-export function validate(id: number): boolean {
-    const draft = drafts.find((d) => d.id === id);
-    if (!draft) return false;
-
-    let valid = true;
-
-    if (!draft.skill_name.trim()) {
-        drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, 'Skill name is required') : d
-        );
-        valid = false;
-    }
-
-    if (draft.confidence_percentage.trim() === '') {
-        drafts = drafts.map((d) =>
-            d.id === id ? setValidationError(d, 'Confidence is required') : d
-        );
-        valid = false;
-    } else {
-        const confidence = Number(draft.confidence_percentage);
-        if (isNaN(confidence) || confidence < 0 || confidence > 100) {
-            drafts = drafts.map((d) =>
-                d.id === id ? setValidationError(d, 'Confidence must be 0–100') : d
-            );
-            valid = false;
+        return null;
+    },
+    buildCreatePayload: (d) => ({
+        skill_name: d.skill_name.trim(),
+        confidence_percentage: Number(d.confidence_percentage),
+        display_order: toNumberOrNull(d.display_order)
+    }),
+    buildUpdatePayload: (d, b) => {
+        const payload: UpdateSkillRequest = {};
+        if (d.skill_name.trim() !== b.skill_name) {
+            payload.skill_name = d.skill_name.trim();
         }
-    }
-
-    if (valid) {
-        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, null) : d));
-    }
-
-    return valid;
-}
-
-/**
- * Validate all visible skill drafts.
- *
- * @returns true if all visible drafts are valid, false otherwise
- */
-export function validateAll(): boolean {
-    let valid = true;
-    for (const draft of getVisibleDrafts()) {
-        if (!validate(draft.id)) {
-            valid = false;
+        if (Number(d.confidence_percentage) !== b.confidence_percentage) {
+            payload.confidence_percentage = Number(d.confidence_percentage);
         }
-    }
-    return valid;
-}
-
-/**
- * Check if any draft has unsaved changes compared to the baseline.
- */
-export function isDirty(): boolean {
-    const baselineSig = computeSignature(
-        baselineSkills.sort(byDisplayOrder).map((s) => ({
-            skill_name: s.skill_name,
-            confidence_percentage: s.confidence_percentage,
-            display_order: s.display_order
-        }))
-    );
-    const draftSig = computeSignature(
-        drafts
-            .filter((d) => d._status !== 'deleted')
-            .map((d) => ({ ...d, display_order: toNumberOrNull(d.display_order) ?? null }))
-            .sort(byDisplayOrder)
-            .map((d) => ({
-                skill_name: d.skill_name.trim(),
-                confidence_percentage: Number(d.confidence_percentage),
-                display_order: d.display_order
-            }))
-    );
-    return baselineSig !== draftSig || drafts.some((d) => d._status === 'new');
-}
-
-/**
- * Get all validation error messages.
- */
-export function getValidationErrors(): string[] {
-    return drafts.filter((d) => d._validationError).map((d) => d._validationError!);
-}
-
-/**
- * Reset all drafts to the baseline server data.
- */
-export function resetToBaseline(): void {
-    initialize(baselineSkills);
-    error = null;
-}
-
-/**
- * Set the saving state.
- */
-export function setSaving(value: boolean): void {
-    saving = value;
-}
-
-/**
- * Get the current saving state.
- */
-export function getSaving(): boolean {
-    return saving;
-}
-
-/**
- * Set an error message.
- */
-export function setError(value: string | null): void {
-    error = value;
-}
-
-/**
- * Get the current error message.
- */
-export function getError(): string | null {
-    return error;
-}
-
-/**
- * Compute the diff between drafts and baseline for the save orchestrator.
- */
-export function computeDiff(): SkillAction[] {
-    const actions: SkillAction[] = [];
-
-    for (const draft of drafts) {
-        if (draft._status === 'new') {
-            actions.push({
-                type: 'create',
-                tempId: draft.id,
-                payload: {
-                    skill_name: draft.skill_name.trim(),
-                    confidence_percentage: Number(draft.confidence_percentage),
-                    display_order: toNumberOrNull(draft.display_order)
-                }
-            });
-        } else if (draft._status === 'deleted') {
-            // Skip delete actions for items that were never saved (new-then-deleted)
-            if (draft.id < 0) continue;
-            actions.push({ type: 'delete', id: draft.id });
-        } else if (draft._status === 'existing') {
-            const baseline = baselineSkills.find((b) => b.id === draft.id);
-            if (!baseline) continue;
-
-            const payload: UpdateSkillRequest = {};
-            if (draft.skill_name.trim() !== baseline.skill_name) {
-                payload.skill_name = draft.skill_name.trim();
-            }
-            if (Number(draft.confidence_percentage) !== baseline.confidence_percentage) {
-                payload.confidence_percentage = Number(draft.confidence_percentage);
-            }
-            const newOrder = toNumberOrNull(draft.display_order);
-            if (newOrder !== baseline.display_order) {
-                payload.display_order = newOrder;
-            }
-
-            if (Object.keys(payload).length > 0) {
-                actions.push({ type: 'update', id: draft.id, payload });
-            }
+        const newOrder = toNumberOrNull(d.display_order);
+        if (newOrder !== b.display_order) {
+            payload.display_order = newOrder;
         }
-    }
+        return payload;
+    },
+    actionType: { create: 'create', update: 'update', delete: 'delete' },
+    validateOnAdd: true,
+    getMeta: (b) => ({ resume_id: b.resume_id, created_at: b.created_at })
+});
 
-    return actions;
-}
-
-/**
- * Apply successful save results.
- *
- * Maps temp IDs for newly created items to real IDs and removes deleted items.
- * Baseline is not updated here; call `commitBaseline()` after all save phases
- * succeed so failed items remain dirty for retry.
- *
- * @param tempIdMap - Map of temp IDs to real server IDs
- */
-export function applySaveResults(tempIdMap: Map<number, number>): void {
-    drafts = drafts
-        .map((d) => {
-            if (d._status === 'new' && tempIdMap.has(d.id)) {
-                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-            }
-            if (d._status === 'deleted') {
-                return null;
-            }
-            return d;
-        })
-        .filter((d): d is DraftItem<SkillDraft> => d !== null);
-}
-
-/**
- * Commit the current draft state to the baseline after a successful save.
- */
-export function commitBaseline(): void {
-    const resumeId = baselineSkills[0]?.resume_id ?? 0;
-
-    baselineSkills = drafts
-        .filter((d) => d._status === 'existing')
-        .map((d) => {
-            const existing = baselineSkills.find((bs) => bs.id === d.id);
-            return {
-                id: d.id,
-                resume_id: existing?.resume_id ?? resumeId,
-                skill_name: d.skill_name.trim(),
-                confidence_percentage: Number(d.confidence_percentage),
-                display_order: toNumberOrNull(d.display_order),
-                created_at: existing?.created_at ?? ''
-            };
-        });
-}
+export const initialize = store.initialize;
+export const getDrafts = store.getDrafts;
+export const getVisibleDrafts = store.getVisibleDrafts;
+export const getBaseline = store.getBaseline;
+export const add = store.add;
+export const update = store.update;
+export const remove = store.remove;
+export const reorder = store.reorder;
+export const validate = store.validate;
+export const validateAll = store.validateAll;
+export const getValidationErrors = store.getValidationErrors;
+export const isDirty = store.isDirty;
+export const resetToBaseline = store.resetToBaseline;
+export const applySaveResults = store.applySaveResults;
+export const commitBaseline = store.commitBaseline;
+export const setSaving = store.setSaving;
+export const getSaving = store.getSaving;
+export const setError = store.setError;
+export const getError = store.getError;
+export const computeDiff = (): SkillAction[] => store.computeDiff() as SkillAction[];

@@ -1,8 +1,8 @@
 /**
  * Draft module for languages with nested frameworks.
  *
- * This module manages the draft state for the languages section,
- * which includes language entries and their nested frameworks.
+ * This is now a thin composition layer over `createDraftListStore` (languages)
+ * and `createChildGroupStore` (frameworks).
  */
 
 import type {
@@ -13,44 +13,21 @@ import type {
     NewFrameworkRequest,
     UpdateFrameworkRequest
 } from '$lib/types';
-import {
-    type DraftItem,
-    type DraftStatus,
-    generateTempId,
-    computeSignature,
-    setValidationError,
-    toNumberOrNull
-} from './shared';
-import { byDisplayOrder } from '$lib/components/sections/shared/displayOrderReorder';
+import { createDraftListStore, createChildGroupStore } from './draftStore.svelte';
+import { toNumberOrNull } from './shared';
 
-/**
- * Draft data shape for a language entry.
- * All fields are strings for easier form binding.
- */
 type LanguageDraft = {
     id: number;
     language_name: string;
     display_order: string;
 };
 
-/**
- * Draft data shape for a framework.
- */
 type FrameworkDraft = {
     id: number;
     framework_name: string;
     display_order: string;
 };
 
-/**
- * Baseline data shape (matches server response).
- */
-type BaselineLanguage = Language;
-type BaselineFramework = Framework;
-
-/**
- * Action type for save orchestrator.
- */
 export type LanguageAction =
     | { type: 'createLanguage'; tempId: number; payload: NewLanguageRequest }
     | { type: 'updateLanguage'; id: number; payload: UpdateLanguageRequest }
@@ -59,652 +36,168 @@ export type LanguageAction =
     | { type: 'updateFramework'; id: number; payload: UpdateFrameworkRequest }
     | { type: 'deleteFramework'; id: number };
 
-/**
- * Result of a save operation.
- */
-export type LanguageActionResult = {
-    action: LanguageAction;
-    success: boolean;
-    realId?: number;
-    error?: string;
-};
-
-// State
-let baselineLanguages: BaselineLanguage[] = [];
-let baselineFrameworks: BaselineFramework[] = [];
-let drafts = $state<DraftItem<LanguageDraft>[]>([]);
-let frameworks = $state<Record<number, DraftItem<FrameworkDraft>[]>>({});
-let saving = $state(false);
-let error = $state<string | null>(null);
-
-/**
- * Initialize the draft module with server data.
- *
- * @param languages - The language data from the server
- * @param frameworkList - The frameworks data from the server
- */
-export function initialize(languages: Language[], frameworkList: Framework[]): void {
-    baselineLanguages = [...languages];
-    baselineFrameworks = [...frameworkList];
-
-    drafts = languages.sort(byDisplayOrder).map((l) => ({
+const languagesStore = createDraftListStore<LanguageDraft, Language>({
+    toDraft: (l) => ({
         id: l.id,
-        _status: 'existing',
         language_name: l.language_name,
         display_order: l.display_order == null ? '' : String(l.display_order)
-    }));
-
-    // Initialize frameworks grouped by language ID
-    const newFrameworks: Record<number, DraftItem<FrameworkDraft>[]> = {};
-    for (const language of languages) {
-        const languageFrameworks = frameworkList
-            .filter((f) => f.language_id === language.id)
-            .sort(byDisplayOrder)
-            .map(
-                (f): DraftItem<FrameworkDraft> => ({
-                    id: f.id,
-                    _status: 'existing' as DraftStatus,
-                    framework_name: f.framework_name,
-                    display_order: f.display_order == null ? '' : String(f.display_order)
-                })
-            );
-        newFrameworks[language.id] = languageFrameworks;
-    }
-    frameworks = newFrameworks;
-}
-
-/**
- * Get all language draft items (including deleted ones).
- */
-export function getDrafts(): DraftItem<LanguageDraft>[] {
-    return drafts;
-}
-
-/**
- * Get visible language draft items (excluding deleted ones).
- */
-export function getVisibleDrafts(): DraftItem<LanguageDraft>[] {
-    return drafts.filter((d) => d._status !== 'deleted');
-}
-
-/**
- * Get frameworks for a specific language.
- *
- * @param languageId - The language ID (real or temp)
- */
-export function getFrameworks(languageId: number): DraftItem<FrameworkDraft>[] {
-    return frameworks[languageId] ?? [];
-}
-
-/**
- * Get visible frameworks for a specific language (excluding deleted ones).
- *
- * @param languageId - The language ID (real or temp)
- */
-export function getVisibleFrameworks(languageId: number): DraftItem<FrameworkDraft>[] {
-    return (frameworks[languageId] ?? []).filter((d) => d._status !== 'deleted');
-}
-
-/**
- * Get the baseline server data for languages.
- */
-export function getBaseline(): BaselineLanguage[] {
-    return baselineLanguages;
-}
-
-/**
- * Get the baseline server data for frameworks.
- */
-export function getBaselineFrameworks(): BaselineFramework[] {
-    return baselineFrameworks;
-}
-
-/**
- * Add a new language draft.
- *
- * @param draft - The language data (without id and display_order)
- */
-export function addLanguage(draft: Omit<LanguageDraft, 'id' | 'display_order'>): void {
-    const tempId = generateTempId();
-    // Calculate next display order (max existing + 10, or 10 if none exist)
-    const maxOrder = drafts
-        .filter((d) => d._status !== 'deleted')
-        .reduce((max, d) => {
-            const order = toNumberOrNull(d.display_order) ?? 0;
-            return order > max ? order : max;
-        }, 0);
-    const nextOrder = String(maxOrder + 10);
-
-    drafts = [
-        ...drafts,
-        {
-            id: tempId,
-            _status: 'new',
-            ...draft,
-            display_order: nextOrder
+    }),
+    toBaseline: (d, existing, meta) => ({
+        id: d.id,
+        resume_id: existing?.resume_id ?? meta?.resume_id ?? 0,
+        language_name: d.language_name.trim(),
+        display_order: toNumberOrNull(d.display_order),
+        created_at: existing?.created_at ?? meta?.created_at ?? ''
+    }),
+    normalizeDraft: (d) => ({ language_name: d.language_name.trim() }),
+    normalizeBaseline: (b) => ({ language_name: b.language_name }),
+    validate: (d) => {
+        if (!d.language_name.trim()) return 'Language name is required';
+        return null;
+    },
+    buildCreatePayload: (d) => ({
+        language_name: d.language_name.trim(),
+        display_order: toNumberOrNull(d.display_order)
+    }),
+    buildUpdatePayload: (d, b) => {
+        const payload: UpdateLanguageRequest = {};
+        if (d.language_name.trim() !== b.language_name) {
+            payload.language_name = d.language_name.trim();
         }
-    ];
-    // Initialize empty frameworks for new language
-    frameworks = { ...frameworks, [tempId]: [] };
+        const newOrder = toNumberOrNull(d.display_order);
+        if (newOrder !== b.display_order) {
+            payload.display_order = newOrder;
+        }
+        return payload;
+    },
+    actionType: { create: 'createLanguage', update: 'updateLanguage', delete: 'deleteLanguage' },
+    getMeta: (b) => ({ resume_id: b.resume_id, created_at: b.created_at })
+});
+
+const frameworksStore = createChildGroupStore<FrameworkDraft, Framework, 'languageId'>({
+    toDraft: (f) => ({
+        id: f.id,
+        framework_name: f.framework_name,
+        display_order: f.display_order == null ? '' : String(f.display_order)
+    }),
+    toBaseline: (d, languageId, existing, meta) => ({
+        id: d.id,
+        language_id: languageId,
+        framework_name: d.framework_name.trim(),
+        display_order: toNumberOrNull(d.display_order),
+        created_at: existing?.created_at ?? meta?.created_at ?? ''
+    }),
+    normalizeDraft: (d) => ({ framework_name: d.framework_name.trim() }),
+    normalizeBaseline: (b) => ({ framework_name: b.framework_name }),
+    validate: (d) => {
+        if (!d.framework_name.trim()) return 'Framework name is required';
+        return null;
+    },
+    buildCreatePayload: (d) => ({
+        framework_name: d.framework_name.trim(),
+        display_order: toNumberOrNull(d.display_order)
+    }),
+    buildUpdatePayload: (d, b) => {
+        const payload: UpdateFrameworkRequest = {};
+        if (d.framework_name.trim() !== b.framework_name) {
+            payload.framework_name = d.framework_name.trim();
+        }
+        const newOrder = toNumberOrNull(d.display_order);
+        if (newOrder !== b.display_order) {
+            payload.display_order = newOrder;
+        }
+        return payload;
+    },
+    actionType: { create: 'createFramework', update: 'updateFramework', delete: 'deleteFramework' },
+    getParentId: (f) => f.language_id,
+    parentIdField: 'languageId',
+    getMeta: (f) => ({ created_at: f.created_at })
+});
+
+export function initialize(languages: Language[], frameworks: Framework[]): void {
+    languagesStore.initialize(languages);
+    frameworksStore.initialize(frameworks);
 }
 
-/**
- * Update an existing language draft.
- *
- * @param id - The language ID (real or temp)
- * @param partial - Partial data to update
- */
-export function updateLanguage(id: number, partial: Partial<LanguageDraft>): void {
-    drafts = drafts.map((d) => (d.id === id ? { ...d, ...partial } : d));
+export const getDrafts = languagesStore.getDrafts;
+export const getVisibleDrafts = languagesStore.getVisibleDrafts;
+export const getBaseline = languagesStore.getBaseline;
+export const getBaselineFrameworks = frameworksStore.getBaseline;
+
+export function addLanguage(draft: Omit<LanguageDraft, 'id' | 'display_order'>): void {
+    const id = languagesStore.add(draft);
+    frameworksStore.addGroup(id);
 }
 
-/**
- * Remove a language draft (marks as deleted).
- *
- * @param id - The language ID (real or temp)
- */
+export const updateLanguage = languagesStore.update;
+
 export function removeLanguage(id: number): void {
-    drafts = drafts.map((d) => (d.id === id ? { ...d, _status: 'deleted' as DraftStatus } : d));
+    languagesStore.remove(id);
+    if (id < 0) {
+        frameworksStore.removeGroup(id);
+    } else {
+        frameworksStore.removeAllInGroup(id);
+    }
 }
 
-/**
- * Add a new framework draft to a language.
- *
- * @param languageId - The language ID (real or temp)
- * @param draft - The framework data (without id and display_order)
- */
+export const reorder = languagesStore.reorder;
+
+export function validateLanguage(id: number): boolean {
+    return languagesStore.validate(id);
+}
+
+export function validateFramework(id: number): boolean {
+    return frameworksStore.validateChild(id);
+}
+
+export function validateAll(): boolean {
+    return languagesStore.validateAll() && frameworksStore.validateAll();
+}
+
+export function getValidationErrors(): string[] {
+    return [...languagesStore.getValidationErrors(), ...frameworksStore.getValidationErrors()];
+}
+
+export function isDirty(): boolean {
+    return languagesStore.isDirty() || frameworksStore.isDirty();
+}
+
+export function resetToBaseline(): void {
+    languagesStore.resetToBaseline();
+    frameworksStore.resetToBaseline();
+}
+
+export function applySaveResults(tempIdMap: Map<number, number>): void {
+    languagesStore.applySaveResults(tempIdMap);
+    frameworksStore.applySaveResults(tempIdMap);
+}
+
+export function commitBaseline(): void {
+    languagesStore.commitBaseline();
+    frameworksStore.commitBaseline();
+}
+
 export function addFramework(
     languageId: number,
     draft: Omit<FrameworkDraft, 'id' | 'display_order'>
 ): void {
-    const current = frameworks[languageId] ?? [];
-    frameworks = {
-        ...frameworks,
-        [languageId]: [
-            ...current,
-            {
-                id: generateTempId(),
-                _status: 'new',
-                ...draft,
-                display_order: ''
-            }
-        ]
-    };
+    frameworksStore.addChild(languageId, draft);
 }
 
-/**
- * Update an existing framework draft.
- *
- * @param id - The framework ID (real or temp)
- * @param partial - Partial data to update
- */
-export function updateFramework(id: number, partial: Partial<FrameworkDraft>): void {
-    // Find which language this framework belongs to
-    for (const languageId of Object.keys(frameworks)) {
-        const numId = Number(languageId);
-        const current = frameworks[numId];
-        if (current && current.some((f) => f.id === id)) {
-            frameworks = {
-                ...frameworks,
-                [numId]: current.map((f) => (f.id === id ? { ...f, ...partial } : f))
-            };
-            return;
-        }
-    }
-}
+export const updateFramework = frameworksStore.updateChild;
+export const removeFramework = frameworksStore.removeChild;
+export const reorderFrameworks = frameworksStore.reorderChildren;
+export const getVisibleFrameworks = frameworksStore.getVisibleChildren;
+export const getFrameworks = frameworksStore.getChildren;
 
-/**
- * Remove a framework draft (marks as deleted).
- *
- * @param id - The framework ID (real or temp)
- */
-export function removeFramework(id: number): void {
-    for (const languageId of Object.keys(frameworks)) {
-        const numId = Number(languageId);
-        const current = frameworks[numId];
-        if (current && current.some((f) => f.id === id)) {
-            frameworks = {
-                ...frameworks,
-                [numId]: current.map((f) =>
-                    f.id === id ? { ...f, _status: 'deleted' as DraftStatus } : f
-                )
-            };
-            return;
-        }
-    }
-}
+export const getSaving = languagesStore.getSaving;
+export const setSaving = languagesStore.setSaving;
+export const getError = languagesStore.getError;
+export const setError = languagesStore.setError;
 
-/**
- * Reorder languages.
- *
- * @param fromId - The ID of the item to move
- * @param toId - The ID of the target position
- */
-export function reorder(fromId: number, toId: number): void {
-    const fromIndex = drafts.findIndex((d) => d.id === fromId);
-    const toIndex = drafts.findIndex((d) => d.id === toId);
-
-    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
-
-    const newDrafts = [...drafts];
-    const [removed] = newDrafts.splice(fromIndex, 1);
-    newDrafts.splice(toIndex, 0, removed);
-
-    // Update display_order based on new positions
-    const updated = newDrafts.map((d, i) => ({
-        ...d,
-        display_order: String((i + 1) * 10)
-    }));
-
-    drafts = updated;
-}
-
-/**
- * Reorder frameworks within a language.
- *
- * @param languageId - The language ID
- * @param fromId - The ID of the framework to move
- * @param toId - The ID of the target position
- */
-export function reorderFrameworks(languageId: number, fromId: number, toId: number): void {
-    const current = frameworks[languageId];
-    if (!current) return;
-
-    const fromIndex = current.findIndex((f) => f.id === fromId);
-    const toIndex = current.findIndex((f) => f.id === toId);
-
-    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
-
-    const newFrameworks = [...current];
-    const [removed] = newFrameworks.splice(fromIndex, 1);
-    newFrameworks.splice(toIndex, 0, removed);
-
-    // Update display_order based on new positions
-    const updated = newFrameworks.map((f, i) => ({
-        ...f,
-        display_order: String((i + 1) * 10)
-    }));
-
-    frameworks = { ...frameworks, [languageId]: updated };
-}
-
-/**
- * Validate a language draft.
- *
- * @param id - The language ID (real or temp)
- */
-export function validateLanguage(id: number): void {
-    const draft = drafts.find((d) => d.id === id);
-    if (!draft) return;
-
-    const errors: string[] = [];
-
-    if (!draft.language_name.trim()) {
-        errors.push('Language name is required');
-    }
-
-    if (errors.length > 0) {
-        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, errors.join(', ')) : d));
-    } else {
-        drafts = drafts.map((d) => (d.id === id ? setValidationError(d, null) : d));
-    }
-}
-
-/**
- * Validate a framework draft.
- *
- * @param id - The framework ID (real or temp)
- */
-export function validateFramework(id: number): void {
-    for (const languageId of Object.keys(frameworks)) {
-        const numId = Number(languageId);
-        const current = frameworks[numId];
-        if (current && current.some((f) => f.id === id)) {
-            const draft = current.find((f) => f.id === id);
-            if (!draft) return;
-
-            const errors: string[] = [];
-
-            if (!draft.framework_name.trim()) {
-                errors.push('Framework name is required');
-            }
-
-            if (errors.length > 0) {
-                frameworks = {
-                    ...frameworks,
-                    [numId]: current.map((f) =>
-                        f.id === id ? setValidationError(f, errors.join(', ')) : f
-                    )
-                };
-            } else {
-                frameworks = {
-                    ...frameworks,
-                    [numId]: current.map((f) => (f.id === id ? setValidationError(f, null) : f))
-                };
-            }
-            return;
-        }
-    }
-}
-
-/**
- * Validate all visible languages and their frameworks.
- *
- * @returns true if all visible items are valid, false otherwise
- */
-export function validateAll(): boolean {
-    for (const draft of getVisibleDrafts()) {
-        validateLanguage(draft.id);
-    }
-    for (const languageId of Object.keys(frameworks)) {
-        for (const framework of getVisibleFrameworks(Number(languageId))) {
-            validateFramework(framework.id);
-        }
-    }
-    return getValidationErrors().length === 0;
-}
-
-/**
- * Check if the languages section has unsaved changes.
- */
-export function isDirty(): boolean {
-    // Check for new or deleted languages
-    if (drafts.some((d) => d._status === 'new')) return true;
-    if (drafts.some((d) => d._status === 'deleted')) return true;
-
-    // Check for new or deleted frameworks
-    const flatFrameworks = Object.values(frameworks).flat();
-    if (flatFrameworks.some((f) => f._status === 'new')) return true;
-    if (flatFrameworks.some((f) => f._status === 'deleted')) return true;
-
-    // Check languages - normalize data before comparison
-    const baselineLanguageSig = computeSignature(
-        baselineLanguages.sort(byDisplayOrder).map((l) => ({
-            id: l.id,
-            language_name: l.language_name,
-            display_order: l.display_order
-        }))
-    );
-    const draftLanguageSig = computeSignature(
-        drafts
-            .filter((d) => d._status === 'existing')
-            .map((d) => ({
-                id: d.id,
-                language_name: d.language_name,
-                display_order: toNumberOrNull(d.display_order)
-            }))
-            .sort(byDisplayOrder)
-    );
-    if (baselineLanguageSig !== draftLanguageSig) {
-        return true;
-    }
-
-    // Check frameworks - normalize data before comparison
-    const baselineFrameworkSig = computeSignature(
-        baselineFrameworks.sort(byDisplayOrder).map((f) => ({
-            id: f.id,
-            framework_name: f.framework_name,
-            display_order: f.display_order
-        }))
-    );
-    const draftFrameworkSig = computeSignature(
-        flatFrameworks
-            .filter((f) => f._status === 'existing')
-            .map((f) => ({
-                id: f.id,
-                framework_name: f.framework_name,
-                display_order: toNumberOrNull(f.display_order)
-            }))
-            .sort(byDisplayOrder)
-    );
-    if (baselineFrameworkSig !== draftFrameworkSig) {
-        return true;
-    }
-
-    return false;
-}
-
-/**
- * Get all validation errors.
- */
-export function getValidationErrors(): string[] {
-    const errors: string[] = [];
-
-    for (const draft of drafts) {
-        if (draft._validationError) {
-            errors.push(`Language: ${draft._validationError}`);
-        }
-    }
-
-    for (const languageFrameworks of Object.values(frameworks)) {
-        for (const f of languageFrameworks) {
-            if (f._validationError) {
-                errors.push(`Framework: ${f._validationError}`);
-            }
-        }
-    }
-
-    return errors;
-}
-
-/**
- * Reset all drafts to the baseline.
- */
-export function resetToBaseline(): void {
-    drafts = baselineLanguages.sort(byDisplayOrder).map((l) => ({
-        id: l.id,
-        _status: 'existing',
-        language_name: l.language_name,
-        display_order: l.display_order == null ? '' : String(l.display_order)
-    }));
-
-    const newFrameworks: Record<number, DraftItem<FrameworkDraft>[]> = {};
-    for (const language of baselineLanguages) {
-        const languageFrameworks = baselineFrameworks
-            .filter((f) => f.language_id === language.id)
-            .sort(byDisplayOrder)
-            .map(
-                (f): DraftItem<FrameworkDraft> => ({
-                    id: f.id,
-                    _status: 'existing' as DraftStatus,
-                    framework_name: f.framework_name,
-                    display_order: f.display_order == null ? '' : String(f.display_order)
-                })
-            );
-        newFrameworks[language.id] = languageFrameworks;
-    }
-    frameworks = newFrameworks;
-}
-
-/**
- * Compute the diff between drafts and baseline for the save orchestrator.
- */
 export function computeDiff(): LanguageAction[] {
-    const actions: LanguageAction[] = [];
-
-    // Process languages
-    for (const draft of drafts) {
-        if (draft._status === 'new') {
-            actions.push({
-                type: 'createLanguage',
-                tempId: draft.id,
-                payload: {
-                    language_name: draft.language_name,
-                    display_order: toNumberOrNull(draft.display_order)
-                }
-            });
-        } else if (draft._status === 'deleted') {
-            // Skip delete actions for items that were never saved (new-then-deleted)
-            if (draft.id < 0) continue;
-            actions.push({ type: 'deleteLanguage', id: draft.id });
-        } else if (draft._status === 'existing') {
-            const baseline = baselineLanguages.find((l) => l.id === draft.id);
-            if (baseline) {
-                const payload: UpdateLanguageRequest = {};
-                if (baseline.language_name !== draft.language_name) {
-                    payload.language_name = draft.language_name;
-                }
-                if (String(baseline.display_order ?? '') !== draft.display_order) {
-                    payload.display_order = toNumberOrNull(draft.display_order);
-                }
-
-                if (Object.keys(payload).length > 0) {
-                    actions.push({ type: 'updateLanguage', id: draft.id, payload });
-                }
-            }
-        }
-    }
-
-    // Process frameworks
-    for (const [languageId, languageFrameworks] of Object.entries(frameworks)) {
-        const numLanguageId = Number(languageId);
-        const baselineFrameworksForLanguage = baselineFrameworks.filter(
-            (f) => f.language_id === numLanguageId
-        );
-
-        for (const f of languageFrameworks) {
-            if (f._status === 'new') {
-                actions.push({
-                    type: 'createFramework',
-                    languageId: numLanguageId,
-                    tempId: f.id,
-                    payload: {
-                        framework_name: f.framework_name,
-                        display_order: toNumberOrNull(f.display_order)
-                    }
-                });
-            } else if (f._status === 'deleted') {
-                // Skip delete actions for items that were never saved (new-then-deleted)
-                if (f.id < 0) continue;
-                actions.push({ type: 'deleteFramework', id: f.id });
-            } else if (f._status === 'existing') {
-                const baseline = baselineFrameworksForLanguage.find((b) => b.id === f.id);
-                if (baseline) {
-                    const payload: UpdateFrameworkRequest = {};
-                    if (baseline.framework_name !== f.framework_name) {
-                        payload.framework_name = f.framework_name;
-                    }
-                    if (String(baseline.display_order ?? '') !== f.display_order) {
-                        payload.display_order = toNumberOrNull(f.display_order);
-                    }
-
-                    if (Object.keys(payload).length > 0) {
-                        actions.push({ type: 'updateFramework', id: f.id, payload });
-                    }
-                }
-            }
-        }
-    }
-
-    return actions;
-}
-
-/**
- * Apply save results from the server.
- *
- * Maps temp IDs for newly created items to real IDs and removes deleted items.
- * Baseline is not updated here; call `commitBaseline()` after all save phases
- * succeed so failed items remain dirty for retry.
- *
- * @param tempIdMap - Map of temp IDs to real server IDs
- */
-export function applySaveResults(tempIdMap: Map<number, number>): void {
-    // Update language IDs - only mark successful creations as existing
-    drafts = drafts
-        .map((d) => {
-            if (d._status === 'new' && tempIdMap.has(d.id)) {
-                return { ...d, id: tempIdMap.get(d.id)!, _status: 'existing' as DraftStatus };
-            }
-            if (d._status === 'deleted') {
-                return null;
-            }
-            return d;
-        })
-        .filter((d): d is DraftItem<LanguageDraft> => d !== null);
-
-    // Update framework IDs - only mark successful creations as existing
-    const newFrameworks: Record<number, DraftItem<FrameworkDraft>[]> = {};
-    for (const languageId of Object.keys(frameworks)) {
-        const numLanguageId = Number(languageId);
-        // Check if language ID was remapped
-        const realLanguageId = tempIdMap.get(numLanguageId) ?? numLanguageId;
-        newFrameworks[realLanguageId] = frameworks[numLanguageId]
-            .map((f) => {
-                if (f._status === 'new' && tempIdMap.has(f.id)) {
-                    return { ...f, id: tempIdMap.get(f.id)!, _status: 'existing' as DraftStatus };
-                }
-                if (f._status === 'deleted') {
-                    return null;
-                }
-                return f;
-            })
-            .filter((f): f is DraftItem<FrameworkDraft> => f !== null);
-    }
-    frameworks = newFrameworks;
-}
-
-/**
- * Commit the current draft state to the baseline after a successful save.
- */
-export function commitBaseline(): void {
-    const resumeId = baselineLanguages[0]?.resume_id ?? 0;
-
-    baselineLanguages = drafts
-        .filter((d) => d._status === 'existing')
-        .map((d) => {
-            const existing = baselineLanguages.find((bl) => bl.id === d.id);
-            return {
-                id: d.id,
-                resume_id: existing?.resume_id ?? resumeId,
-                language_name: d.language_name.trim(),
-                display_order: toNumberOrNull(d.display_order),
-                created_at: existing?.created_at ?? ''
-            };
-        });
-
-    baselineFrameworks = [];
-    for (const languageId of Object.keys(frameworks)) {
-        const numLanguageId = Number(languageId);
-        const current = frameworks[numLanguageId];
-        if (current) {
-            for (const fw of current.filter((f) => f._status === 'existing')) {
-                const existing = baselineFrameworks.find((bf) => bf.id === fw.id);
-                baselineFrameworks.push({
-                    id: fw.id,
-                    language_id: numLanguageId,
-                    framework_name: fw.framework_name.trim(),
-                    display_order: toNumberOrNull(fw.display_order),
-                    created_at: existing?.created_at ?? ''
-                });
-            }
-        }
-    }
-}
-
-/**
- * Get the current saving state.
- */
-export function getSaving(): boolean {
-    return saving;
-}
-
-/**
- * Set the saving state.
- */
-export function setSaving(value: boolean): void {
-    saving = value;
-}
-
-/**
- * Get the current error message.
- */
-export function getError(): string | null {
-    return error;
-}
-
-/**
- * Set the error message.
- */
-export function setError(value: string | null): void {
-    error = value;
+    return [
+        ...languagesStore.computeDiff(),
+        ...frameworksStore.computeDiff()
+    ] as unknown as LanguageAction[];
 }
