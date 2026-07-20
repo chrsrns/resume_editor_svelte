@@ -1,8 +1,7 @@
 /**
  * Draft module for languages with nested frameworks.
  *
- * This is now a thin composition layer over `createDraftListStore` (languages)
- * and `createChildGroupStore` (frameworks).
+ * Thin config + alias layer over `createParentChildSection`.
  */
 
 import type {
@@ -13,7 +12,7 @@ import type {
     NewFrameworkRequest,
     UpdateFrameworkRequest
 } from '$lib/types';
-import { createDraftListStore, createChildGroupStore } from './draftStore.svelte';
+import { createDraftListStore, createChildGroupStore, createParentChildSection } from './draftStore.svelte';
 import { toNumberOrNull } from './shared';
 
 type LanguageDraft = {
@@ -114,81 +113,40 @@ const frameworksStore = createChildGroupStore<FrameworkDraft, Framework, 'langua
     getMeta: (f) => ({ created_at: f.created_at })
 });
 
-export function initialize(languages: Language[], frameworks: Framework[]): void {
-    languagesStore.initialize(languages);
-    frameworksStore.initialize(frameworks);
-}
+const section = createParentChildSection(languagesStore, {
+    frameworks: { label: 'Framework', store: frameworksStore }
+}, 'Language');
+
+export const initialize = (languages: Language[], frameworks: Framework[]): void =>
+    section.initialize(languages, { frameworks });
 
 export const getDrafts = languagesStore.getDrafts;
 export const getVisibleDrafts = languagesStore.getVisibleDrafts;
 export const getBaseline = languagesStore.getBaseline;
 export const getBaselineFrameworks = frameworksStore.getBaseline;
 
-export function addLanguage(draft: Omit<LanguageDraft, 'id' | 'display_order'>): void {
-    const id = languagesStore.add(draft);
-    frameworksStore.addGroup(id);
-}
-
+export const addLanguage = section.addParent;
 export const updateLanguage = languagesStore.update;
-
-export function removeLanguage(id: number): void {
-    languagesStore.remove(id);
-    if (id < 0) {
-        frameworksStore.removeGroup(id);
-    } else {
-        frameworksStore.removeAllInGroup(id);
-    }
-}
-
+export const removeLanguage = section.removeParent;
 export const reorder = languagesStore.reorder;
 
-export function validateLanguage(id: number): boolean {
-    return languagesStore.validate(id);
-}
+export const validateLanguage = languagesStore.validate;
+export const validateFramework = frameworksStore.validateChild;
 
-export function validateFramework(id: number): boolean {
-    return frameworksStore.validateChild(id);
-}
+export const validateAll = section.validateAll;
+export const getValidationErrors = section.getValidationErrors;
+export const isDirty = section.isDirty;
+export const resetToBaseline = section.resetToBaseline;
+export const applySaveResults = section.applySaveResults;
+export const commitBaseline = section.commitBaseline;
 
-export function validateAll(): boolean {
-    return languagesStore.validateAll() && frameworksStore.validateAll();
-}
-
-export function getValidationErrors(): string[] {
-    return [...languagesStore.getValidationErrors(), ...frameworksStore.getValidationErrors()];
-}
-
-export function isDirty(): boolean {
-    return languagesStore.isDirty() || frameworksStore.isDirty();
-}
-
-export function resetToBaseline(): void {
-    languagesStore.resetToBaseline();
-    frameworksStore.resetToBaseline();
-}
-
-export function applySaveResults(tempIdMap: Map<number, number>): void {
-    languagesStore.applySaveResults(tempIdMap);
-    frameworksStore.applySaveResults(tempIdMap);
-}
-
-export function commitBaseline(): void {
-    languagesStore.commitBaseline();
-    frameworksStore.commitBaseline();
-}
-
-export function addFramework(
-    languageId: number,
-    draft: Omit<FrameworkDraft, 'id' | 'display_order'>
-): void {
-    frameworksStore.addChild(languageId, draft);
-}
-
+export const addFramework = frameworksStore.addChild;
 export const updateFramework = frameworksStore.updateChild;
 export const removeFramework = frameworksStore.removeChild;
 export const reorderFrameworks = frameworksStore.reorderChildren;
-export const getVisibleFrameworks = frameworksStore.getVisibleChildren;
+
 export const getFrameworks = frameworksStore.getChildren;
+export const getVisibleFrameworks = frameworksStore.getVisibleChildren;
 
 export const getSaving = languagesStore.getSaving;
 export const setSaving = languagesStore.setSaving;
@@ -196,8 +154,5 @@ export const getError = languagesStore.getError;
 export const setError = languagesStore.setError;
 
 export function computeDiff(): LanguageAction[] {
-    return [
-        ...languagesStore.computeDiff(),
-        ...frameworksStore.computeDiff()
-    ] as unknown as LanguageAction[];
+    return section.computeDiff() as unknown as LanguageAction[];
 }
