@@ -1,8 +1,7 @@
 /**
  * Draft module for portfolio with nested key points and technologies.
  *
- * This is now a thin composition layer over `createDraftListStore` (projects)
- * and two `createChildGroupStore` instances (key points + technologies).
+ * Thin config + alias layer over `createParentChildSection`.
  */
 
 import type {
@@ -16,7 +15,7 @@ import type {
     NewPortfolioTechnologyRequest,
     UpdatePortfolioTechnologyRequest
 } from '$lib/types';
-import { createDraftListStore, createChildGroupStore } from './draftStore.svelte';
+import { createDraftListStore, createChildGroupStore, createParentChildSection } from './draftStore.svelte';
 import { toNumberOrNull, toNullable } from './shared';
 
 type ProjectDraft = {
@@ -231,15 +230,16 @@ const technologiesStore = createChildGroupStore<TechnologyDraft, PortfolioTechno
     getMeta: (t) => ({ created_at: t.created_at })
 });
 
-export function initialize(
+const section = createParentChildSection(projectsStore, {
+    keyPoints: { label: 'Key point', store: keyPointsStore },
+    technologies: { label: 'Technology', store: technologiesStore }
+}, 'Project');
+
+export const initialize = (
     projects: PortfolioProject[],
     keyPointList: PortfolioKeyPoint[],
     technologyList: PortfolioTechnology[]
-): void {
-    projectsStore.initialize(projects);
-    keyPointsStore.initialize(keyPointList);
-    technologiesStore.initialize(technologyList);
-}
+): void => section.initialize(projects, { keyPoints: keyPointList, technologies: technologyList });
 
 export const getDrafts = projectsStore.getDrafts;
 export const getVisibleDrafts = projectsStore.getVisibleDrafts;
@@ -247,84 +247,23 @@ export const getBaseline = projectsStore.getBaseline;
 export const getBaselineKeyPoints = keyPointsStore.getBaseline;
 export const getBaselineTechnologies = technologiesStore.getBaseline;
 
-export function addProject(draft: Omit<ProjectDraft, 'id' | 'display_order'>): void {
-    const id = projectsStore.add(draft);
-    keyPointsStore.addGroup(id);
-    technologiesStore.addGroup(id);
-}
-
+export const addProject = section.addParent;
 export const updateProject = projectsStore.update;
-
-export function removeProject(id: number): void {
-    projectsStore.remove(id);
-    if (id < 0) {
-        keyPointsStore.removeGroup(id);
-        technologiesStore.removeGroup(id);
-    } else {
-        keyPointsStore.removeAllInGroup(id);
-        technologiesStore.removeAllInGroup(id);
-    }
-}
-
+export const removeProject = section.removeParent;
 export const reorder = projectsStore.reorder;
 
-export function validateProject(id: number): boolean {
-    return projectsStore.validate(id);
-}
+export const validateProject = projectsStore.validate;
+export const validateKeyPoint = keyPointsStore.validateChild;
+export const validateTechnology = technologiesStore.validateChild;
 
-export function validateKeyPoint(id: number): boolean {
-    return keyPointsStore.validateChild(id);
-}
+export const validateAll = section.validateAll;
+export const getValidationErrors = section.getValidationErrors;
+export const isDirty = section.isDirty;
+export const resetToBaseline = section.resetToBaseline;
+export const applySaveResults = section.applySaveResults;
+export const commitBaseline = section.commitBaseline;
 
-export function validateTechnology(id: number): boolean {
-    return technologiesStore.validateChild(id);
-}
-
-export function validateAll(): boolean {
-    return (
-        projectsStore.validateAll() &&
-        keyPointsStore.validateAll() &&
-        technologiesStore.validateAll()
-    );
-}
-
-export function getValidationErrors(): string[] {
-    return [
-        ...projectsStore.getValidationErrors().map((e) => `Project: ${e}`),
-        ...keyPointsStore.getValidationErrors().map((e) => `Key point: ${e}`),
-        ...technologiesStore.getValidationErrors().map((e) => `Technology: ${e}`)
-    ];
-}
-
-export function isDirty(): boolean {
-    return projectsStore.isDirty() || keyPointsStore.isDirty() || technologiesStore.isDirty();
-}
-
-export function resetToBaseline(): void {
-    projectsStore.resetToBaseline();
-    keyPointsStore.resetToBaseline();
-    technologiesStore.resetToBaseline();
-}
-
-export function applySaveResults(tempIdMap: Map<number, number>): void {
-    projectsStore.applySaveResults(tempIdMap);
-    keyPointsStore.applySaveResults(tempIdMap);
-    technologiesStore.applySaveResults(tempIdMap);
-}
-
-export function commitBaseline(): void {
-    projectsStore.commitBaseline();
-    keyPointsStore.commitBaseline();
-    technologiesStore.commitBaseline();
-}
-
-export function addKeyPoint(
-    projectId: number,
-    draft: Omit<KeyPointDraft, 'id' | 'display_order'>
-): void {
-    keyPointsStore.addChild(projectId, draft);
-}
-
+export const addKeyPoint = keyPointsStore.addChild;
 export const updateKeyPoint = keyPointsStore.updateChild;
 export const removeKeyPoint = keyPointsStore.removeChild;
 export const reorderKeyPoints = keyPointsStore.reorderChildren;
@@ -332,13 +271,7 @@ export const reorderKeyPoints = keyPointsStore.reorderChildren;
 export const getKeyPoints = keyPointsStore.getChildren;
 export const getVisibleKeyPoints = keyPointsStore.getVisibleChildren;
 
-export function addTechnology(
-    projectId: number,
-    draft: Omit<TechnologyDraft, 'id' | 'display_order'>
-): void {
-    technologiesStore.addChild(projectId, draft);
-}
-
+export const addTechnology = technologiesStore.addChild;
 export const updateTechnology = technologiesStore.updateChild;
 export const removeTechnology = technologiesStore.removeChild;
 export const reorderTechnologies = technologiesStore.reorderChildren;
@@ -352,9 +285,5 @@ export const getError = projectsStore.getError;
 export const setError = projectsStore.setError;
 
 export function computeDiff(): PortfolioAction[] {
-    return [
-        ...projectsStore.computeDiff(),
-        ...keyPointsStore.computeDiff(),
-        ...technologiesStore.computeDiff()
-    ] as unknown as PortfolioAction[];
+    return section.computeDiff() as unknown as PortfolioAction[];
 }
