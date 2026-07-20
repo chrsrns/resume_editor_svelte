@@ -1,8 +1,7 @@
 /**
  * Draft module for education with nested key points.
  *
- * This is now a thin composition layer over `createDraftListStore` (education)
- * and `createChildGroupStore` (key points).
+ * Thin config + alias layer over `createParentChildSection`.
  */
 
 import type {
@@ -14,7 +13,7 @@ import type {
     UpdateEducationKeyPointRequest
 } from '$lib/types';
 import { parsePartialDate, validatePartialDate, isPartialDateRangeValid } from '$lib/types';
-import { createDraftListStore, createChildGroupStore } from './draftStore.svelte';
+import { createDraftListStore, createChildGroupStore, createParentChildSection } from './draftStore.svelte';
 import { toNumberOrNull, toNullable } from './shared';
 
 type EducationDraft = {
@@ -205,80 +204,35 @@ const keyPointsStore = createChildGroupStore<KeyPointDraft, EducationKeyPoint, '
     getMeta: (kp) => ({ created_at: kp.created_at })
 });
 
-export function initialize(educations: Education[], keyPoints: EducationKeyPoint[]): void {
-    educationStore.initialize(educations);
-    keyPointsStore.initialize(keyPoints);
-}
+const section = createParentChildSection(educationStore, {
+    keyPoints: { label: 'Key point', store: keyPointsStore }
+}, 'Education');
+
+export const initialize = (educations: Education[], keyPoints: EducationKeyPoint[]): void =>
+    section.initialize(educations, { keyPoints });
 
 export const getDrafts = educationStore.getDrafts;
 export const getVisibleDrafts = educationStore.getVisibleDrafts;
 export const getBaseline = educationStore.getBaseline;
 export const getBaselineKeyPoints = keyPointsStore.getBaseline;
 
-export function addEducation(draft: Omit<EducationDraft, 'id' | 'display_order'>): void {
-    const id = educationStore.add(draft);
-    keyPointsStore.addGroup(id);
-}
-
+export const addEducation = section.addParent;
 export const updateEducation = educationStore.update;
+export const removeEducation = section.removeParent;
 export const reorderEducation = educationStore.reorder;
-
-export function removeEducation(id: number): void {
-    educationStore.remove(id);
-    if (id < 0) {
-        keyPointsStore.removeGroup(id);
-    } else {
-        keyPointsStore.removeAllInGroup(id);
-    }
-}
-
 export const reorder = educationStore.reorder;
 
-export function validateEducation(id: number): boolean {
-    return educationStore.validate(id);
-}
+export const validateEducation = educationStore.validate;
+export const validateKeyPoint = keyPointsStore.validateChild;
 
-export function validateKeyPoint(id: number): boolean {
-    return keyPointsStore.validateChild(id);
-}
+export const validateAll = section.validateAll;
+export const getValidationErrors = section.getValidationErrors;
+export const isDirty = section.isDirty;
+export const resetToBaseline = section.resetToBaseline;
+export const applySaveResults = section.applySaveResults;
+export const commitBaseline = section.commitBaseline;
 
-export function validateAll(): boolean {
-    return educationStore.validateAll() && keyPointsStore.validateAll();
-}
-
-export function getValidationErrors(): string[] {
-    return [
-        ...educationStore.getValidationErrors().map((e) => `Education: ${e}`),
-        ...keyPointsStore.getValidationErrors().map((e) => `Key point: ${e}`)
-    ];
-}
-
-export function isDirty(): boolean {
-    return educationStore.isDirty() || keyPointsStore.isDirty();
-}
-
-export function resetToBaseline(): void {
-    educationStore.resetToBaseline();
-    keyPointsStore.resetToBaseline();
-}
-
-export function applySaveResults(tempIdMap: Map<number, number>): void {
-    educationStore.applySaveResults(tempIdMap);
-    keyPointsStore.applySaveResults(tempIdMap);
-}
-
-export function commitBaseline(): void {
-    educationStore.commitBaseline();
-    keyPointsStore.commitBaseline();
-}
-
-export function addKeyPoint(
-    educationId: number,
-    draft: Omit<KeyPointDraft, 'id' | 'display_order'>
-): void {
-    keyPointsStore.addChild(educationId, draft);
-}
-
+export const addKeyPoint = keyPointsStore.addChild;
 export const updateKeyPoint = keyPointsStore.updateChild;
 export const removeKeyPoint = keyPointsStore.removeChild;
 export const reorderKeyPoint = keyPointsStore.reorderChildren;
@@ -292,8 +246,5 @@ export const getError = educationStore.getError;
 export const setError = educationStore.setError;
 
 export function computeDiff(): EducationAction[] {
-    return [
-        ...educationStore.computeDiff(),
-        ...keyPointsStore.computeDiff()
-    ] as unknown as EducationAction[];
+    return section.computeDiff() as unknown as EducationAction[];
 }
