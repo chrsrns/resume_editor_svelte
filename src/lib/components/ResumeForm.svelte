@@ -69,6 +69,15 @@
         />
 
         <TextInput
+            label="Video"
+            value={draft.video}
+            oninput={(e) => handleFieldChange('video', (e.currentTarget as HTMLInputElement).value)}
+            onblur={handleBlur}
+            maxlength={500}
+            title="Optional. Link to a video."
+        />
+
+        <TextInput
             label="Mobile number"
             value={draft.mobile_number}
             oninput={(e) =>

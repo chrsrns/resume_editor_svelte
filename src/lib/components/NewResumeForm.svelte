@@ -12,6 +12,7 @@
         profile_image_url: string;
         location: string;
         github_url: string;
+        video?: string;
         mobile_number: string;
         executive_summary?: string;
         is_public: boolean;
@@ -36,6 +37,7 @@
     let profile_image_url = $state('');
     let location = $state('');
     let github_url = $state('');
+    let video = $state('');
     let mobile_number = $state('');
     let executive_summary = $state('');
     let is_public = $state(false);
@@ -49,6 +51,7 @@
             profile_image_url = initial.profile_image_url ?? '';
             location = initial.location ?? '';
             github_url = initial.github_url ?? '';
+            video = initial.video ?? '';
             mobile_number = initial.mobile_number ?? '';
             executive_summary = initial.executive_summary ?? '';
             is_public = initial.is_public ?? false;
@@ -72,6 +75,10 @@
             validationError = 'Executive summary must be 5,000 characters or less';
             return false;
         }
+        if (video.trim().length > 500) {
+            validationError = 'Video must be 500 characters or less';
+            return false;
+        }
         validationError = null;
         return true;
     }
@@ -86,6 +93,7 @@
                 profile_image_url: profile_image_url.trim() || null,
                 location: location.trim() || null,
                 github_url: github_url.trim() || null,
+                video: video.trim() || null,
                 mobile_number: mobile_number.trim() || null,
                 executive_summary: executive_summary.trim() || null,
                 is_public
@@ -122,6 +130,13 @@
             label="GitHub URL"
             bind:value={github_url}
             title="Optional. Link to your GitHub profile."
+        />
+
+        <TextInput
+            label="Video"
+            bind:value={video}
+            maxlength={500}
+            title="Optional. Link to a video."
         />
 
         <TextInput
