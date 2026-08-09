@@ -192,3 +192,62 @@ test('executive summary survives markdown export and import round-trip', async (
     await expect(page.getByRole('heading', { name: 'Summary', level: 3 })).toBeVisible();
     await expect(page.locator('.summary')).toHaveText(summary);
 });
+
+test('video survives markdown export and import round-trip', async ({ page }) => {
+    const videoUrl = 'https://example.com/video';
+    const resumeWithVideo = { ...resume, created_by: 1, video: videoUrl };
+    await openEditPage(page, resumeWithVideo);
+
+    const markdown = `# Test Resume\n\n- Video: ${videoUrl}\n`;
+
+    await page.route(`**/api/resume/${resumeId}/export/markdown`, async (route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'text/markdown',
+            body: markdown
+        });
+    });
+
+    const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: 'Export Markdown', exact: true }).click()
+    ]);
+
+    const importedId = 99;
+    const importedResume = {
+        ...resume,
+        id: importedId,
+        created_by: 1,
+        video: videoUrl
+    };
+
+    await openListPage(page);
+
+    await page.route('**/api/resume/import/markdown', async (route) => {
+        await route.fulfill({
+            status: 201,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: importedResume })
+        });
+    });
+
+    await mockApiResponse(page, `**/api/resume/${importedId}`, 200, importedResume);
+    await mockEmptySections(page, importedId);
+
+    const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        page.getByRole('button', { name: 'Import Markdown', exact: true }).click()
+    ]);
+
+    const downloadPath = await download.path();
+    await fileChooser.setFiles(downloadPath);
+
+    await expect(page).toHaveURL(`/resume_editor/resumes/${importedId}/edit`);
+
+    await page.goto(`/resume_editor/resumes/${importedId}`);
+    await waitForApp(page);
+
+    const videoLink = page.getByRole('link', { name: videoUrl });
+    await expect(videoLink).toBeVisible();
+    await expect(videoLink).toHaveAttribute('href', videoUrl);
+});

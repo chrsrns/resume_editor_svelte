@@ -10,7 +10,9 @@ const resume = {
     location: null,
     email: 'test@example.com',
     github_url: null,
+    video: null,
     mobile_number: null,
+    executive_summary: null,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: null,
@@ -73,3 +75,27 @@ async function mockSectionFailures(page: Page, resumeId: number) {
     await mockApiFailure(page, `**/api/resume/${resumeId}/portfolio_projects`);
     await mockApiFailure(page, `**/api/resume/${resumeId}/languages`);
 }
+
+test('detail view shows video as link when present', async ({ page }) => {
+    const videoUrl = 'https://example.com/video';
+    const resumeWithVideo = { ...resume, video: videoUrl };
+
+    await mockApiResponse(page, resumeUrl, 200, resumeWithVideo);
+    await mockSectionResponses(page, resumeId);
+    await page.goto(`/resume_editor/resumes/${resumeId}`);
+    await page.waitForLoadState('networkidle');
+
+    const videoLink = page.getByRole('link', { name: videoUrl });
+    await expect(videoLink).toBeVisible();
+    await expect(videoLink).toHaveAttribute('href', videoUrl);
+});
+
+test('detail view shows dash when video is null', async ({ page }) => {
+    await mockApiResponse(page, resumeUrl, 200, resume);
+    await mockSectionResponses(page, resumeId);
+    await page.goto(`/resume_editor/resumes/${resumeId}`);
+    await page.waitForLoadState('networkidle');
+
+    const basicsPanel = page.locator('#panel-basics');
+    await expect(basicsPanel.getByText('-')).toBeVisible();
+});

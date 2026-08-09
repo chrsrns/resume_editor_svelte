@@ -9,7 +9,9 @@ const resume = {
     location: null,
     email: 'test@example.com',
     github_url: null,
+    video: null,
     mobile_number: null,
+    executive_summary: null,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: 1,
@@ -264,6 +266,88 @@ test('import sends Content-Type text/markdown', async ({ page }) => {
 
     const request = await requestPromise;
     expect(request.headers()['content-type']).toMatch(/text\/markdown/);
+});
+
+// --- V86: import with Video returns resume with video ---
+
+test('import with Video field returns resume with video and shows it', async ({ page }) => {
+    await openListPage(page);
+
+    const videoUrl = 'https://example.com/video';
+    const newResume = { ...resume, id: 99, name: 'Imported Resume', created_by: 1, video: videoUrl };
+
+    await page.route('**/api/resume/import/markdown', async (route) => {
+        await route.fulfill({
+            status: 201,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: newResume })
+        });
+    });
+    await mockApiResponse(page, '**/api/resume/99', 200, newResume);
+    await mockApiResponse(page, '**/api/resume/99/education', 200, []);
+    await mockApiResponse(page, '**/api/resume/99/work_experiences', 200, []);
+    await mockApiResponse(page, '**/api/resume/99/skills', 200, []);
+    await mockApiResponse(page, '**/api/resume/99/portfolio_projects', 200, []);
+    await mockApiResponse(page, '**/api/resume/99/languages', 200, []);
+
+    const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        page.getByRole('button', { name: 'Import Markdown', exact: true }).click()
+    ]);
+    await fileChooser.setFiles({
+        name: 'resume.md',
+        mimeType: 'text/markdown',
+        buffer: Buffer.from(`# Imported Resume\n\n- Email: test@example.com\n- Video: ${videoUrl}\n`)
+    });
+
+    await expect(page).toHaveURL(`/resume_editor/resumes/99/edit`);
+
+    await page.goto('/resume_editor/resumes/99');
+    await waitForApp(page);
+
+    const videoLink = page.getByRole('link', { name: videoUrl });
+    await expect(videoLink).toBeVisible();
+    await expect(videoLink).toHaveAttribute('href', videoUrl);
+});
+
+// --- V87: import without Video stores video as null ---
+
+test('import without Video shows dash placeholder', async ({ page }) => {
+    await openListPage(page);
+
+    const newResume = { ...resume, id: 99, name: 'Imported Resume', created_by: 1 };
+
+    await page.route('**/api/resume/import/markdown', async (route) => {
+        await route.fulfill({
+            status: 201,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: newResume })
+        });
+    });
+    await mockApiResponse(page, '**/api/resume/99', 200, newResume);
+    await mockApiResponse(page, '**/api/resume/99/education', 200, []);
+    await mockApiResponse(page, '**/api/resume/99/work_experiences', 200, []);
+    await mockApiResponse(page, '**/api/resume/99/skills', 200, []);
+    await mockApiResponse(page, '**/api/resume/99/portfolio_projects', 200, []);
+    await mockApiResponse(page, '**/api/resume/99/languages', 200, []);
+
+    const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        page.getByRole('button', { name: 'Import Markdown', exact: true }).click()
+    ]);
+    await fileChooser.setFiles({
+        name: 'resume.md',
+        mimeType: 'text/markdown',
+        buffer: Buffer.from('# Imported Resume\n\n- Email: test@example.com\n')
+    });
+
+    await expect(page).toHaveURL(`/resume_editor/resumes/99/edit`);
+
+    await page.goto('/resume_editor/resumes/99');
+    await waitForApp(page);
+
+    const basicsPanel = page.locator('#panel-basics');
+    await expect(basicsPanel.getByText('-')).toBeVisible();
 });
 
 // --- V3: 401 on export clears token and currentUser ---
