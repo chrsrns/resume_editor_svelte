@@ -346,8 +346,8 @@ test('import without Video shows dash placeholder', async ({ page }) => {
     await page.goto('/resume_editor/resumes/99');
     await waitForApp(page);
 
-    const basicsPanel = page.locator('#panel-basics');
-    await expect(basicsPanel.getByText('-')).toBeVisible();
+    const videoRow = page.locator('.fieldRow', { hasText: 'Video' });
+    await expect(videoRow.getByText('-')).toBeVisible();
 });
 
 // --- V3: 401 on export clears token and currentUser ---

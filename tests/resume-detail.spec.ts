@@ -96,6 +96,6 @@ test('detail view shows dash when video is null', async ({ page }) => {
     await page.goto(`/resume_editor/resumes/${resumeId}`);
     await page.waitForLoadState('networkidle');
 
-    const basicsPanel = page.locator('#panel-basics');
-    await expect(basicsPanel.getByText('-')).toBeVisible();
+    const videoRow = page.locator('.fieldRow', { hasText: 'Video' });
+    await expect(videoRow.getByText('-')).toBeVisible();
 });
