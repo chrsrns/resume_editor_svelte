@@ -21,6 +21,7 @@ export type Resume = {
     location: string | null;
     email: string;
     github_url: string | null;
+    video: string | null;
     mobile_number: string | null;
     executive_summary: string | null;
     created_at: string;
@@ -45,6 +46,7 @@ export type NewResumeRequest = {
     location?: string | null;
     email: string;
     github_url?: string | null;
+    video?: string | null;
     mobile_number?: string | null;
     executive_summary?: string | null;
     is_public?: boolean | null;
@@ -56,6 +58,7 @@ export type UpdateResumeRequest = {
     location?: string | null;
     email?: string | null;
     github_url?: string | null;
+    video?: string | null;
     mobile_number?: string | null;
     executive_summary?: string | null;
     is_public?: boolean | null;

@@ -10,6 +10,7 @@ const resume: Resume = {
     location: null,
     email: 'test@example.com',
     github_url: null,
+    video: null,
     mobile_number: null,
     executive_summary: null,
     created_at: '2024-01-01T00:00:00Z',
