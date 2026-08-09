@@ -43,6 +43,7 @@
     import MapPin from '@lucide/svelte/icons/map-pin';
     import Link from '@lucide/svelte/icons/link';
     import Phone from '@lucide/svelte/icons/phone';
+    import Video from '@lucide/svelte/icons/video';
     import User from '@lucide/svelte/icons/user';
     import GraduationCap from '@lucide/svelte/icons/graduation-cap';
     import Briefcase from '@lucide/svelte/icons/briefcase';
@@ -371,6 +372,13 @@
                 value={resume.github_url ?? '-'}
                 href={resume.github_url ?? undefined}
                 copyable={!!resume.github_url}
+            />
+            <FieldRow
+                Icon={Video}
+                label="Video"
+                value={resume.video ?? '-'}
+                href={resume.video ?? undefined}
+                copyable={!!resume.video}
             />
             <FieldRow Icon={Phone} label="Mobile" value={resume.mobile_number ?? '-'} />
         </div>
