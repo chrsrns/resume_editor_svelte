@@ -122,7 +122,7 @@ export function initialize(resume: Resume): void {
         profile_image_url: resume.profile_image_url,
         location: resume.location,
         github_url: resume.github_url,
-        video: resume.video,
+        video: resume.video ?? null,
         mobile_number: resume.mobile_number,
         executive_summary: resume.executive_summary ?? null,
         is_public: resume.is_public
