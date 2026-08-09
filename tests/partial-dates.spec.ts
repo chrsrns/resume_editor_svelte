@@ -48,7 +48,7 @@ async function openEditPage(page: Page) {
 test('education year-only saves start_date as YYYY', async ({ page }) => {
     await openEditPage(page);
 
-    let savedPayload: { start_date: string; end_date: string | null } | null = null;
+    let savedPayload!: { start_date: string; end_date: string | null } | null;
     await mockApiMethods(page, `**/api/resume/${resumeId}/education`, {
         GET: { status: 200, body: [] },
         POST: {
@@ -67,10 +67,10 @@ test('education year-only saves start_date as YYYY', async ({ page }) => {
                 updated_at: ''
             },
             callback: (req) => {
-                savedPayload = req.postDataJSON() as {
-                    start_date: string;
-                    end_date: string | null;
-                } | null;
+                const body = req.postData();
+                savedPayload = body
+                    ? (JSON.parse(body) as { start_date: string; end_date: string | null })
+                    : null;
             }
         }
     });
@@ -91,7 +91,7 @@ test('education year-only saves start_date as YYYY', async ({ page }) => {
 test('education month-year start and end save as YYYY-MM', async ({ page }) => {
     await openEditPage(page);
 
-    let savedPayload: { start_date: string; end_date: string | null } | null = null;
+    let savedPayload!: { start_date: string; end_date: string | null } | null;
     await mockApiMethods(page, `**/api/resume/${resumeId}/education`, {
         GET: { status: 200, body: [] },
         POST: {
@@ -110,10 +110,10 @@ test('education month-year start and end save as YYYY-MM', async ({ page }) => {
                 updated_at: ''
             },
             callback: (req) => {
-                savedPayload = req.postDataJSON() as {
-                    start_date: string;
-                    end_date: string | null;
-                } | null;
+                const body = req.postData();
+                savedPayload = body
+                    ? (JSON.parse(body) as { start_date: string; end_date: string | null })
+                    : null;
             }
         }
     });
@@ -137,7 +137,7 @@ test('education month-year start and end save as YYYY-MM', async ({ page }) => {
 test('education full-date clamps day when year changes to non-leap', async ({ page }) => {
     await openEditPage(page);
 
-    let savedPayload: { start_date: string; end_date: string | null } | null = null;
+    let savedPayload!: { start_date: string; end_date: string | null } | null;
     await mockApiMethods(page, `**/api/resume/${resumeId}/education`, {
         GET: { status: 200, body: [] },
         POST: {
@@ -156,10 +156,10 @@ test('education full-date clamps day when year changes to non-leap', async ({ pa
                 updated_at: ''
             },
             callback: (req) => {
-                savedPayload = req.postDataJSON() as {
-                    start_date: string;
-                    end_date: string | null;
-                } | null;
+                const body = req.postData();
+                savedPayload = body
+                    ? (JSON.parse(body) as { start_date: string; end_date: string | null })
+                    : null;
             }
         }
     });
@@ -199,7 +199,7 @@ test('education invalid date range blocks save', async ({ page }) => {
 test('work full-date and month-year round-trip', async ({ page }) => {
     await openEditPage(page);
 
-    let savedPayload: { start_date: string; end_date: string | null } | null = null;
+    let savedPayload!: { start_date: string; end_date: string | null } | null;
     await mockApiMethods(page, `**/api/resume/${resumeId}/work_experiences`, {
         GET: { status: 200, body: [] },
         POST: {
@@ -217,10 +217,10 @@ test('work full-date and month-year round-trip', async ({ page }) => {
                 updated_at: ''
             },
             callback: (req) => {
-                savedPayload = req.postDataJSON() as {
-                    start_date: string;
-                    end_date: string | null;
-                } | null;
+                const body = req.postData();
+                savedPayload = body
+                    ? (JSON.parse(body) as { start_date: string; end_date: string | null })
+                    : null;
             }
         }
     });
