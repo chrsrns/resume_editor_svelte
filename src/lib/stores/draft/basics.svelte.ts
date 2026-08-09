@@ -14,6 +14,7 @@ type BasicsDraft = {
     profile_image_url: string;
     location: string;
     github_url: string;
+    video: string;
     mobile_number: string;
     executive_summary: string;
     is_public: boolean;
@@ -26,6 +27,7 @@ type BaselineBasics = {
     profile_image_url: string | null;
     location: string | null;
     github_url: string | null;
+    video: string | null;
     mobile_number: string | null;
     executive_summary: string | null;
     is_public: boolean;
@@ -39,6 +41,7 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         profile_image_url: b.profile_image_url ?? '',
         location: b.location ?? '',
         github_url: b.github_url ?? '',
+        video: b.video ?? '',
         mobile_number: b.mobile_number ?? '',
         executive_summary: b.executive_summary ?? '',
         is_public: b.is_public
@@ -50,6 +53,7 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         profile_image_url: d.profile_image_url.trim() || null,
         location: d.location.trim() || null,
         github_url: d.github_url.trim() || null,
+        video: d.video.trim() || null,
         mobile_number: d.mobile_number.trim() || null,
         executive_summary: d.executive_summary.trim() || null,
         is_public: d.is_public
@@ -60,6 +64,7 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         profile_image_url: d.profile_image_url.trim() || null,
         location: d.location.trim() || null,
         github_url: d.github_url.trim() || null,
+        video: d.video.trim() || null,
         mobile_number: d.mobile_number.trim() || null,
         executive_summary: d.executive_summary.trim() || null,
         is_public: d.is_public
@@ -70,6 +75,7 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         profile_image_url: b.profile_image_url,
         location: b.location,
         github_url: b.github_url,
+        video: b.video,
         mobile_number: b.mobile_number,
         executive_summary: b.executive_summary,
         is_public: b.is_public
@@ -89,6 +95,10 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
             return 'Executive summary must be 5,000 characters or less';
         }
 
+        if (d.video.trim().length > 500) {
+            return 'Video must be 500 characters or less';
+        }
+
         return null;
     },
     buildPayload: (d) => ({
@@ -97,6 +107,7 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         profile_image_url: d.profile_image_url.trim() || null,
         location: d.location.trim() || null,
         github_url: d.github_url.trim() || null,
+        video: d.video.trim() || null,
         mobile_number: d.mobile_number.trim() || null,
         executive_summary: d.executive_summary.trim() || null,
         is_public: d.is_public
@@ -111,6 +122,7 @@ export function initialize(resume: Resume): void {
         profile_image_url: resume.profile_image_url,
         location: resume.location,
         github_url: resume.github_url,
+        video: resume.video,
         mobile_number: resume.mobile_number,
         executive_summary: resume.executive_summary ?? null,
         is_public: resume.is_public
