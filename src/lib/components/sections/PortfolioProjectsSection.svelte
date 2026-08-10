@@ -15,17 +15,7 @@
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import ActiveStatus from '../ui/ActiveStatus.svelte';
     import ActiveToggle from '../ui/ActiveToggle.svelte';
-
-    type ProjectDraft = {
-        id: number;
-        project_name: string;
-        image_url: string;
-        project_link: string;
-        source_code_link: string;
-        description: string;
-        display_order: string;
-        active: boolean;
-    };
+    import type { ProjectDraft } from '$lib/stores/draft/portfolio.svelte';
 
     type KeyPointDraft = {
         id: number;
@@ -90,6 +80,7 @@
     // UI state for the new project form
     let newName = $state('');
     let newImage = $state('');
+    let newVideoUrl = $state('');
     let newProjectLink = $state('');
     let newSourceLink = $state('');
     let newDescription = $state('');
@@ -118,6 +109,7 @@
         onAddProject({
             project_name: newName,
             image_url: newImage,
+            video_url: newVideoUrl,
             project_link: newProjectLink,
             source_code_link: newSourceLink,
             description: newDescription,
@@ -125,6 +117,7 @@
         });
         newName = '';
         newImage = '';
+        newVideoUrl = '';
         newProjectLink = '';
         newSourceLink = '';
         newDescription = '';
@@ -291,6 +284,12 @@
                 title="Optional. Link to a preview image for the project."
             />
             <TextInput
+                label="Video URL"
+                bind:value={newVideoUrl}
+                maxlength={500}
+                title="Optional. Link to a project video."
+            />
+            <TextInput
                 label="Project link"
                 bind:value={newProjectLink}
                 title="Optional. Link to the live project/demo."
@@ -352,6 +351,13 @@
                         label="Image URL"
                         bind:value={d.image_url}
                         title="Optional. Preview image URL."
+                        onblur={() => onValidateProject(d.id)}
+                    />
+                    <TextInput
+                        label="Video URL"
+                        bind:value={d.video_url}
+                        maxlength={500}
+                        title="Optional. Link to a project video."
                         onblur={() => onValidateProject(d.id)}
                     />
                     <TextInput
