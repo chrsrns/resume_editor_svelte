@@ -979,8 +979,10 @@ test('portfolio project video_url over 500 chars blocks save', async ({ page }) 
         el.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await page.getByRole('button', { name: 'Add project' }).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
 
     await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+    await expect(page.getByText('All changes saved successfully!')).not.toBeVisible();
 });
 
 test('portfolio project blank video_url normalizes to null', async ({ page }) => {
