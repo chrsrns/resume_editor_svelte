@@ -236,6 +236,7 @@ export type PortfolioProject = {
     project_link: string | null;
     source_code_link: string | null;
     description: string | null;
+    video_url: string | null;
     display_order: number | null;
     active: boolean;
     created_at: string;
@@ -247,6 +248,7 @@ export type NewPortfolioProjectRequest = {
     project_link?: string | null;
     source_code_link?: string | null;
     description?: string | null;
+    video_url?: string | null;
     display_order?: number | null;
     active?: boolean;
 };
@@ -257,6 +259,7 @@ export type UpdatePortfolioProjectRequest = {
     project_link?: string | null;
     source_code_link?: string | null;
     description?: string | null;
+    video_url?: string | null;
     display_order?: number | null;
     active?: boolean;
 };
