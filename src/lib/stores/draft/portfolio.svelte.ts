@@ -22,13 +22,14 @@ import {
 } from './draftStore.svelte';
 import { toNumberOrNull, toNullable } from './shared';
 
-type ProjectDraft = {
+export type ProjectDraft = {
     id: number;
     project_name: string;
     image_url: string;
     project_link: string;
     source_code_link: string;
     description: string;
+    video_url: string;
     display_order: string;
     active: boolean;
 };
@@ -74,6 +75,7 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
         project_link: p.project_link ?? '',
         source_code_link: p.source_code_link ?? '',
         description: p.description ?? '',
+        video_url: p.video_url ?? '',
         display_order: p.display_order == null ? '' : String(p.display_order),
         active: p.active
     }),
@@ -85,6 +87,7 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
         project_link: toNullable(d.project_link),
         source_code_link: toNullable(d.source_code_link),
         description: toNullable(d.description),
+        video_url: toNullable(d.video_url),
         display_order: toNumberOrNull(d.display_order),
         active: d.active,
         created_at: existing?.created_at ?? meta?.created_at ?? ''
@@ -95,6 +98,7 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
         project_link: d.project_link,
         source_code_link: d.source_code_link,
         description: d.description,
+        video_url: d.video_url,
         display_order: toNumberOrNull(d.display_order),
         active: d.active
     }),
@@ -104,11 +108,13 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
         project_link: b.project_link ?? '',
         source_code_link: b.source_code_link ?? '',
         description: b.description ?? '',
+        video_url: b.video_url ?? '',
         display_order: b.display_order,
         active: b.active
     }),
     validate: (d) => {
         if (!d.project_name.trim()) return 'Project name is required';
+        if (d.video_url.trim().length > 500) return 'Video URL must be 500 characters or less';
         return null;
     },
     buildCreatePayload: (d) => ({
@@ -117,6 +123,7 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
         project_link: toNullable(d.project_link),
         source_code_link: toNullable(d.source_code_link),
         description: toNullable(d.description),
+        video_url: toNullable(d.video_url),
         display_order: toNumberOrNull(d.display_order),
         active: d.active
     }),
@@ -136,6 +143,10 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
         }
         if (d.description !== b.description) {
             payload.description = toNullable(d.description);
+        }
+        const draftVideoUrl = toNullable(d.video_url);
+        if (draftVideoUrl !== b.video_url) {
+            payload.video_url = draftVideoUrl;
         }
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
