@@ -104,6 +104,7 @@ test('add portfolio project with key point and technology and save', async ({ pa
                 project_link: null,
                 source_code_link: null,
                 description: null,
+                video_url: null,
                 display_order: 1,
                 active: true,
                 created_at: '',
@@ -267,6 +268,7 @@ test('delete portfolio project removes key points and technologies before projec
                 project_link: null,
                 source_code_link: null,
                 description: null,
+                video_url: null,
                 display_order: 1,
                 active: true,
                 created_at: '',
@@ -804,6 +806,7 @@ test('toggle active state on portfolio project sends update', async ({ page }) =
                 project_link: null,
                 source_code_link: null,
                 description: null,
+                video_url: null,
                 display_order: 1,
                 active: true,
                 created_at: '',
@@ -831,6 +834,7 @@ test('toggle active state on portfolio project sends update', async ({ page }) =
                 project_link: null,
                 source_code_link: null,
                 description: null,
+                video_url: null,
                 display_order: 1,
                 active: false,
                 created_at: '',
@@ -848,4 +852,173 @@ test('toggle active state on portfolio project sends update', async ({ page }) =
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
 
     expect(updatePayload).toMatchObject({ active: false });
+});
+
+test('add portfolio project with video_url sends it in create payload', async ({ page }) => {
+    await openEditPage(page);
+
+    let projectRequestBody: unknown = null;
+    const projectId = 201;
+    const videoUrl = 'https://example.com/project-video';
+
+    await mockApiMethods(page, `**/api/resume/${resumeId}/portfolio_projects`, {
+        GET: { status: 200, body: [] },
+        POST: {
+            status: 201,
+            body: {
+                id: projectId,
+                resume_id: resumeId,
+                project_name: 'My Project',
+                image_url: null,
+                project_link: null,
+                source_code_link: null,
+                description: null,
+                video_url: videoUrl,
+                display_order: 1,
+                active: true,
+                created_at: '',
+                updated_at: ''
+            },
+            callback: async (req) => {
+                projectRequestBody = await req.postDataJSON();
+            }
+        }
+    });
+
+    await page.getByRole('tab', { name: 'Portfolio', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Project name' }).fill('My Project');
+    await page.getByRole('textbox', { name: 'Video URL' }).first().fill(videoUrl);
+    await page.getByRole('button', { name: 'Add project' }).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('All changes saved successfully!')).toBeVisible();
+
+    expect(projectRequestBody).toMatchObject({
+        project_name: 'My Project',
+        video_url: videoUrl
+    });
+});
+
+test('update portfolio project video_url sends update', async ({ page }) => {
+    const projectId = 201;
+    const videoUrl = 'https://example.com/project-video';
+
+    await openEditPage(
+        page,
+        {
+            portfolio: [
+                {
+                    id: projectId,
+                    resume_id: resumeId,
+                    project_name: 'My Project',
+                    image_url: null,
+                    project_link: null,
+                    source_code_link: null,
+                    description: null,
+                    video_url: null,
+                    display_order: 1,
+                    active: true,
+                    created_at: '',
+                    updated_at: ''
+                }
+            ]
+        },
+        'portfolio'
+    );
+
+    let updatePayload: unknown = null;
+    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/key_points`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/technologies`, 200, []);
+    await mockApiMethods(page, `**/api/portfolio_projects/${projectId}`, {
+        PUT: {
+            status: 200,
+            body: {
+                id: projectId,
+                resume_id: resumeId,
+                project_name: 'My Project',
+                image_url: null,
+                project_link: null,
+                source_code_link: null,
+                description: null,
+                video_url: videoUrl,
+                display_order: 1,
+                active: true,
+                created_at: '',
+                updated_at: ''
+            },
+            callback: async (req) => {
+                updatePayload = await req.postDataJSON();
+            }
+        }
+    });
+
+    await page.reload();
+    await waitForApp(page);
+
+    await page.getByRole('button', { name: 'My Project' }).click();
+    await page.getByRole('textbox', { name: 'Video URL' }).nth(1).fill(videoUrl);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('All changes saved successfully!')).toBeVisible();
+
+    expect(updatePayload).toMatchObject({ video_url: videoUrl });
+});
+
+test('portfolio project video_url over 500 chars blocks save', async ({ page }) => {
+    await openEditPage(page);
+
+    await mockApiMethods(page, `**/api/resume/${resumeId}/portfolio_projects`, {
+        GET: { status: 200, body: [] },
+        POST: { status: 201, body: {} }
+    });
+
+    await page.getByRole('tab', { name: 'Portfolio', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Project name' }).fill('My Project');
+    const videoUrlInput = page.getByRole('textbox', { name: 'Video URL' }).first();
+    await videoUrlInput.fill('https://example.com/');
+    await videoUrlInput.evaluate((el: HTMLInputElement) => {
+        el.value = 'a'.repeat(501);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.getByRole('button', { name: 'Add project' }).click();
+
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+});
+
+test('portfolio project blank video_url normalizes to null', async ({ page }) => {
+    await openEditPage(page);
+
+    let projectRequestBody: unknown = null;
+    const projectId = 201;
+
+    await mockApiMethods(page, `**/api/resume/${resumeId}/portfolio_projects`, {
+        GET: { status: 200, body: [] },
+        POST: {
+            status: 201,
+            body: {
+                id: projectId,
+                resume_id: resumeId,
+                project_name: 'My Project',
+                image_url: null,
+                project_link: null,
+                source_code_link: null,
+                description: null,
+                video_url: null,
+                display_order: 1,
+                active: true,
+                created_at: '',
+                updated_at: ''
+            },
+            callback: async (req) => {
+                projectRequestBody = await req.postDataJSON();
+            }
+        }
+    });
+
+    await page.getByRole('tab', { name: 'Portfolio', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Project name' }).fill('My Project');
+    await page.getByRole('textbox', { name: 'Video URL' }).first().fill('   ');
+    await page.getByRole('button', { name: 'Add project' }).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('All changes saved successfully!')).toBeVisible();
+
+    expect(projectRequestBody).toMatchObject({ video_url: null });
 });

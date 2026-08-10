@@ -99,3 +99,67 @@ test('detail view shows dash when video is null', async ({ page }) => {
     const videoRow = page.locator('.fieldRow', { hasText: 'Video' });
     await expect(videoRow.getByText('-')).toBeVisible();
 });
+
+test('detail view shows portfolio video_url as link when present', async ({ page }) => {
+    const videoUrl = 'https://example.com/project-video';
+    const project = {
+        id: 101,
+        resume_id: resumeId,
+        project_name: 'My Project',
+        image_url: null,
+        project_link: null,
+        source_code_link: null,
+        description: null,
+        video_url: videoUrl,
+        display_order: 1,
+        active: true,
+        created_at: ''
+    };
+
+    await mockApiResponse(page, resumeUrl, 200, resume);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/education`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/skills`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects`, 200, [project]);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/key_points`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/technologies`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/languages`, 200, []);
+
+    await page.goto(`/resume_editor/resumes/${resumeId}?tab=portfolio`);
+    await page.waitForLoadState('networkidle');
+
+    const videoLink = page.getByRole('link', { name: videoUrl });
+    await expect(videoLink).toBeVisible();
+    await expect(videoLink).toHaveAttribute('href', videoUrl);
+});
+
+test('detail view shows dash when portfolio video_url is null', async ({ page }) => {
+    const project = {
+        id: 101,
+        resume_id: resumeId,
+        project_name: 'My Project',
+        image_url: null,
+        project_link: null,
+        source_code_link: null,
+        description: null,
+        video_url: null,
+        display_order: 1,
+        active: true,
+        created_at: ''
+    };
+
+    await mockApiResponse(page, resumeUrl, 200, resume);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/education`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/skills`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects`, 200, [project]);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/key_points`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/technologies`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${resumeId}/languages`, 200, []);
+
+    await page.goto(`/resume_editor/resumes/${resumeId}?tab=portfolio`);
+    await page.waitForLoadState('networkidle');
+
+    const videoRow = page.locator('.fieldRow', { hasText: 'Video URL' });
+    await expect(videoRow.getByText('-')).toBeVisible();
+});
