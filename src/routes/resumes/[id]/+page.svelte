@@ -519,6 +519,13 @@
                                 alt={`Preview of ${project.project_name}`}
                             />
                         {/if}
+                        <FieldRow
+                            Icon={Video}
+                            label="Video URL"
+                            value={project.video_url ?? '-'}
+                            href={project.video_url ?? undefined}
+                            copyable={!!project.video_url}
+                        />
                         {#if (portfolioTechnologies[project.id] ?? []).length > 0}
                             <div class="chips">
                                 {#each portfolioTechnologies[project.id] ?? [] as technology (technology.id)}
