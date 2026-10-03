@@ -563,3 +563,61 @@ test('detail variants card hidden when server returns empty', async ({ page }) =
 
     await expect(page.getByText('Variants of this resume')).toHaveCount(0);
 });
+
+test('variant delete reuses shared delete flow and navigates to list', async ({ page }) => {
+    page.on('dialog', (dialog) => void dialog.accept());
+    await openVariantEditPage(page);
+    await mockApiResponse(page, '**/api/resumes', 200, [baseResume]);
+    await mockApiMethods(page, `**/api/resume/${variantResume.id}`, {
+        DELETE: { status: 200, body: null }
+    });
+
+    await page.getByRole('button', { name: 'Delete' }).click();
+
+    await expect(page).toHaveURL('/resume_editor/resumes');
+});
+
+test('base delete conflict surfaces via error dialog and stays retryable', async ({ page }) => {
+    page.on('dialog', (dialog) => void dialog.accept());
+    await openVariantEditPage(page, baseResume);
+    await mockApiMethods(page, `**/api/resume/${baseResume.id}`, {
+        DELETE: { status: 409, body: 'Cannot delete a resume that has variants' }
+    });
+
+    await page.getByRole('button', { name: 'Delete' }).click();
+
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByText('Cannot delete a resume that has variants')).toBeVisible();
+    await expect(page).toHaveURL('/resume_editor/resumes/1/edit');
+
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).last().click();
+    await expect(page.getByRole('button', { name: 'Delete' })).toBeEnabled();
+});
+
+test('variant delete failure surfaces via error dialog', async ({ page }) => {
+    page.on('dialog', (dialog) => void dialog.accept());
+    await openVariantEditPage(page);
+    await mockApiMethods(page, `**/api/resume/${variantResume.id}`, {
+        DELETE: { status: 409, body: 'Cannot delete this variant' }
+    });
+
+    await page.getByRole('button', { name: 'Delete' }).click();
+
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByText('Cannot delete this variant')).toBeVisible();
+    await expect(page).toHaveURL('/resume_editor/resumes/2/edit');
+    await expect(page.getByRole('button', { name: 'Delete' })).toBeEnabled();
+});
+
+test('edit page hides delete for non-owner', async ({ page }) => {
+    const otherUser = { ...user, id: 2 };
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, otherUser);
+    await mockApiResponse(page, `**/api/resume/${baseResume.id}`, 200, baseResume);
+    await mockEmptySections(page, baseResume.id);
+
+    await page.goto(`/resume_editor/resumes/${baseResume.id}/edit`);
+
+    await expect(page.getByText('Forbidden')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0);
+});

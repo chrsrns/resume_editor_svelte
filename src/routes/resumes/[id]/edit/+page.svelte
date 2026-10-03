@@ -96,6 +96,9 @@
     let exportErrorTitle = $state('Export failed');
     let exportErrorMessage = $state('');
     let exportBusy = $state(false);
+    let deleteErrorOpen = $state(false);
+    let deleteErrorTitle = $state('Delete failed');
+    let deleteErrorMessage = $state('');
 
     // Global dirty state (basics + skills + education + work + portfolio + languages)
     const isDirty = $derived(
@@ -341,10 +344,16 @@
             await goto(resolve('/resumes'));
         } catch (e) {
             const err = e as ApiError;
-            error = err.message;
+            deleteErrorTitle = 'Delete failed';
+            deleteErrorMessage = err.message;
+            deleteErrorOpen = true;
         } finally {
             deleting = false;
         }
+    }
+
+    function closeDeleteError() {
+        deleteErrorOpen = false;
     }
 
     function closeSavePopup() {
@@ -445,10 +454,12 @@
                     {/if}
                 </div>
             {/if}
-            <Button variant="danger" onclick={handleDelete} disabled={deleting}>
-                {#snippet icon()}<Trash2 size={16} />{/snippet}
-                {deleting ? 'Deleting…' : 'Delete'}
-            </Button>
+            {#if $currentUser && resume.created_by === $currentUser.id}
+                <Button variant="danger" onclick={handleDelete} disabled={deleting}>
+                    {#snippet icon()}<Trash2 size={16} />{/snippet}
+                    {deleting ? 'Deleting…' : 'Delete'}
+                </Button>
+            {/if}
         </div>
     </div>
 
@@ -619,6 +630,13 @@
     title={exportErrorTitle}
     message={exportErrorMessage}
     onclose={closeExportError}
+/>
+
+<ErrorDialog
+    open={deleteErrorOpen}
+    title={deleteErrorTitle}
+    message={deleteErrorMessage}
+    onclose={closeDeleteError}
 />
 
 <style>
