@@ -18,6 +18,7 @@
     import type { ApiError } from '$lib/api/client';
     import { saveAll } from '$lib/stores/draft/saveOrchestrator';
     import ResumeForm from '$lib/components/ResumeForm.svelte';
+    import VariantTargetingCard from '$lib/components/VariantTargetingCard.svelte';
     import EducationSection from '$lib/components/sections/EducationSection.svelte';
     import LanguagesFrameworksSection from '$lib/components/sections/LanguagesFrameworksSection.svelte';
     import PortfolioProjectsSection from '$lib/components/sections/PortfolioProjectsSection.svelte';
@@ -466,6 +467,9 @@
             aria-labelledby="tab-basics"
             tabindex="0"
         >
+            {#if resume.is_variant}
+                <VariantTargetingCard editable />
+            {/if}
             <ResumeForm formId="resume-form" />
         </div>
 

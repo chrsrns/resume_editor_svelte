@@ -349,3 +349,53 @@ test('new variant surfaces create failure', async ({ page }) => {
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).last().click();
     await expect(page.getByRole('button', { name: 'Create variant' })).toBeEnabled();
 });
+
+async function openVariantEditPage(
+    page: import('@playwright/test').Page,
+    resume = variantResume
+) {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await mockApiResponse(page, `**/api/resume/${resume.id}`, 200, resume);
+    await mockEmptySections(page, resume.id);
+    await page.goto(`/resume_editor/resumes/${resume.id}/edit`);
+    await expect(page.getByText('Edit resume')).toBeVisible();
+}
+
+test('edit variant updates targeting metadata and omits email', async ({ page }) => {
+    await openVariantEditPage(page);
+
+    await expect(page.getByText('Variant targeting')).toBeVisible();
+    await page.getByRole('textbox', { name: 'Company' }).fill(' NewCo ');
+    await page.getByRole('textbox', { name: 'Role / title' }).fill(' Staff Engineer ');
+    await page.getByLabel('Target date month').selectOption('5');
+    await page.getByRole('textbox', { name: 'Label' }).fill(' Application ');
+    await page.getByRole('textbox', { name: 'Job description' }).fill(' Updated JD ');
+
+    let updateBody: Record<string, unknown> | null = null;
+    await mockApiMethods(page, `**/api/resume/${variantResume.id}`, {
+        PUT: {
+            status: 200,
+            body: variantResume,
+            callback: async (req) => {
+                updateBody = await req.postDataJSON();
+            }
+        }
+    });
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('All changes saved successfully!')).toBeVisible();
+
+    expect(updateBody).toMatchObject({
+        company_name: 'NewCo',
+        role_title: 'Staff Engineer',
+        target_date: '2026-05',
+        job_description: 'Updated JD',
+        variant_label: 'Application',
+        show_variant_tag: true
+    });
+    expect(updateBody).not.toHaveProperty('email');
+    expect(updateBody).not.toHaveProperty('is_variant');
+    expect(updateBody).not.toHaveProperty('base_resume_id');
+    expect(updateBody).not.toHaveProperty('target_date_precision');
+});
