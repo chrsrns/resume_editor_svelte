@@ -71,6 +71,22 @@ export type UpdateResumeRequest = {
     mobile_number?: string | null;
     executive_summary?: string | null;
     is_public?: boolean | null;
+    company_name?: string | null;
+    role_title?: string | null;
+    target_date?: string | null;
+    job_description?: string | null;
+    variant_label?: string | null;
+    show_variant_tag?: boolean | null;
+};
+
+export type NewVariantRequest = {
+    company_name?: string | null;
+    role_title?: string | null;
+    target_date?: string | null;
+    job_description?: string | null;
+    variant_label?: string | null;
+    is_public?: boolean;
+    show_variant_tag?: boolean;
 };
 
 export type Skill = {
