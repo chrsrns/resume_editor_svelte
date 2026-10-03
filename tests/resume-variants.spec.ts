@@ -318,6 +318,12 @@ test('new variant initializes visibility and submits normalized metadata with au
     expect(authHeader).toBe('Bearer test-token');
 });
 
+test('new variant initializes Public from a public base', async ({ page }) => {
+    await openNewVariantPage(page, { ...baseResume, is_public: true });
+
+    await expect(page.getByRole('checkbox', { name: 'Public' })).toBeChecked();
+});
+
 test('new variant cancel returns to base', async ({ page }) => {
     await openNewVariantPage(page);
     await mockApiResponse(page, '**/api/resume/1', 200, baseResume);
