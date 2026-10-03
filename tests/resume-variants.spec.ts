@@ -233,3 +233,110 @@ test('list hides owner-only variant count and action from non-owner', async ({ p
     await expect(page.getByText(/variants/)).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(0);
 });
+
+async function mockEmptySections(page: import('@playwright/test').Page, id: number) {
+    await mockApiResponse(page, `**/api/resume/${id}/education`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${id}/work_experiences`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${id}/skills`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${id}/portfolio_projects`, 200, []);
+    await mockApiResponse(page, `**/api/resume/${id}/languages`, 200, []);
+}
+
+async function openNewVariantPage(page: import('@playwright/test').Page, base = baseResume) {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await mockApiResponse(page, `**/api/resume/${base.id}`, 200, base);
+    await page.goto(`/resume_editor/resumes/${base.id}/variants/new`);
+    await expect(page.getByRole('heading', { name: 'New variant' })).toBeVisible();
+}
+
+test('new variant redirects unauthenticated users', async ({ page }) => {
+    await page.goto('/resume_editor/resumes/1/variants/new');
+    await expect(page).toHaveURL('/resume_editor/auth/login');
+});
+
+test('new variant forbids non-owner', async ({ page }) => {
+    const otherUser = { ...user, id: 2, email: 'other@example.com' };
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, otherUser);
+    await mockApiResponse(page, '**/api/resume/1', 200, baseResume);
+
+    await page.goto('/resume_editor/resumes/1/variants/new');
+
+    await expect(page.getByText('Forbidden')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create variant' })).toHaveCount(0);
+});
+
+test('new variant initializes visibility and submits normalized metadata with auth', async ({
+    page
+}) => {
+    const privateBase = { ...baseResume, is_public: false };
+    await openNewVariantPage(page, privateBase);
+
+    await expect(page.getByText(`Copy of ${privateBase.name}`)).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'Public' })).not.toBeChecked();
+    await expect(page.getByRole('checkbox', { name: 'Show variant tag' })).toBeChecked();
+    await expect(page.getByText(/cannot see the base/)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveCount(0);
+
+    await page.getByRole('textbox', { name: 'Company' }).fill('  Acme  ');
+    await page.getByRole('textbox', { name: 'Role / title' }).fill(' Backend Engineer ');
+    await page.getByLabel('Target date year').selectOption('2026');
+    await page.getByLabel('Target date month').selectOption('3');
+    await page.getByRole('textbox', { name: 'Label' }).fill(' Backend ');
+    await page.getByRole('textbox', { name: 'Job description' }).fill(' Build systems ');
+    await page.getByRole('checkbox', { name: 'Public' }).check();
+    await page.getByRole('checkbox', { name: 'Show variant tag' }).uncheck();
+
+    let createBody: Record<string, unknown> | null = null;
+    let authHeader: string | null = null;
+    await mockApiMethods(page, '**/api/resume/1/variants', {
+        POST: {
+            status: 201,
+            body: variantResume,
+            callback: async (req) => {
+                authHeader = req.headers()['authorization'] ?? null;
+                createBody = await req.postDataJSON();
+            }
+        }
+    });
+    await mockApiResponse(page, '**/api/resume/2', 200, variantResume);
+    await mockEmptySections(page, 2);
+
+    await page.getByRole('button', { name: 'Create variant' }).click();
+
+    await expect(page).toHaveURL('/resume_editor/resumes/2/edit');
+    expect(createBody).toEqual({
+        company_name: 'Acme',
+        role_title: 'Backend Engineer',
+        target_date: '2026-03',
+        job_description: 'Build systems',
+        variant_label: 'Backend',
+        is_public: true,
+        show_variant_tag: false
+    });
+    expect(authHeader).toBe('Bearer test-token');
+});
+
+test('new variant cancel returns to base', async ({ page }) => {
+    await openNewVariantPage(page);
+    await mockApiResponse(page, '**/api/resume/1', 200, baseResume);
+    await mockEmptySections(page, 1);
+
+    await page.getByRole('button', { name: 'Cancel' }).click();
+
+    await expect(page).toHaveURL('/resume_editor/resumes/1');
+});
+
+test('new variant surfaces create failure', async ({ page }) => {
+    await openNewVariantPage(page);
+    await mockApiMethods(page, '**/api/resume/1/variants', {
+        POST: { status: 403, body: 'Cannot create a variant for this resume' }
+    });
+
+    await page.getByRole('button', { name: 'Create variant' }).click();
+
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByText('Cannot create a variant for this resume')).toBeVisible();
+    await expect(page).toHaveURL('/resume_editor/resumes/1/variants/new');
+});
