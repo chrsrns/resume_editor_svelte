@@ -72,4 +72,20 @@ describe('resume variant helpers', () => {
 
         expect(sorted.map((r) => r.id)).toEqual([14, 12, 13, 10, 11]);
     });
+
+    it('sorts grouped variants without mutating the GET response order', () => {
+        const base = resume({ id: 1 });
+        const older = resume({ id: 2, is_variant: true, base_resume_id: 1, target_date: '2025' });
+        const newer = resume({ id: 3, is_variant: true, base_resume_id: 1, target_date: '2026' });
+        const response = [base, older, newer];
+
+        const entries = buildResumeListEntries(response);
+        const group = entries[0];
+
+        expect(group.kind).toBe('group');
+        if (group.kind === 'group') {
+            expect(group.variants.map((variant) => variant.id)).toEqual([3, 2]);
+        }
+        expect(response.map((r) => r.id)).toEqual([1, 2, 3]);
+    });
 });
