@@ -199,6 +199,16 @@ test('list groups variants under owned base and supports truncation', async ({ p
     await disclosure.click();
     await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
     await expect(variantLinks).toHaveCount(0);
+    await expect(page).toHaveURL('/resume_editor/resumes');
+
+    await disclosure.press('Enter');
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    await expect(variantLinks).toHaveCount(4);
+
+    await disclosure.press('Space');
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    await expect(variantLinks).toHaveCount(0);
+    await expect(page).toHaveURL('/resume_editor/resumes');
 
     const orphanLink = page.getByRole('link', { name: /Orphan Resume/ });
     await expect(orphanLink).toHaveAttribute('href', '/resume_editor/resumes/6');
