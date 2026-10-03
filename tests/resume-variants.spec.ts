@@ -96,3 +96,128 @@ test('variant API helpers call create and list endpoints with auth', async ({ pa
     expect(createAuthHeader).toBe('Bearer test-token');
     expect(listAuthHeader).toBe('Bearer test-token');
 });
+
+const variants: Resume[] = [
+    {
+        ...variantResume,
+        id: 2,
+        company_name: 'Acme',
+        role_title: 'Engineer',
+        target_date: '2026-03',
+        variant_label: 'Platform'
+    },
+    {
+        ...variantResume,
+        id: 3,
+        company_name: 'Globex',
+        role_title: 'Designer',
+        target_date: null,
+        target_date_precision: null,
+        variant_label: 'Late'
+    },
+    {
+        ...variantResume,
+        id: 4,
+        company_name: 'Initech',
+        role_title: 'Lead',
+        target_date: '2026-04-02',
+        target_date_precision: 'day',
+        variant_label: 'Priority'
+    },
+    {
+        ...variantResume,
+        id: 5,
+        company_name: 'Umbrella',
+        role_title: 'Researcher',
+        target_date: '2025',
+        target_date_precision: 'year',
+        variant_label: 'Archive'
+    }
+];
+
+const orphanVariant: Resume = {
+    ...variantResume,
+    id: 6,
+    name: 'Orphan Resume',
+    is_variant: true,
+    base_resume_id: null,
+    show_variant_tag: null,
+    company_name: 'Hidden Base Co',
+    role_title: 'Secret Role',
+    target_date: '2027',
+    target_date_precision: 'year',
+    variant_label: 'Hidden Base'
+};
+
+const otherBase: Resume = {
+    ...baseResume,
+    id: 7,
+    name: 'Other Base',
+    created_by: 2
+};
+
+test('list groups variants under owned base and supports truncation', async ({ page }) => {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await mockApiResponse(page, '**/api/resumes', 200, [
+        baseResume,
+        otherBase,
+        orphanVariant,
+        variants[0],
+        variants[1],
+        variants[2],
+        variants[3]
+    ]);
+
+    await page.goto('/resume_editor/resumes');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByRole('link', { name: 'Base Resume' })).toHaveAttribute(
+        'href',
+        '/resume_editor/resumes/1'
+    );
+    await expect(page.getByText('4 variants')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'New variant' })).toHaveAttribute(
+        'href',
+        '/resume_editor/resumes/1/variants/new'
+    );
+
+    const disclosure = page.getByRole('button', { name: 'Toggle variants for Base Resume' });
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+
+    const variantLinks = page.locator('.variantList a.variantLink');
+    await expect(variantLinks).toHaveCount(3);
+    await expect(variantLinks.nth(0)).toContainText('Initech');
+    await expect(variantLinks.nth(1)).toContainText('Acme');
+    await expect(variantLinks.nth(2)).toContainText('Umbrella');
+    await expect(page.getByRole('link', { name: /Globex/ })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Show all (4)…' }).click();
+    await expect(variantLinks).toHaveCount(4);
+    await expect(variantLinks.nth(3)).toContainText('Globex');
+
+    await disclosure.click();
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    await expect(variantLinks).toHaveCount(0);
+
+    const orphanLink = page.getByRole('link', { name: /Orphan Resume/ });
+    await expect(orphanLink).toHaveAttribute('href', '/resume_editor/resumes/6');
+    await expect(orphanLink.getByText('variant', { exact: true })).toBeVisible();
+    await expect(orphanLink).not.toContainText('Hidden Base Co');
+
+    await expect(page.getByRole('link', { name: 'Other Base' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(1);
+});
+
+test('list hides owner-only variant count and action from non-owner', async ({ page }) => {
+    await mockApiResponse(page, '**/api/auth/me', 200, null);
+    await mockApiResponse(page, '**/api/resumes', 200, [baseResume, variants[0]]);
+
+    await page.goto('/resume_editor/resumes');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByRole('link', { name: 'Base Resume' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Acme/ })).toBeVisible();
+    await expect(page.getByText(/variants/)).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(0);
+});
