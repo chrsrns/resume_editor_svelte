@@ -462,6 +462,13 @@ test('detail shows variant chrome, base link, and read-only targeting', async ({
     await openResumeDetailPage(page, variantResume, user, { status: 200, body: baseResume });
 
     await expect(page.getByText('variant', { exact: true })).toBeVisible();
+    const strip = page.locator('.variantStrip');
+    await expect(strip).toContainText('Acme');
+    await expect(strip).toContainText('Engineer');
+    await expect(strip).toContainText('March 2026');
+    await expect(strip).toContainText('Platform');
+    await expect(strip).not.toContainText('Build things');
+
     const baseLink = page.getByRole('link', { name: 'Variant of Base Resume' });
     await expect(baseLink).toHaveAttribute('href', '/resume_editor/resumes/1');
 

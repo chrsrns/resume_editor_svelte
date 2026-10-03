@@ -88,4 +88,14 @@ describe('resume variant helpers', () => {
         }
         expect(response.map((r) => r.id)).toEqual([1, 2, 3]);
     });
+
+    it('renders a contradictory non-variant row with a base id as ordinary', () => {
+        const base = resume({ id: 1, name: 'Base' });
+        const contradictory = resume({ id: 9, is_variant: false, base_resume_id: 1 });
+
+        const entries = buildResumeListEntries([base, contradictory]);
+
+        expect(entries).toHaveLength(2);
+        expect(entries[1]).toMatchObject({ kind: 'group', base: { id: 9 }, variants: [] });
+    });
 });

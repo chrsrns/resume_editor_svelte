@@ -30,6 +30,7 @@
         WorkExperienceKeyPoint
     } from '$lib/types';
     import { parsePartialDate, formatPartialDateLong } from '$lib/types';
+    import { formatVariantTargetDate } from '$lib/variants';
     import { currentUser } from '$lib/session';
     import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
     import VariantTargetingCard from '$lib/components/VariantTargetingCard.svelte';
@@ -346,6 +347,18 @@
     {#if resume.is_variant && resume.base_resume_id !== null}
         <div class="variantStrip">
             <span class="variantBadge">variant</span>
+            {#if resume.company_name}
+                <span class="badge">{resume.company_name}</span>
+            {/if}
+            {#if resume.role_title}
+                <span class="badge">{resume.role_title}</span>
+            {/if}
+            {#if resume.target_date}
+                <span class="badge">{formatVariantTargetDate(resume.target_date)}</span>
+            {/if}
+            {#if resume.variant_label}
+                <span class="badge">{resume.variant_label}</span>
+            {/if}
             <a
                 class="baseLink"
                 href={resolve(`/resumes/${resume.base_resume_id}`)}
@@ -860,6 +873,16 @@
         font-size: 12px;
         line-height: 1;
         padding: var(--space-1) var(--space-2);
+    }
+
+    .variantStrip .badge {
+        background: var(--color-primary-light);
+        border-radius: var(--radius-pill);
+        color: var(--color-primary-dark);
+        font-size: 12px;
+        line-height: 1;
+        padding: var(--space-1) var(--space-2);
+        white-space: nowrap;
     }
 
     .variantStrip .baseLink {

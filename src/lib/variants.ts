@@ -39,7 +39,7 @@ export function buildResumeListEntries(resumes: Resume[]): ResumeListEntry[] {
     const basesById = new Set(resumes.map((resume) => resume.id));
 
     for (const resume of resumes) {
-        if (resume.base_resume_id !== null) {
+        if (resume.is_variant && resume.base_resume_id !== null) {
             const variants = variantsByBase.get(resume.base_resume_id) ?? [];
             variants.push(resume);
             variantsByBase.set(resume.base_resume_id, variants);
@@ -48,7 +48,11 @@ export function buildResumeListEntries(resumes: Resume[]): ResumeListEntry[] {
 
     const entries: ResumeListEntry[] = [];
     for (const resume of resumes) {
-        if (resume.base_resume_id !== null && basesById.has(resume.base_resume_id)) {
+        if (
+            resume.is_variant &&
+            resume.base_resume_id !== null &&
+            basesById.has(resume.base_resume_id)
+        ) {
             continue;
         }
         if (resume.is_variant) {
