@@ -345,4 +345,7 @@ test('new variant surfaces create failure', async ({ page }) => {
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByText('Cannot create a variant for this resume')).toBeVisible();
     await expect(page).toHaveURL('/resume_editor/resumes/1/variants/new');
+
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).last().click();
+    await expect(page.getByRole('button', { name: 'Create variant' })).toBeEnabled();
 });
