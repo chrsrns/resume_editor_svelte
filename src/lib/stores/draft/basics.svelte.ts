@@ -6,6 +6,7 @@
 
 import type { Resume, UpdateResumeRequest } from '$lib/types';
 import { createDraftItemStore } from './draftStore.svelte';
+import { buildBasicsUpdatePayload } from './basicsPayload';
 
 type BasicsDraft = {
     id: number;
@@ -18,6 +19,13 @@ type BasicsDraft = {
     mobile_number: string;
     executive_summary: string;
     is_public: boolean;
+    is_variant: boolean;
+    show_variant_tag: boolean;
+    company_name: string;
+    role_title: string;
+    target_date: string;
+    job_description: string;
+    variant_label: string;
 };
 
 type BaselineBasics = {
@@ -31,6 +39,13 @@ type BaselineBasics = {
     mobile_number: string | null;
     executive_summary: string | null;
     is_public: boolean;
+    is_variant: boolean;
+    show_variant_tag: boolean | null;
+    company_name: string | null;
+    role_title: string | null;
+    target_date: string | null;
+    job_description: string | null;
+    variant_label: string | null;
 };
 
 const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
@@ -44,7 +59,14 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         video: b.video ?? '',
         mobile_number: b.mobile_number ?? '',
         executive_summary: b.executive_summary ?? '',
-        is_public: b.is_public
+        is_public: b.is_public,
+        is_variant: b.is_variant,
+        show_variant_tag: b.show_variant_tag ?? false,
+        company_name: b.company_name ?? '',
+        role_title: b.role_title ?? '',
+        target_date: b.target_date ?? '',
+        job_description: b.job_description ?? '',
+        variant_label: b.variant_label ?? ''
     }),
     toBaseline: (d) => ({
         id: d.id,
@@ -56,7 +78,14 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         video: d.video.trim() || null,
         mobile_number: d.mobile_number.trim() || null,
         executive_summary: d.executive_summary.trim() || null,
-        is_public: d.is_public
+        is_public: d.is_public,
+        is_variant: d.is_variant,
+        show_variant_tag: d.show_variant_tag,
+        company_name: d.company_name.trim() || null,
+        role_title: d.role_title.trim() || null,
+        target_date: d.target_date.trim() || null,
+        job_description: d.job_description.trim() || null,
+        variant_label: d.variant_label.trim() || null
     }),
     normalizeDraft: (d) => ({
         name: d.name.trim(),
@@ -67,7 +96,14 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         video: d.video.trim() || null,
         mobile_number: d.mobile_number.trim() || null,
         executive_summary: d.executive_summary.trim() || null,
-        is_public: d.is_public
+        is_public: d.is_public,
+        is_variant: d.is_variant,
+        show_variant_tag: d.show_variant_tag,
+        company_name: d.company_name.trim() || null,
+        role_title: d.role_title.trim() || null,
+        target_date: d.target_date.trim() || null,
+        job_description: d.job_description.trim() || null,
+        variant_label: d.variant_label.trim() || null
     }),
     normalizeBaseline: (b) => ({
         name: b.name,
@@ -78,7 +114,14 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
         video: b.video,
         mobile_number: b.mobile_number,
         executive_summary: b.executive_summary,
-        is_public: b.is_public
+        is_public: b.is_public,
+        is_variant: b.is_variant,
+        show_variant_tag: b.show_variant_tag ?? false,
+        company_name: b.company_name,
+        role_title: b.role_title,
+        target_date: b.target_date,
+        job_description: b.job_description,
+        variant_label: b.variant_label
     }),
     validate: (d) => {
         if (!d.name.trim()) {
@@ -99,19 +142,30 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
             return 'Video must be 500 characters or less';
         }
 
+        if (d.is_variant) {
+            if (d.company_name.trim().length > 255) {
+                return 'Company name must be 255 characters or less';
+            }
+            if (d.role_title.trim().length > 255) {
+                return 'Role title must be 255 characters or less';
+            }
+            if (d.variant_label.trim().length > 255) {
+                return 'Variant label must be 255 characters or less';
+            }
+            if (d.job_description.trim().length > 20000) {
+                return 'Job description must be 20,000 characters or less';
+            }
+            if (
+                d.target_date.trim() &&
+                !/^\d{4}(-\d{2}(-\d{2})?)?$/.test(d.target_date.trim())
+            ) {
+                return 'Target date must be YYYY, YYYY-MM, or YYYY-MM-DD';
+            }
+        }
+
         return null;
     },
-    buildPayload: (d) => ({
-        name: d.name.trim(),
-        email: d.email.trim(),
-        profile_image_url: d.profile_image_url.trim() || null,
-        location: d.location.trim() || null,
-        github_url: d.github_url.trim() || null,
-        video: d.video.trim() || null,
-        mobile_number: d.mobile_number.trim() || null,
-        executive_summary: d.executive_summary.trim() || null,
-        is_public: d.is_public
-    })
+    buildPayload: buildBasicsUpdatePayload
 });
 
 export function initialize(resume: Resume): void {
@@ -125,7 +179,14 @@ export function initialize(resume: Resume): void {
         video: resume.video ?? null,
         mobile_number: resume.mobile_number,
         executive_summary: resume.executive_summary ?? null,
-        is_public: resume.is_public
+        is_public: resume.is_public,
+        is_variant: resume.is_variant,
+        show_variant_tag: resume.show_variant_tag,
+        company_name: resume.company_name,
+        role_title: resume.role_title,
+        target_date: resume.target_date,
+        job_description: resume.job_description,
+        variant_label: resume.variant_label
     };
     store.initialize(baseline);
 }
