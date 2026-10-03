@@ -33,6 +33,7 @@
     import { currentUser } from '$lib/session';
     import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
     import VariantTargetingCard from '$lib/components/VariantTargetingCard.svelte';
+    import VariantsList from '$lib/components/VariantsList.svelte';
     import IconTabBar from '$lib/components/IconTabBar.svelte';
     import FieldRow from '$lib/components/FieldRow.svelte';
     import ExecutiveSummaryCard from '$lib/components/ExecutiveSummaryCard.svelte';
@@ -385,6 +386,9 @@
     >
         {#if resume.is_variant && resume.base_resume_id !== null}
             <VariantTargetingCard {resume} />
+        {/if}
+        {#if !resume.is_variant && $currentUser !== null && resume.created_by === $currentUser.id}
+            <VariantsList resumeId={resume.id} />
         {/if}
         <ExecutiveSummaryCard summary={resume.executive_summary} />
 

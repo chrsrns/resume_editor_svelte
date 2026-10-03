@@ -507,3 +507,59 @@ test('detail hides New variant action for variants and non-owners', async ({ pag
     await openResumeDetailPage(page, baseResume, otherUser);
     await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(0);
 });
+
+test('detail variants card preserves server order and truncates', async ({ page }) => {
+    const serverOrder = [variants[1], variants[0], variants[2], variants[3]];
+    await mockApiResponse(page, '**/api/resume/1/variants', 200, serverOrder);
+    await openResumeDetailPage(page, baseResume);
+
+    const card = page.locator('section', { hasText: 'Variants of this resume (4)' });
+    await expect(card).toBeVisible();
+
+    const rows = card.locator('a.variantLink');
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText('Globex');
+    await expect(rows.nth(1)).toContainText('Acme');
+    await expect(rows.nth(2)).toContainText('Initech');
+
+    await card.getByRole('button', { name: 'Show all (4)…' }).click();
+    await expect(rows).toHaveCount(4);
+    await expect(rows.nth(3)).toContainText('Umbrella');
+});
+
+test('detail variants card retries after failure', async ({ page }) => {
+    await mockApiResponse(page, '**/api/resume/1/variants', 500, 'boom');
+    await openResumeDetailPage(page, baseResume);
+
+    await expect(page.getByText('boom')).toBeVisible();
+    await mockApiResponse(page, '**/api/resume/1/variants', 200, [variants[0]]);
+    await page.getByRole('button', { name: 'Retry' }).click();
+
+    await expect(page.locator('section', { hasText: 'Variants of this resume (1)' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Acme/ })).toBeVisible();
+});
+
+test('detail does not fetch variants for non-owner or variant resumes', async ({ page }) => {
+    let variantsCalls = 0;
+    await page.route('**/api/resume/*/variants', async (route) => {
+        variantsCalls += 1;
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: [] })
+        });
+    });
+
+    const otherUser = { ...user, id: 2 };
+    await openResumeDetailPage(page, baseResume, otherUser);
+    await openResumeDetailPage(page, variantResume, user, { status: 200, body: baseResume });
+
+    expect(variantsCalls).toBe(0);
+});
+
+test('detail variants card hidden when server returns empty', async ({ page }) => {
+    await mockApiResponse(page, '**/api/resume/1/variants', 200, []);
+    await openResumeDetailPage(page, baseResume);
+
+    await expect(page.getByText('Variants of this resume')).toHaveCount(0);
+});
