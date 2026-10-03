@@ -28,6 +28,15 @@ export type Resume = {
     updated_at: string;
     created_by: number | null;
     is_public: boolean;
+    is_variant: boolean;
+    base_resume_id: number | null;
+    show_variant_tag: boolean | null;
+    company_name: string | null;
+    role_title: string | null;
+    target_date: string | null;
+    target_date_precision: string | null;
+    job_description: string | null;
+    variant_label: string | null;
 };
 
 export type AuthRegisterRequest = {

@@ -24,7 +24,16 @@ test('refresh button retries loading the resume list', async ({ page }) => {
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
             created_by: null,
-            is_public: true
+            is_public: true,
+            is_variant: false,
+            base_resume_id: null,
+            show_variant_tag: null,
+            company_name: null,
+            role_title: null,
+            target_date: null,
+            target_date_precision: null,
+            job_description: null,
+            variant_label: null
         }
     ]);
 

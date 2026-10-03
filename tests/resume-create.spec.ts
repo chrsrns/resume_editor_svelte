@@ -25,7 +25,16 @@ const resume = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: 1,
-    is_public: false
+    is_public: false,
+    is_variant: false,
+    base_resume_id: null,
+    show_variant_tag: null,
+    company_name: null,
+    role_title: null,
+    target_date: null,
+    target_date_precision: null,
+    job_description: null,
+    variant_label: null
 };
 
 async function mockDetailResponses(page: Page) {
