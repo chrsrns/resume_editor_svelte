@@ -431,3 +431,79 @@ test('edit base resume keeps email editable and hides variant controls', async (
     expect(updateBody).not.toHaveProperty('company_name');
     expect(updateBody).not.toHaveProperty('show_variant_tag');
 });
+
+async function openResumeDetailPage(
+    page: import('@playwright/test').Page,
+    resume: Resume,
+    current = user,
+    baseResult?: { status: number; body: unknown }
+) {
+    if (current) {
+        await setAuthToken(page);
+        await mockApiResponse(page, '**/api/auth/me', 200, current);
+    } else {
+        await mockApiResponse(page, '**/api/auth/me', 200, null);
+    }
+    await mockApiResponse(page, `**/api/resume/${resume.id}`, 200, resume);
+    if (baseResult && resume.base_resume_id !== null) {
+        await mockApiResponse(
+            page,
+            `**/api/resume/${resume.base_resume_id}`,
+            baseResult.status,
+            baseResult.body
+        );
+    }
+    await mockEmptySections(page, resume.id);
+    await page.goto(`/resume_editor/resumes/${resume.id}`);
+    await expect(page.getByRole('heading', { name: resume.name })).toBeVisible();
+}
+
+test('detail shows variant chrome, base link, and read-only targeting', async ({ page }) => {
+    await openResumeDetailPage(page, variantResume, user, { status: 200, body: baseResume });
+
+    await expect(page.getByText('variant', { exact: true })).toBeVisible();
+    const baseLink = page.getByRole('link', { name: 'Variant of Base Resume' });
+    await expect(baseLink).toHaveAttribute('href', '/resume_editor/resumes/1');
+
+    const card = page.locator('section', { hasText: 'Variant targeting' });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('Acme');
+    await expect(card).toContainText('Engineer');
+    await expect(card).toContainText('March 2026');
+    await expect(card).toContainText('Platform');
+    await expect(card).toContainText('Build things');
+});
+
+test('detail falls back to resume id when base lookup fails', async ({ page }) => {
+    await openResumeDetailPage(page, variantResume, user, { status: 403, body: 'Forbidden' });
+
+    const baseLink = page.getByRole('link', { name: 'Variant of resume #1' });
+    await expect(baseLink).toHaveAttribute('href', '/resume_editor/resumes/1');
+});
+
+test('hidden-base variant detail shows no variant chrome', async ({ page }) => {
+    await openResumeDetailPage(page, orphanVariant);
+
+    await expect(page.getByText('variant', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Variant of', { exact: false })).toHaveCount(0);
+    await expect(page.getByText('Variant targeting')).toHaveCount(0);
+    await expect(page.getByText('Hidden Base Co')).toHaveCount(0);
+});
+
+test('detail shows owner-only New variant action on non-variant resumes', async ({ page }) => {
+    await openResumeDetailPage(page, baseResume);
+
+    await expect(page.getByRole('link', { name: 'New variant' })).toHaveAttribute(
+        'href',
+        '/resume_editor/resumes/1/variants/new'
+    );
+});
+
+test('detail hides New variant action for variants and non-owners', async ({ page }) => {
+    await openResumeDetailPage(page, variantResume, user, { status: 200, body: baseResume });
+    await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(0);
+
+    const otherUser = { ...user, id: 2 };
+    await openResumeDetailPage(page, baseResume, otherUser);
+    await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(0);
+});

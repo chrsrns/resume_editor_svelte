@@ -32,6 +32,7 @@
     import { parsePartialDate, formatPartialDateLong } from '$lib/types';
     import { currentUser } from '$lib/session';
     import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
+    import VariantTargetingCard from '$lib/components/VariantTargetingCard.svelte';
     import IconTabBar from '$lib/components/IconTabBar.svelte';
     import FieldRow from '$lib/components/FieldRow.svelte';
     import ExecutiveSummaryCard from '$lib/components/ExecutiveSummaryCard.svelte';
@@ -50,6 +51,7 @@
     import Folder from '@lucide/svelte/icons/folder';
     import Star from '@lucide/svelte/icons/star';
     import Globe from '@lucide/svelte/icons/globe';
+    import Plus from '@lucide/svelte/icons/plus';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     const tabs = [
@@ -90,6 +92,7 @@
     let error = $state<string | null>(null);
     let sectionError = $state<string | null>(null);
     let resume = $state<Resume | null>(null);
+    let baseResumeName = $state<string | null>(null);
     const activeTab = $derived(parseTabId(page.url.searchParams.get('tab')));
 
     let educations = $state<Education[]>([]);
@@ -236,6 +239,14 @@
         try {
             const id = Number(page.params.id);
             resume = await getResume(id);
+            baseResumeName = null;
+            if (resume.is_variant && resume.base_resume_id !== null) {
+                try {
+                    baseResumeName = (await getResume(resume.base_resume_id)).name;
+                } catch {
+                    baseResumeName = null;
+                }
+            }
             try {
                 await loadSections(id);
             } catch (e) {
@@ -314,11 +325,34 @@
         Retry
     </Button>
 {:else if resume}
+    {#snippet newVariantAction()}
+        <Button variant="secondary" href={resolve(`/resumes/${resume?.id}/variants/new`)}>
+            {#snippet icon()}<Plus size={16} />{/snippet}
+            New variant
+        </Button>
+    {/snippet}
     <ResumeViewHeader
         {resume}
         canEdit={$currentUser !== null && resume.created_by === $currentUser.id}
         onExport={handleExport}
+        extraActions={$currentUser !== null &&
+        resume.created_by === $currentUser.id &&
+        !resume.is_variant
+            ? newVariantAction
+            : undefined}
     />
+
+    {#if resume.is_variant && resume.base_resume_id !== null}
+        <div class="variantStrip">
+            <span class="variantBadge">variant</span>
+            <a
+                class="baseLink"
+                href={resolve(`/resumes/${resume.base_resume_id}`)}
+            >
+                Variant of {baseResumeName ?? `resume #${resume.base_resume_id}`}
+            </a>
+        </div>
+    {/if}
 
     <IconTabBar tabs={tabIcons} {activeTab} onselect={selectTab} onkeydown={onTabListKeydown} />
 
@@ -349,6 +383,9 @@
         aria-labelledby="tab-basics"
         tabindex="0"
     >
+        {#if resume.is_variant && resume.base_resume_id !== null}
+            <VariantTargetingCard {resume} />
+        {/if}
         <ExecutiveSummaryCard summary={resume.executive_summary} />
 
         <div class="card">
@@ -802,6 +839,38 @@
         height: 100%;
         border-radius: inherit;
         background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+    }
+
+    .variantStrip {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2-5);
+        margin-bottom: var(--space-4);
+    }
+
+    .variantBadge {
+        background: var(--color-primary-light);
+        border-radius: var(--radius-pill);
+        color: var(--color-primary-dark);
+        font-size: 12px;
+        line-height: 1;
+        padding: var(--space-1) var(--space-2);
+    }
+
+    .variantStrip .baseLink {
+        color: var(--color-primary);
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    .variantStrip .baseLink:hover {
+        text-decoration: underline;
+    }
+
+    .variantStrip .baseLink:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 
     @media (max-width: 640px) {
