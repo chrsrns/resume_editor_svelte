@@ -192,7 +192,9 @@ test('list groups variants under owned base and supports truncation', async ({ p
     await expect(variantLinks.nth(2)).toContainText('Umbrella');
     await expect(page.getByRole('link', { name: /Globex/ })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Show all (4)…' }).click();
+    const showAll = page.getByRole('button', { name: 'Show all (4)…' });
+    await expect(showAll).toBeVisible();
+    await showAll.click();
     await expect(variantLinks).toHaveCount(4);
     await expect(variantLinks.nth(3)).toContainText('Globex');
 
