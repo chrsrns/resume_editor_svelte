@@ -366,6 +366,11 @@ test('edit variant updates targeting metadata and omits email', async ({ page })
     await openVariantEditPage(page);
 
     await expect(page.getByText('Variant targeting')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveAttribute('readonly', '');
+    const showTag = page.getByRole('checkbox', { name: 'Show variant tag' });
+    await expect(showTag).toBeChecked();
+    await showTag.uncheck();
+
     await page.getByRole('textbox', { name: 'Company' }).fill(' NewCo ');
     await page.getByRole('textbox', { name: 'Role / title' }).fill(' Staff Engineer ');
     await page.getByLabel('Target date month').selectOption('5');
@@ -392,10 +397,37 @@ test('edit variant updates targeting metadata and omits email', async ({ page })
         target_date: '2026-05',
         job_description: 'Updated JD',
         variant_label: 'Application',
-        show_variant_tag: true
+        show_variant_tag: false
     });
     expect(updateBody).not.toHaveProperty('email');
     expect(updateBody).not.toHaveProperty('is_variant');
     expect(updateBody).not.toHaveProperty('base_resume_id');
     expect(updateBody).not.toHaveProperty('target_date_precision');
+});
+
+test('edit base resume keeps email editable and hides variant controls', async ({ page }) => {
+    await openVariantEditPage(page, baseResume);
+
+    await expect(page.getByText('Variant targeting')).toHaveCount(0);
+    await expect(page.getByRole('checkbox', { name: 'Show variant tag' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Email' })).not.toHaveAttribute('readonly', '');
+
+    let updateBody: Record<string, unknown> | null = null;
+    await mockApiMethods(page, `**/api/resume/${baseResume.id}`, {
+        PUT: {
+            status: 200,
+            body: baseResume,
+            callback: async (req) => {
+                updateBody = await req.postDataJSON();
+            }
+        }
+    });
+
+    await page.getByRole('textbox', { name: 'Email' }).fill('changed@example.com');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('All changes saved successfully!')).toBeVisible();
+
+    expect(updateBody).toMatchObject({ email: 'changed@example.com' });
+    expect(updateBody).not.toHaveProperty('company_name');
+    expect(updateBody).not.toHaveProperty('show_variant_tag');
 });
