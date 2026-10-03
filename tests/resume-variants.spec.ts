@@ -609,6 +609,36 @@ test('variant delete failure surfaces via error dialog', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Delete' })).toBeEnabled();
 });
 
+test('variant metadata validation limits block save', async ({ page }) => {
+    await openVariantEditPage(page);
+
+    await page.getByRole('textbox', { name: 'Company' }).evaluate((el: HTMLInputElement) => {
+        el.value = 'x'.repeat(256);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.getByRole('textbox', { name: 'Label' }).evaluate((el: HTMLInputElement) => {
+        el.value = 'y'.repeat(256);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    let updateCalls = 0;
+    await page.route(`**/api/resume/${variantResume.id}`, async (route) => {
+        if (route.request().method() === 'PUT') updateCalls += 1;
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: variantResume })
+        });
+    });
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+    await expect(
+        page.getByText('Company name must be 255 characters or less')
+    ).toBeVisible();
+    expect(updateCalls).toBe(0);
+});
+
 test('edit page hides delete for non-owner', async ({ page }) => {
     const otherUser = { ...user, id: 2 };
     await setAuthToken(page);
