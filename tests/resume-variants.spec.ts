@@ -500,6 +500,40 @@ test('detail shows variant chrome, base link, and read-only targeting', async ({
     await expect(card).toContainText('Build things');
 });
 
+test('detail navigates from variant to base without refresh', async ({ page }) => {
+    await openResumeDetailPage(page, variantResume, user, { status: 200, body: baseResume });
+    await mockEmptySections(page, 1);
+    await mockApiResponse(page, '**/api/resume/1/variants', 200, [variantResume]);
+
+    await page.getByRole('link', { name: 'Variant of Base Resume' }).click();
+
+    await expect(page).toHaveURL('/resume_editor/resumes/1');
+    await expect(page.getByRole('heading', { name: 'Base Resume' })).toBeVisible();
+    await expect(page.locator('.variantStrip')).toHaveCount(0);
+    await expect(page.getByText('Variant targeting')).toHaveCount(0);
+    await expect(page.locator('.variantsCard')).toBeVisible();
+});
+
+test('detail navigates from base to variant via variants card', async ({ page }) => {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await mockApiResponse(page, '**/api/resume/1', 200, baseResume);
+    await mockApiResponse(page, '**/api/resume/1/variants', 200, [variantResume]);
+    await mockApiResponse(page, '**/api/resume/2', 200, variantResume);
+    await mockEmptySections(page, 1);
+    await mockEmptySections(page, 2);
+
+    await page.goto('/resume_editor/resumes/1');
+    await expect(page.getByRole('heading', { name: 'Base Resume' })).toBeVisible();
+    await expect(page.locator('.variantsCard')).toBeVisible();
+    await page.getByRole('link', { name: /Acme/ }).click();
+
+    await expect(page).toHaveURL('/resume_editor/resumes/2');
+    await expect(page.locator('.variantStrip')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Variant of Base Resume' })).toBeVisible();
+    await expect(page.getByText('Variant targeting')).toBeVisible();
+});
+
 test('detail falls back to resume id when base lookup fails', async ({ page }) => {
     await openResumeDetailPage(page, variantResume, user, { status: 403, body: 'Forbidden' });
 

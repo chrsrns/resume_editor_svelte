@@ -1,6 +1,5 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
     import { SvelteURLSearchParams } from 'svelte/reactivity';
     import { page } from '$app/state';
     import { resolve } from '$app/paths';
@@ -234,17 +233,19 @@
         );
     }
 
-    async function load() {
+    async function load(id: number) {
         loading = true;
         error = null;
         sectionError = null;
+        const stale = () => Number(page.params.id) !== id;
         try {
-            const id = Number(page.params.id);
-            resume = await getResume(id);
+            const next = await getResume(id);
+            if (stale()) return;
+            resume = next;
             baseResumeName = null;
-            if (resume.is_variant && resume.base_resume_id !== null) {
+            if (next.is_variant && next.base_resume_id !== null) {
                 try {
-                    baseResumeName = (await getResume(resume.base_resume_id)).name;
+                    baseResumeName = (await getResume(next.base_resume_id)).name;
                 } catch {
                     baseResumeName = null;
                 }
@@ -252,14 +253,12 @@
             try {
                 await loadSections(id);
             } catch (e) {
-                const err = e as ApiError;
-                sectionError = err.message;
+                if (!stale()) sectionError = (e as ApiError).message;
             }
         } catch (e) {
-            const err = e as ApiError;
-            error = err.message;
+            if (!stale()) error = (e as ApiError).message;
         } finally {
-            loading = false;
+            if (!stale()) loading = false;
         }
     }
 
@@ -309,8 +308,8 @@
         exportErrorOpen = false;
     }
 
-    onMount(() => {
-        void load();
+    $effect(() => {
+        void load(Number(page.params.id));
     });
 </script>
 
@@ -322,7 +321,7 @@
     <p class="stateText">Loading…</p>
 {:else if error}
     <p class="stateText error">{error}</p>
-    <Button variant="secondary" onclick={load} disabled={loading}>
+    <Button variant="secondary" onclick={() => load(Number(page.params.id))} disabled={loading}>
         {#snippet icon()}<RefreshCw size={16} />{/snippet}
         Retry
     </Button>

@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import type { ApiError } from '$lib/api/client';
     import { listVariants } from '$lib/api/resumes';
     import type { Resume } from '$lib/types';
@@ -18,20 +17,22 @@
 
     const visibleVariants = $derived(showAll ? variants : variants.slice(0, 3));
 
-    async function load() {
+    async function load(id: number) {
         loading = true;
         error = null;
         try {
-            variants = await listVariants(resumeId);
+            const next = await listVariants(id);
+            if (id !== resumeId) return;
+            variants = next;
         } catch (e) {
-            error = (e as ApiError).message;
+            if (id === resumeId) error = (e as ApiError).message;
         } finally {
-            loading = false;
+            if (id === resumeId) loading = false;
         }
     }
 
-    onMount(() => {
-        void load();
+    $effect(() => {
+        void load(resumeId);
     });
 </script>
 
@@ -42,7 +43,7 @@
 {:else if error}
     <section class="variantsCard" aria-label="Variants">
         <p class="error">{error}</p>
-        <Button variant="secondary" onclick={load}>
+        <Button variant="secondary" onclick={() => load(resumeId)}>
             {#snippet icon()}<RefreshCw size={16} />{/snippet}
             Retry
         </Button>
