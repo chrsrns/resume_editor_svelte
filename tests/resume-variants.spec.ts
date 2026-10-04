@@ -234,6 +234,25 @@ test('list hides owner-only variant count and action from non-owner', async ({ p
     await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(0);
 });
 
+test('list renders zero-variant base without disclosure control', async ({ page }) => {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await mockApiResponse(page, '**/api/resumes', 200, [baseResume, otherBase]);
+
+    await page.goto('/resume_editor/resumes');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByRole('link', { name: 'Base Resume' })).toBeVisible();
+    await expect(page.getByText('no variants')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Toggle variants for Base Resume' })
+    ).toHaveCount(0);
+    await expect(
+        page.getByRole('button', { name: 'Toggle variants for Other Base' })
+    ).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(1);
+});
+
 async function mockEmptySections(page: import('@playwright/test').Page, id: number) {
     await mockApiResponse(page, `**/api/resume/${id}/education`, 200, []);
     await mockApiResponse(page, `**/api/resume/${id}/work_experiences`, 200, []);

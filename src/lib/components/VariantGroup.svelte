@@ -24,17 +24,19 @@
 </script>
 
 <li class="variantGroup">
-    <div class="groupHeader">
-        <button
-            class="disclosure"
-            type="button"
-            aria-expanded={!collapsed}
-            aria-controls={variantsListId}
-            aria-label={`Toggle variants for ${base.name}`}
-            onclick={() => (collapsed = !collapsed)}
-        >
-            <ChevronDown size={16} class={collapsed ? 'collapsedIcon' : ''} />
-        </button>
+    <div class="groupHeader" class:noDisclosure={variants.length === 0}>
+        {#if variants.length > 0}
+            <button
+                class="disclosure"
+                type="button"
+                aria-expanded={!collapsed}
+                aria-controls={variantsListId}
+                aria-label={`Toggle variants for ${base.name}`}
+                onclick={() => (collapsed = !collapsed)}
+            >
+                <ChevronDown size={16} class={collapsed ? 'collapsedIcon' : ''} />
+            </button>
+        {/if}
         <a class="baseLink" href={resolve('/resumes/[id]', { id: base.id.toString() })}>
             <div class="titleLine">
                 <span class="itemTitle">{base.name}</span>
@@ -92,6 +94,10 @@
         align-items: center;
         gap: var(--space-2);
         padding-right: var(--space-3);
+    }
+
+    .noDisclosure {
+        padding-left: var(--space-3);
     }
 
     .disclosure {
