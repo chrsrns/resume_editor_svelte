@@ -9,6 +9,9 @@
     import { currentUser } from '$lib/session';
     import Button from '$lib/components/ui/Button.svelte';
     import ErrorDialog from '$lib/components/ui/ErrorDialog.svelte';
+    import VariantGroup from '$lib/components/VariantGroup.svelte';
+    import VariantRow from '$lib/components/VariantRow.svelte';
+    import { buildResumeListEntries } from '$lib/variants';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import FileUp from '@lucide/svelte/icons/file-up';
 
@@ -20,6 +23,12 @@
     let importErrorOpen = $state(false);
     let importErrorTitle = $state('Import failed');
     let importErrorMessage = $state('');
+
+    const listEntries = $derived(buildResumeListEntries(resumes));
+
+    function isOwned(resume: Resume): boolean {
+        return $currentUser !== null && resume.created_by === $currentUser.id;
+    }
 
     async function loadResumes() {
         loading = true;
@@ -113,23 +122,18 @@
     <p class="muted">No resumes found.</p>
 {:else}
     <ul class="list">
-        {#each resumes as r (r.id)}
-            <li class="item">
-                <a class="itemLink" href={resolve('/resumes/[id]', { id: r.id.toString() })}>
-                    <div class="titleRow">
-                        <strong>{r.name}</strong>
-                        {#if r.is_public}
-                            <span class="tag">Public</span>
-                        {:else}
-                            <span class="tag private">Private</span>
-                        {/if}
-                        {#if $currentUser && r.created_by === $currentUser.id}
-                            <span class="tag mine">Mine</span>
-                        {/if}
-                    </div>
-                    <div class="meta">{r.email}</div>
-                </a>
-            </li>
+        {#each listEntries as entry (entry.kind === 'group' ? `group-${entry.base.id}` : `orphan-${entry.resume.id}`)}
+            {#if entry.kind === 'group'}
+                <VariantGroup
+                    base={entry.base}
+                    variants={entry.variants}
+                    owned={isOwned(entry.base)}
+                />
+            {:else}
+                <li class="item">
+                    <VariantRow resume={entry.resume} orphan owned={isOwned(entry.resume)} />
+                </li>
+            {/if}
         {/each}
     </ul>
 {/if}
@@ -170,49 +174,7 @@
         border: 1px solid var(--color-border);
         border-radius: var(--radius-md);
         background: var(--color-surface);
-    }
-
-    .itemLink {
-        display: block;
-        padding: var(--space-3) var(--space-3-5);
-        color: inherit;
-        text-decoration: none;
-    }
-
-    .itemLink:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-    }
-
-    .titleRow {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        flex-wrap: wrap;
-    }
-
-    .meta {
-        color: var(--color-muted);
-        font-size: 13px;
-        margin-top: var(--space-1);
-    }
-
-    .tag {
-        font-size: 12px;
-        padding: var(--space-0-5) var(--space-2);
-        border-radius: var(--radius-pill);
-        background: var(--color-background);
-        color: var(--color-text);
-    }
-
-    .tag.private {
-        background: var(--color-danger-light);
-        color: var(--color-danger-dark);
-    }
-
-    .tag.mine {
-        background: var(--color-success-light);
-        color: var(--color-success-dark);
+        overflow: hidden;
     }
 
     .error {

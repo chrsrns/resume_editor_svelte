@@ -1,6 +1,5 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
     import { SvelteURLSearchParams } from 'svelte/reactivity';
     import { page } from '$app/state';
     import { resolve } from '$app/paths';
@@ -30,8 +29,11 @@
         WorkExperienceKeyPoint
     } from '$lib/types';
     import { parsePartialDate, formatPartialDateLong } from '$lib/types';
+    import { formatVariantTargetDate } from '$lib/variants';
     import { currentUser } from '$lib/session';
     import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
+    import VariantTargetingCard from '$lib/components/VariantTargetingCard.svelte';
+    import VariantsList from '$lib/components/VariantsList.svelte';
     import IconTabBar from '$lib/components/IconTabBar.svelte';
     import FieldRow from '$lib/components/FieldRow.svelte';
     import ExecutiveSummaryCard from '$lib/components/ExecutiveSummaryCard.svelte';
@@ -50,6 +52,7 @@
     import Folder from '@lucide/svelte/icons/folder';
     import Star from '@lucide/svelte/icons/star';
     import Globe from '@lucide/svelte/icons/globe';
+    import Plus from '@lucide/svelte/icons/plus';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     const tabs = [
@@ -90,6 +93,7 @@
     let error = $state<string | null>(null);
     let sectionError = $state<string | null>(null);
     let resume = $state<Resume | null>(null);
+    let baseResumeName = $state<string | null>(null);
     const activeTab = $derived(parseTabId(page.url.searchParams.get('tab')));
 
     let educations = $state<Education[]>([]);
@@ -229,24 +233,32 @@
         );
     }
 
-    async function load() {
+    async function load(id: number) {
         loading = true;
         error = null;
         sectionError = null;
+        const stale = () => Number(page.params.id) !== id;
         try {
-            const id = Number(page.params.id);
-            resume = await getResume(id);
+            const next = await getResume(id);
+            if (stale()) return;
+            resume = next;
+            baseResumeName = null;
+            if (next.is_variant && next.base_resume_id !== null) {
+                try {
+                    baseResumeName = (await getResume(next.base_resume_id)).name;
+                } catch {
+                    baseResumeName = null;
+                }
+            }
             try {
                 await loadSections(id);
             } catch (e) {
-                const err = e as ApiError;
-                sectionError = err.message;
+                if (!stale()) sectionError = (e as ApiError).message;
             }
         } catch (e) {
-            const err = e as ApiError;
-            error = err.message;
+            if (!stale()) error = (e as ApiError).message;
         } finally {
-            loading = false;
+            if (!stale()) loading = false;
         }
     }
 
@@ -296,8 +308,8 @@
         exportErrorOpen = false;
     }
 
-    onMount(() => {
-        void load();
+    $effect(() => {
+        void load(Number(page.params.id));
     });
 </script>
 
@@ -309,16 +321,51 @@
     <p class="stateText">Loading…</p>
 {:else if error}
     <p class="stateText error">{error}</p>
-    <Button variant="secondary" onclick={load} disabled={loading}>
+    <Button variant="secondary" onclick={() => load(Number(page.params.id))} disabled={loading}>
         {#snippet icon()}<RefreshCw size={16} />{/snippet}
         Retry
     </Button>
 {:else if resume}
+    {#snippet newVariantAction()}
+        <Button variant="secondary" href={resolve(`/resumes/${resume?.id}/variants/new`)}>
+            {#snippet icon()}<Plus size={16} />{/snippet}
+            New variant
+        </Button>
+    {/snippet}
     <ResumeViewHeader
         {resume}
         canEdit={$currentUser !== null && resume.created_by === $currentUser.id}
         onExport={handleExport}
+        extraActions={$currentUser !== null &&
+        resume.created_by === $currentUser.id &&
+        !resume.is_variant
+            ? newVariantAction
+            : undefined}
     />
+
+    {#if resume.is_variant && resume.base_resume_id !== null}
+        <div class="variantStrip">
+            <span class="variantBadge">variant</span>
+            {#if resume.company_name}
+                <span class="badge">{resume.company_name}</span>
+            {/if}
+            {#if resume.role_title}
+                <span class="badge">{resume.role_title}</span>
+            {/if}
+            {#if resume.target_date}
+                <span class="badge">{formatVariantTargetDate(resume.target_date)}</span>
+            {/if}
+            {#if resume.variant_label}
+                <span class="badge">{resume.variant_label}</span>
+            {/if}
+            <a
+                class="baseLink"
+                href={resolve(`/resumes/${resume.base_resume_id}`)}
+            >
+                Variant of {baseResumeName ?? `resume #${resume.base_resume_id}`}
+            </a>
+        </div>
+    {/if}
 
     <IconTabBar tabs={tabIcons} {activeTab} onselect={selectTab} onkeydown={onTabListKeydown} />
 
@@ -349,6 +396,12 @@
         aria-labelledby="tab-basics"
         tabindex="0"
     >
+        {#if resume.is_variant && resume.base_resume_id !== null}
+            <VariantTargetingCard {resume} />
+        {/if}
+        {#if !resume.is_variant && $currentUser !== null && resume.created_by === $currentUser.id}
+            <VariantsList resumeId={resume.id} />
+        {/if}
         <ExecutiveSummaryCard summary={resume.executive_summary} />
 
         <div class="card">
@@ -802,6 +855,48 @@
         height: 100%;
         border-radius: inherit;
         background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+    }
+
+    .variantStrip {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2-5);
+        margin-bottom: var(--space-4);
+    }
+
+    .variantBadge {
+        background: var(--color-primary-light);
+        border-radius: var(--radius-pill);
+        color: var(--color-primary-dark);
+        font-size: 12px;
+        line-height: 1;
+        padding: var(--space-1) var(--space-2);
+    }
+
+    .variantStrip .badge {
+        background: var(--color-primary-light);
+        border-radius: var(--radius-pill);
+        color: var(--color-primary-dark);
+        font-size: 12px;
+        line-height: 1;
+        padding: var(--space-1) var(--space-2);
+        white-space: nowrap;
+    }
+
+    .variantStrip .baseLink {
+        color: var(--color-primary);
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    .variantStrip .baseLink:hover {
+        text-decoration: underline;
+    }
+
+    .variantStrip .baseLink:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
     }
 
     @media (max-width: 640px) {

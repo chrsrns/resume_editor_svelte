@@ -6,10 +6,11 @@
     import Button from '$lib/components/ui/Button.svelte';
     import type { Resume } from '$lib/types';
 
-    let { resume, canEdit, onExport } = $props<{
+    let { resume, canEdit, onExport, extraActions } = $props<{
         resume: Resume;
         canEdit: boolean;
         onExport?: () => void;
+        extraActions?: import('svelte').Snippet;
     }>();
 </script>
 
@@ -29,6 +30,9 @@
         </div>
     </div>
     <div class="actions">
+        {#if extraActions}
+            {@render extraActions()}
+        {/if}
         {#if onExport}
             <Button variant="secondary" onclick={onExport}>
                 {#snippet icon()}<FileDown size={16} />{/snippet}

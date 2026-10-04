@@ -41,7 +41,10 @@
             oninput={(e) => handleFieldChange('email', (e.currentTarget as HTMLInputElement).value)}
             onblur={handleBlur}
             required
-            title="Primary contact email displayed on the resume."
+            readonly={draft.is_variant}
+            title={draft.is_variant
+                ? 'Variant email is managed by the base resume.'
+                : 'Primary contact email displayed on the resume.'}
         />
 
         <TextInput
@@ -100,15 +103,29 @@
             title="Optional. A short professional summary."
         />
 
-        <label class="checkbox">
-            <input
-                type="checkbox"
-                checked={draft.is_public}
-                onchange={(e) => handleFieldChange('is_public', e.currentTarget.checked)}
-                title="If enabled, this resume is visible publicly."
-            />
-            <span>Public</span>
-        </label>
+        <div class="checkboxRow">
+            <label class="checkbox">
+                <input
+                    type="checkbox"
+                    checked={draft.is_public}
+                    onchange={(e) => handleFieldChange('is_public', e.currentTarget.checked)}
+                    title="If enabled, this resume is visible publicly."
+                />
+                <span>Public</span>
+            </label>
+            {#if draft.is_variant}
+                <label class="checkbox">
+                    <input
+                        type="checkbox"
+                        checked={draft.show_variant_tag}
+                        onchange={(e) =>
+                            handleFieldChange('show_variant_tag', e.currentTarget.checked)}
+                        title="If enabled, viewers who cannot see the base resume still see a variant tag."
+                    />
+                    <span>Show variant tag</span>
+                </label>
+            {/if}
+        </div>
 
         {#if validationError}
             <p class="error-message">{validationError}</p>
@@ -202,6 +219,12 @@
     .preview-empty span {
         font-size: 12px;
         text-align: center;
+    }
+
+    .checkboxRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-4);
     }
 
     .checkbox {

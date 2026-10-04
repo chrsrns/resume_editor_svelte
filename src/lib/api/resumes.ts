@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { apiRequest, ApiError, getApiBaseUrl } from './client';
 import { authToken, clearAuthToken } from '$lib/auth';
 import { clearCurrentUser } from '$lib/session';
-import type { Resume, NewResumeRequest, UpdateResumeRequest } from '$lib/types';
+import type { Resume, NewResumeRequest, NewVariantRequest, UpdateResumeRequest } from '$lib/types';
 
 export async function listResumes(): Promise<Resume[]> {
     const { body } = await apiRequest<Resume[]>('/resumes', { auth: true });
@@ -38,6 +38,22 @@ export async function updateResume(id: number, payload: UpdateResumeRequest): Pr
 
 export async function deleteResume(id: number): Promise<void> {
     await apiRequest(`/resume/${id}`, { method: 'DELETE', auth: true });
+}
+
+export async function createVariant(id: number, payload: NewVariantRequest): Promise<Resume> {
+    const { body } = await apiRequest<Resume>(`/resume/${id}/variants`, {
+        method: 'POST',
+        body: payload,
+        auth: true
+    });
+    if (body === undefined) throw new ApiError(500, 'Missing response body');
+    return body;
+}
+
+export async function listVariants(id: number): Promise<Resume[]> {
+    const { body } = await apiRequest<Resume[]>(`/resume/${id}/variants`, { auth: true });
+    if (body === undefined) throw new ApiError(500, 'Missing response body');
+    return body;
 }
 
 export async function exportResumeMarkdown(id: number): Promise<Blob> {
