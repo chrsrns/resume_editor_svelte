@@ -120,3 +120,38 @@ export async function importResumeMarkdown(markdown: string): Promise<Resume> {
     if (parsed.body === undefined) throw new ApiError(500, 'Missing response body');
     return parsed.body as Resume;
 }
+
+export async function importResumeMarkdownInto(id: number, markdown: string): Promise<Resume> {
+    const url = `${getApiBaseUrl()}/resume/${id}/import/markdown`;
+    const token = get(authToken);
+
+    const headers: Record<string, string> = {
+        'Content-Type': 'text/markdown'
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(url, { method: 'POST', headers, body: markdown });
+
+    if (res.status === 401 && token) {
+        clearAuthToken();
+        clearCurrentUser();
+    }
+
+    const text = await res.text();
+    let parsed: { body?: unknown };
+    try {
+        parsed = JSON.parse(text) as { body?: unknown };
+    } catch {
+        throw new ApiError(res.status, 'Failed to parse response', text);
+    }
+
+    if (!res.ok) {
+        const message = typeof parsed.body === 'string' ? parsed.body : 'Import failed';
+        throw new ApiError(res.status, message);
+    }
+
+    if (parsed.body === undefined) throw new ApiError(500, 'Missing response body');
+    return parsed.body as Resume;
+}

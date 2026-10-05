@@ -11,7 +11,7 @@
         listPortfolioProjects,
         listPortfolioTechnologies
     } from '$lib/api/portfolio';
-    import { getResume, exportResumeMarkdown } from '$lib/api/resumes';
+    import { getResume, exportResumeMarkdown, importResumeMarkdownInto } from '$lib/api/resumes';
     import { listSkills } from '$lib/api/skills';
     import { listWorkExperienceKeyPoints, listWorkExperiences } from '$lib/api/work-experience';
     import type { ApiError } from '$lib/api/client';
@@ -53,6 +53,7 @@
     import Star from '@lucide/svelte/icons/star';
     import Globe from '@lucide/svelte/icons/globe';
     import Plus from '@lucide/svelte/icons/plus';
+    import FileUp from '@lucide/svelte/icons/file-up';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     const tabs = [
@@ -110,6 +111,12 @@
     let exportErrorOpen = $state(false);
     let exportErrorTitle = $state('Export failed');
     let exportErrorMessage = $state('');
+
+    let importInput: HTMLInputElement | null = $state(null);
+    let importBusy = $state(false);
+    let importErrorOpen = $state(false);
+    let importErrorTitle = $state('Import failed');
+    let importErrorMessage = $state('');
 
     function onTabListKeydown(e: KeyboardEvent) {
         const tablist = e.currentTarget as HTMLElement | null;
@@ -308,6 +315,39 @@
         exportErrorOpen = false;
     }
 
+    function triggerImport() {
+        importInput?.click();
+    }
+
+    async function handleImportFile(e: Event) {
+        const input = e.currentTarget as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+        input.value = '';
+        if (!resume) return;
+        const confirmed = confirm(
+            `Replace the contents of "${resume.name}" with "${file.name}"? This cannot be undone.`
+        );
+        if (!confirmed) return;
+
+        importBusy = true;
+        try {
+            const text = await file.text();
+            await importResumeMarkdownInto(resume.id, text);
+            await load(resume.id);
+        } catch (e) {
+            importErrorTitle = 'Import failed';
+            importErrorMessage = e instanceof Error ? e.message : 'Import failed';
+            importErrorOpen = true;
+        } finally {
+            importBusy = false;
+        }
+    }
+
+    function closeImportError() {
+        importErrorOpen = false;
+    }
+
     $effect(() => {
         void load(Number(page.params.id));
     });
@@ -326,20 +366,25 @@
         Retry
     </Button>
 {:else if resume}
-    {#snippet newVariantAction()}
-        <Button variant="secondary" href={resolve(`/resumes/${resume?.id}/variants/new`)}>
-            {#snippet icon()}<Plus size={16} />{/snippet}
-            New variant
-        </Button>
+    {#snippet headerActions()}
+        {#if resume?.is_variant}
+            <Button variant="secondary" onclick={triggerImport} disabled={importBusy}>
+                {#snippet icon()}<FileUp size={16} />{/snippet}
+                Import Markdown
+            </Button>
+        {:else}
+            <Button variant="secondary" href={resolve(`/resumes/${resume?.id}/variants/new`)}>
+                {#snippet icon()}<Plus size={16} />{/snippet}
+                New variant
+            </Button>
+        {/if}
     {/snippet}
     <ResumeViewHeader
         {resume}
         canEdit={$currentUser !== null && resume.created_by === $currentUser.id}
         onExport={handleExport}
-        extraActions={$currentUser !== null &&
-        resume.created_by === $currentUser.id &&
-        !resume.is_variant
-            ? newVariantAction
+        extraActions={$currentUser !== null && resume.created_by === $currentUser.id
+            ? headerActions
             : undefined}
     />
 
@@ -374,6 +419,21 @@
         title={exportErrorTitle}
         message={exportErrorMessage}
         onclose={closeExportError}
+    />
+
+    <ErrorDialog
+        open={importErrorOpen}
+        title={importErrorTitle}
+        message={importErrorMessage}
+        onclose={closeImportError}
+    />
+
+    <input
+        bind:this={importInput}
+        type="file"
+        accept=".md,text/markdown"
+        onchange={handleImportFile}
+        class="hidden-file-input"
     />
 
     {#if sectionError}
@@ -897,6 +957,10 @@
     .variantStrip .baseLink:focus-visible {
         outline: 2px solid var(--color-primary);
         outline-offset: 2px;
+    }
+
+    .hidden-file-input {
+        display: none;
     }
 
     @media (max-width: 640px) {
