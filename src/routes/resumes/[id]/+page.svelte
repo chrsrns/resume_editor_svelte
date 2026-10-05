@@ -114,6 +114,9 @@
 
     let importInput: HTMLInputElement | null = $state(null);
     let importBusy = $state(false);
+    let importErrorOpen = $state(false);
+    let importErrorTitle = $state('Import failed');
+    let importErrorMessage = $state('');
 
     function onTabListKeydown(e: KeyboardEvent) {
         const tablist = e.currentTarget as HTMLElement | null;
@@ -332,11 +335,17 @@
             const text = await file.text();
             await importResumeMarkdownInto(resume.id, text);
             await load(resume.id);
-        } catch (err) {
-            void err;
+        } catch (e) {
+            importErrorTitle = 'Import failed';
+            importErrorMessage = e instanceof Error ? e.message : 'Import failed';
+            importErrorOpen = true;
         } finally {
             importBusy = false;
         }
+    }
+
+    function closeImportError() {
+        importErrorOpen = false;
     }
 
     $effect(() => {
@@ -410,6 +419,13 @@
         title={exportErrorTitle}
         message={exportErrorMessage}
         onclose={closeExportError}
+    />
+
+    <ErrorDialog
+        open={importErrorOpen}
+        title={importErrorTitle}
+        message={importErrorMessage}
+        onclose={closeImportError}
     />
 
     <input

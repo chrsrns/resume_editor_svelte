@@ -307,3 +307,45 @@ test('action disabled while the request is in flight', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Imported Variant' })).toBeVisible();
     await expect(importButton).toBeEnabled();
 });
+
+// --- JSON failure shows the API body verbatim ---
+
+test('JSON failure shows the API body verbatim', async ({ page }) => {
+    await openVariantDetail(page);
+    await page.route('**/api/resume/2/import/markdown', async (route) => {
+        await route.fulfill({
+            status: 400,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: 'Metadata keys require a variant target' })
+        });
+    });
+
+    page.once('dialog', (dialog) => void dialog.accept());
+    await pickImportFile(page);
+
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByText('Metadata keys require a variant target')).toBeVisible();
+    await expect(page).toHaveURL('/resume_editor/resumes/2');
+
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).last().click();
+    await expect(page.getByRole('button', { name: 'Import Markdown', exact: true })).toBeEnabled();
+});
+
+// --- non-JSON failure shows the fallback message ---
+
+test('non-JSON failure shows the fallback message', async ({ page }) => {
+    await openVariantDetail(page);
+    await page.route('**/api/resume/2/import/markdown', async (route) => {
+        await route.fulfill({
+            status: 413,
+            contentType: 'text/plain',
+            body: 'Payload Too Large'
+        });
+    });
+
+    page.once('dialog', (dialog) => void dialog.accept());
+    await pickImportFile(page);
+
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('Failed to parse response')).toBeVisible();
+});
