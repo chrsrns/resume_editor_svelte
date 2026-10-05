@@ -349,3 +349,37 @@ test('non-JSON failure shows the fallback message', async ({ page }) => {
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('dialog').getByText('Failed to parse response')).toBeVisible();
 });
+
+// --- list-page 200 update redirects to the updated resume's edit page ---
+
+test('list-page 200 update redirects to the updated resume edit page', async ({ page }) => {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await mockApiResponse(page, '**/api/resumes', 200, [variantResume]);
+
+    await page.route('**/api/resume/import/markdown', async (route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ body: variantResume })
+        });
+    });
+    await mockApiResponse(page, '**/api/resume/2', 200, variantResume);
+    await mockEmptySections(page, 2);
+
+    await page.goto('/resume_editor/resumes');
+    await page.waitForLoadState('networkidle');
+
+    const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        page.getByRole('button', { name: 'Import Markdown', exact: true }).click()
+    ]);
+    await fileChooser.setFiles({
+        name: 'variant.md',
+        mimeType: 'text/markdown',
+        buffer: Buffer.from('# Variant Resume\n\n- Email: owner@example.com\n')
+    });
+
+    await expect(page).toHaveURL('/resume_editor/resumes/2/edit');
+    await expect(page.getByText('Edit resume')).toBeVisible();
+});
