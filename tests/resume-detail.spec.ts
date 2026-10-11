@@ -69,6 +69,27 @@ test('retry button reloads failed resume sections', async ({ page }) => {
     await expect(page.getByText('No education entries yet.')).toBeVisible();
 });
 
+// --- V160: tab switch reuses loaded data; no refetch of resume or sections ---
+test('tab switch reuses loaded data without refetching', async ({ page }) => {
+    await mockApiResponse(page, resumeUrl, 200, resume);
+    await mockSectionResponses(page, resumeId);
+    await page.goto(`/resume_editor/resumes/${resumeId}`);
+    await expect(page.getByText('Test Resume')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+
+    const refetched: string[] = [];
+    page.on('request', (request) => {
+        if (request.url().includes('/api/resume')) refetched.push(request.url());
+    });
+
+    await page.getByRole('tab', { name: 'Education' }).click();
+    await expect(page.getByText('No education entries yet.')).toBeVisible();
+    await expect(page.getByText('Loading…')).not.toBeVisible();
+    await page.waitForTimeout(500);
+
+    expect(refetched).toEqual([]);
+});
+
 async function mockSectionResponses(page: Page, resumeId: number) {
     await mockApiResponse(page, `**/api/resume/${resumeId}/education`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences`, 200, []);

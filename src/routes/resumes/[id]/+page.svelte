@@ -96,6 +96,7 @@
     let resume = $state<Resume | null>(null);
     let baseResumeName = $state<string | null>(null);
     const activeTab = $derived(parseTabId(page.url.searchParams.get('tab')));
+    const resumeId = $derived(Number(page.params.id));
 
     let educations = $state<Education[]>([]);
     let educationKeyPoints = $state<Record<number, EducationKeyPoint[]>>({});
@@ -349,7 +350,7 @@
     }
 
     $effect(() => {
-        void load(Number(page.params.id));
+        void load(resumeId);
     });
 </script>
 
