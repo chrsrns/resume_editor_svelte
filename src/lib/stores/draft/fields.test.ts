@@ -22,7 +22,7 @@ type B = {
     derived: boolean;
 };
 
-const fields = defineFields<D, B>({
+const fields = defineFields<D, B>()({
     req: { kind: 'required-trim' },
     raw: { kind: 'required-raw' },
     opt: { kind: 'optional-nullable' },

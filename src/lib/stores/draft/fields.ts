@@ -39,81 +39,83 @@ function canon(kind: FieldSpec['kind'], v: unknown): unknown {
     }
 }
 
-export function defineFields<D, B>(spec: Record<string, FieldSpec>) {
-    function toDraft(b: B): D {
-        const out: Record<string, unknown> = {};
-        for (const [name, f] of Object.entries(spec)) {
-            if (f.kind === 'derive') continue;
-            const v = (b as Record<string, unknown>)[name];
-            switch (f.kind) {
-                case 'optional-nullable':
-                    out[name] = v ?? '';
-                    break;
-                case 'num':
-                case 'num-required':
-                    out[name] = v == null ? '' : String(v);
-                    break;
-                case 'bool-optional':
-                    out[name] = v ?? false;
-                    break;
-                default:
-                    out[name] = v;
+export function defineFields<D, B>() {
+    return function withSpec<K extends keyof B>(spec: Record<K, FieldSpec>) {
+        function toDraft(b: B): Pick<D, Extract<K, keyof D>> {
+            const out: Record<string, unknown> = {};
+            for (const [name, f] of Object.entries(spec) as [string, FieldSpec][]) {
+                if (f.kind === 'derive') continue;
+                const v = (b as Record<string, unknown>)[name];
+                switch (f.kind) {
+                    case 'optional-nullable':
+                        out[name] = v ?? '';
+                        break;
+                    case 'num':
+                    case 'num-required':
+                        out[name] = v == null ? '' : String(v);
+                        break;
+                    case 'bool-optional':
+                        out[name] = v ?? false;
+                        break;
+                    default:
+                        out[name] = v;
+                }
             }
+            return out as Pick<D, Extract<K, keyof D>>;
         }
-        return out as D;
-    }
 
-    function toBaseline(d: D, existing?: B): B {
-        const out: Record<string, unknown> = {};
-        for (const [name, f] of Object.entries(spec)) {
-            if (f.kind === 'derive') {
-                out[name] = f.get(existing);
-                continue;
+        function toBaseline(d: D, existing?: B): Pick<B, K> {
+            const out: Record<string, unknown> = {};
+            for (const [name, f] of Object.entries(spec) as [string, FieldSpec][]) {
+                if (f.kind === 'derive') {
+                    out[name] = f.get(existing);
+                    continue;
+                }
+                out[name] = canon(f.kind, (d as Record<string, unknown>)[name]);
             }
-            out[name] = canon(f.kind, (d as Record<string, unknown>)[name]);
+            return out as Pick<B, K>;
         }
-        return out as B;
-    }
 
-    function normalizeDraft(d: D): Record<string, unknown> {
-        const out: Record<string, unknown> = {};
-        for (const [name, f] of Object.entries(spec)) {
-            if (f.kind === 'derive') continue;
-            out[name] = canon(f.kind, (d as Record<string, unknown>)[name]);
+        function normalizeDraft(d: D): Record<string, unknown> {
+            const out: Record<string, unknown> = {};
+            for (const [name, f] of Object.entries(spec) as [string, FieldSpec][]) {
+                if (f.kind === 'derive') continue;
+                out[name] = canon(f.kind, (d as Record<string, unknown>)[name]);
+            }
+            return out;
         }
-        return out;
-    }
 
-    function normalizeBaseline(b: B): Record<string, unknown> {
-        const out: Record<string, unknown> = {};
-        for (const [name, f] of Object.entries(spec)) {
-            if (f.kind === 'derive') continue;
-            const v = (b as Record<string, unknown>)[name];
-            out[name] = f.kind === 'bool-optional' ? (v ?? false) : v;
+        function normalizeBaseline(b: B): Record<string, unknown> {
+            const out: Record<string, unknown> = {};
+            for (const [name, f] of Object.entries(spec) as [string, FieldSpec][]) {
+                if (f.kind === 'derive') continue;
+                const v = (b as Record<string, unknown>)[name];
+                out[name] = f.kind === 'bool-optional' ? (v ?? false) : v;
+            }
+            return out;
         }
-        return out;
-    }
 
-    function buildCreatePayload(d: D): Record<string, unknown> {
-        return normalizeDraft(d);
-    }
-
-    function buildUpdatePayload(d: D, b: B): Record<string, unknown> {
-        const out: Record<string, unknown> = {};
-        for (const [name, f] of Object.entries(spec)) {
-            if (f.kind === 'derive') continue;
-            const v = canon(f.kind, (d as Record<string, unknown>)[name]);
-            if (v !== (b as Record<string, unknown>)[name]) out[name] = v;
+        function buildCreatePayload(d: D): Record<string, unknown> {
+            return normalizeDraft(d);
         }
-        return out;
-    }
 
-    return {
-        toDraft,
-        toBaseline,
-        normalizeDraft,
-        normalizeBaseline,
-        buildCreatePayload,
-        buildUpdatePayload
+        function buildUpdatePayload(d: D, b: B): Record<string, unknown> {
+            const out: Record<string, unknown> = {};
+            for (const [name, f] of Object.entries(spec) as [string, FieldSpec][]) {
+                if (f.kind === 'derive') continue;
+                const v = canon(f.kind, (d as Record<string, unknown>)[name]);
+                if (v !== (b as Record<string, unknown>)[name]) out[name] = v;
+            }
+            return out;
+        }
+
+        return {
+            toDraft,
+            toBaseline,
+            normalizeDraft,
+            normalizeBaseline,
+            buildCreatePayload,
+            buildUpdatePayload
+        };
     };
 }
