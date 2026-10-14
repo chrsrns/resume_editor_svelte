@@ -7,6 +7,7 @@
 import type { Resume, UpdateResumeRequest } from '$lib/types';
 import { createDraftItemStore } from './draftStore.svelte';
 import { buildBasicsUpdatePayload } from './basicsPayload';
+import { defineFields } from './fields';
 
 type BasicsDraft = {
     id: number;
@@ -48,81 +49,36 @@ type BaselineBasics = {
     variant_label: string | null;
 };
 
+const basicsFields = defineFields<BasicsDraft, BaselineBasics>()({
+    name: { kind: 'required-trim' },
+    email: { kind: 'required-trim' },
+    profile_image_url: { kind: 'optional-nullable' },
+    location: { kind: 'optional-nullable' },
+    github_url: { kind: 'optional-nullable' },
+    video: { kind: 'optional-nullable' },
+    mobile_number: { kind: 'optional-nullable' },
+    executive_summary: { kind: 'optional-nullable' },
+    is_public: { kind: 'bool' },
+    is_variant: { kind: 'bool' },
+    show_variant_tag: { kind: 'bool-optional' },
+    company_name: { kind: 'optional-nullable' },
+    role_title: { kind: 'optional-nullable' },
+    target_date: { kind: 'optional-nullable' },
+    job_description: { kind: 'optional-nullable' },
+    variant_label: { kind: 'optional-nullable' }
+});
+
 const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
     toDraft: (b) => ({
         id: b.id,
-        name: b.name,
-        email: b.email,
-        profile_image_url: b.profile_image_url ?? '',
-        location: b.location ?? '',
-        github_url: b.github_url ?? '',
-        video: b.video ?? '',
-        mobile_number: b.mobile_number ?? '',
-        executive_summary: b.executive_summary ?? '',
-        is_public: b.is_public,
-        is_variant: b.is_variant,
-        show_variant_tag: b.show_variant_tag ?? false,
-        company_name: b.company_name ?? '',
-        role_title: b.role_title ?? '',
-        target_date: b.target_date ?? '',
-        job_description: b.job_description ?? '',
-        variant_label: b.variant_label ?? ''
+        ...basicsFields.toDraft(b)
     }),
     toBaseline: (d) => ({
         id: d.id,
-        name: d.name.trim(),
-        email: d.email.trim(),
-        profile_image_url: d.profile_image_url.trim() || null,
-        location: d.location.trim() || null,
-        github_url: d.github_url.trim() || null,
-        video: d.video.trim() || null,
-        mobile_number: d.mobile_number.trim() || null,
-        executive_summary: d.executive_summary.trim() || null,
-        is_public: d.is_public,
-        is_variant: d.is_variant,
-        show_variant_tag: d.show_variant_tag,
-        company_name: d.company_name.trim() || null,
-        role_title: d.role_title.trim() || null,
-        target_date: d.target_date.trim() || null,
-        job_description: d.job_description.trim() || null,
-        variant_label: d.variant_label.trim() || null
+        ...basicsFields.toBaseline(d)
     }),
-    normalizeDraft: (d) => ({
-        name: d.name.trim(),
-        email: d.email.trim(),
-        profile_image_url: d.profile_image_url.trim() || null,
-        location: d.location.trim() || null,
-        github_url: d.github_url.trim() || null,
-        video: d.video.trim() || null,
-        mobile_number: d.mobile_number.trim() || null,
-        executive_summary: d.executive_summary.trim() || null,
-        is_public: d.is_public,
-        is_variant: d.is_variant,
-        show_variant_tag: d.show_variant_tag,
-        company_name: d.company_name.trim() || null,
-        role_title: d.role_title.trim() || null,
-        target_date: d.target_date.trim() || null,
-        job_description: d.job_description.trim() || null,
-        variant_label: d.variant_label.trim() || null
-    }),
-    normalizeBaseline: (b) => ({
-        name: b.name,
-        email: b.email,
-        profile_image_url: b.profile_image_url,
-        location: b.location,
-        github_url: b.github_url,
-        video: b.video,
-        mobile_number: b.mobile_number,
-        executive_summary: b.executive_summary,
-        is_public: b.is_public,
-        is_variant: b.is_variant,
-        show_variant_tag: b.show_variant_tag ?? false,
-        company_name: b.company_name,
-        role_title: b.role_title,
-        target_date: b.target_date,
-        job_description: b.job_description,
-        variant_label: b.variant_label
-    }),
+    normalizeDraft: basicsFields.normalizeDraft,
+    normalizeBaseline: basicsFields.normalizeBaseline,
     validate: (d) => {
         if (!d.name.trim()) {
             return 'Name is required';
