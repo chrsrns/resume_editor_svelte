@@ -18,7 +18,8 @@ import {
     createChildGroupStore,
     createParentChildSection
 } from './draftStore.svelte';
-import { toNumberOrNull, toNullable } from './shared';
+import { toNumberOrNull } from './shared';
+import { defineFields } from './fields';
 
 type EducationDraft = {
     id: number;
@@ -51,49 +52,31 @@ export type EducationAction =
     | { type: 'updateKeyPoint'; id: number; payload: UpdateEducationKeyPointRequest }
     | { type: 'deleteKeyPoint'; id: number };
 
+const educationFields = defineFields<EducationDraft, Education>()({
+    education_stage: { kind: 'required-trim' },
+    institution_name: { kind: 'required-trim' },
+    degree: { kind: 'optional-nullable' },
+    start_date: { kind: 'required-raw' },
+    end_date: { kind: 'optional-nullable' },
+    description: { kind: 'optional-nullable' },
+    active: { kind: 'bool' }
+});
+
 const educationStore = createDraftListStore<EducationDraft, Education>({
     toDraft: (e) => ({
         id: e.id,
-        education_stage: e.education_stage,
-        institution_name: e.institution_name,
-        degree: String(e.degree ?? ''),
-        start_date: e.start_date,
-        end_date: e.end_date ?? '',
-        description: e.description ?? '',
-        display_order: e.display_order == null ? '' : String(e.display_order),
-        active: e.active
+        ...educationFields.toDraft(e),
+        display_order: e.display_order == null ? '' : String(e.display_order)
     }),
     toBaseline: (d, existing, meta) => ({
         id: d.id,
         resume_id: existing?.resume_id ?? meta?.resume_id ?? 0,
-        education_stage: d.education_stage.trim(),
-        institution_name: d.institution_name.trim(),
-        degree: toNullable(d.degree),
-        start_date: d.start_date,
-        end_date: toNullable(d.end_date),
-        description: toNullable(d.description),
+        ...educationFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
-        active: d.active,
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({
-        education_stage: d.education_stage.trim(),
-        institution_name: d.institution_name.trim(),
-        degree: toNullable(d.degree),
-        start_date: d.start_date,
-        end_date: toNullable(d.end_date),
-        description: toNullable(d.description),
-        active: d.active
-    }),
-    normalizeBaseline: (b) => ({
-        education_stage: b.education_stage,
-        institution_name: b.institution_name,
-        degree: b.degree,
-        start_date: b.start_date,
-        end_date: b.end_date,
-        description: b.description,
-        active: b.active
-    }),
+    normalizeDraft: educationFields.normalizeDraft,
+    normalizeBaseline: educationFields.normalizeBaseline,
     validate: (d) => {
         const errors: string[] = [];
 
@@ -126,41 +109,14 @@ const educationStore = createDraftListStore<EducationDraft, Education>({
         return errors.length > 0 ? errors.join('; ') : null;
     },
     buildCreatePayload: (d) => ({
-        education_stage: d.education_stage.trim(),
-        institution_name: d.institution_name.trim(),
-        degree: toNullable(d.degree),
-        start_date: d.start_date,
-        end_date: toNullable(d.end_date),
-        description: toNullable(d.description),
-        display_order: toNumberOrNull(d.display_order),
-        active: d.active
+        ...educationFields.buildCreatePayload(d),
+        display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload: UpdateEducationRequest = {};
-        if (d.education_stage.trim() !== b.education_stage) {
-            payload.education_stage = d.education_stage.trim();
-        }
-        if (d.institution_name.trim() !== b.institution_name) {
-            payload.institution_name = d.institution_name.trim();
-        }
-        if (toNullable(d.degree) !== b.degree) {
-            payload.degree = toNullable(d.degree);
-        }
-        if (d.start_date !== b.start_date) {
-            payload.start_date = d.start_date;
-        }
-        if (toNullable(d.end_date) !== b.end_date) {
-            payload.end_date = toNullable(d.end_date);
-        }
-        if (toNullable(d.description) !== b.description) {
-            payload.description = toNullable(d.description);
-        }
+        const payload = educationFields.buildUpdatePayload(d, b) as UpdateEducationRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;
-        }
-        if (d.active !== b.active) {
-            payload.active = d.active;
         }
         return payload;
     },
@@ -168,34 +124,35 @@ const educationStore = createDraftListStore<EducationDraft, Education>({
     getMeta: (b) => ({ resume_id: b.resume_id, created_at: b.created_at })
 });
 
+const keyPointFields = defineFields<KeyPointDraft, EducationKeyPoint>()({
+    key_point: { kind: 'required-trim' }
+});
+
 const keyPointsStore = createChildGroupStore<KeyPointDraft, EducationKeyPoint, 'educationId'>({
     toDraft: (kp) => ({
         id: kp.id,
-        key_point: kp.key_point,
+        ...keyPointFields.toDraft(kp),
         display_order: kp.display_order == null ? '' : String(kp.display_order)
     }),
     toBaseline: (d, educationId, existing, meta) => ({
         id: d.id,
         education_id: educationId,
-        key_point: d.key_point.trim(),
+        ...keyPointFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({ key_point: d.key_point.trim() }),
-    normalizeBaseline: (b) => ({ key_point: b.key_point }),
+    normalizeDraft: keyPointFields.normalizeDraft,
+    normalizeBaseline: keyPointFields.normalizeBaseline,
     validate: (d) => {
         if (!d.key_point.trim()) return 'Key point is required';
         return null;
     },
     buildCreatePayload: (d) => ({
-        key_point: d.key_point.trim(),
+        ...keyPointFields.buildCreatePayload(d),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload: UpdateEducationKeyPointRequest = {};
-        if (d.key_point.trim() !== b.key_point) {
-            payload.key_point = d.key_point.trim();
-        }
+        const payload = keyPointFields.buildUpdatePayload(d, b) as UpdateEducationKeyPointRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;
