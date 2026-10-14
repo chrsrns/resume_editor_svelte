@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { downloadBlob } from '$lib/download';
     import { onMount } from 'svelte';
     import { SvelteURLSearchParams } from 'svelte/reactivity';
     import { page } from '$app/state';
@@ -372,14 +373,7 @@
         exportErrorOpen = false;
         try {
             const blob = await exportResumeMarkdown(resume.id);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${resume.name}.md`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            downloadBlob(blob, `${resume.name}.md`);
         } catch (e) {
             const err = e as ApiError;
             exportErrorTitle = 'Export failed';

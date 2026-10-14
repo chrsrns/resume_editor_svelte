@@ -9,6 +9,7 @@
     import { currentUser } from '$lib/session';
     import Button from '$lib/components/ui/Button.svelte';
     import ErrorDialog from '$lib/components/ui/ErrorDialog.svelte';
+    import MarkdownFilePicker from '$lib/components/ui/MarkdownFilePicker.svelte';
     import VariantGroup from '$lib/components/VariantGroup.svelte';
     import VariantRow from '$lib/components/VariantRow.svelte';
     import { buildResumeListEntries } from '$lib/variants';
@@ -18,7 +19,7 @@
     let loading = $state(true);
     let error = $state<string | null>(null);
     let resumes = $state<Resume[]>([]);
-    let importInput: HTMLInputElement | null = $state(null);
+    let openImport: (() => void) | undefined = $state();
     let importBusy = $state(false);
     let importErrorOpen = $state(false);
     let importErrorTitle = $state('Import failed');
@@ -47,15 +48,7 @@
         void loadResumes();
     });
 
-    function triggerImport() {
-        importInput?.click();
-    }
-
-    async function handleImportFile(e: Event) {
-        const input = e.currentTarget as HTMLInputElement;
-        const file = input.files?.[0];
-        if (!file) return;
-        input.value = '';
+    async function handleImportFile(file: File) {
 
         importBusy = true;
         importErrorOpen = false;
@@ -90,17 +83,15 @@
     <div class="actions">
         {#if $authToken}
             <Button href={resolve('/resumes/new')}>New resume</Button>
-            <Button variant="secondary" onclick={triggerImport} disabled={importBusy}>
+            <Button
+                variant="secondary"
+                onclick={() => openImport?.()}
+                disabled={importBusy}
+            >
                 {#snippet icon()}<FileUp size={16} />{/snippet}
                 Import Markdown
             </Button>
-            <input
-                bind:this={importInput}
-                type="file"
-                accept=".md,text/markdown"
-                onchange={handleImportFile}
-                class="hidden-file-input"
-            />
+            <MarkdownFilePicker bind:open={openImport} onpick={handleImportFile} />
         {:else}
             <Button href={resolve('/auth/login')}>Login to create</Button>
         {/if}
@@ -158,9 +149,6 @@
         flex-wrap: wrap;
     }
 
-    .hidden-file-input {
-        display: none;
-    }
 
     .list {
         list-style: none;
