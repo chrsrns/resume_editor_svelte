@@ -2,6 +2,7 @@
     import { goto } from '$app/navigation';
     import MarkdownFilePicker from '$lib/components/ui/MarkdownFilePicker.svelte';
     import { downloadBlob } from '$lib/download';
+    import { byDisplayOrder } from '$lib/displayOrder';
     import { SvelteURLSearchParams } from 'svelte/reactivity';
     import { page } from '$app/state';
     import { resolve } from '$app/paths';
@@ -84,12 +85,6 @@
         return found ? found.id : 'basics';
     }
 
-    function byDisplayOrder<T extends { display_order: number | null }>(a: T, b: T): number {
-        const ao = a.display_order ?? Number.MAX_SAFE_INTEGER;
-        const bo = b.display_order ?? Number.MAX_SAFE_INTEGER;
-        if (ao !== bo) return ao - bo;
-        return 0;
-    }
 
     let loading = $state(true);
     let sectionLoading = $state(false);

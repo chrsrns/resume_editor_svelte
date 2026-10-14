@@ -17,6 +17,7 @@ import {
     setValidationError,
     toNumberOrNull
 } from './shared';
+import { byDisplayOrder } from '$lib/displayOrder';
 
 export interface DraftAction {
     type: string;
@@ -99,16 +100,6 @@ export interface DraftListStore<
     getSaving(): boolean;
     setError(value: string | null): void;
     getError(): string | null;
-}
-
-function byDisplayOrder(
-    a: { display_order: number | null; id: number },
-    b: { display_order: number | null; id: number }
-) {
-    const ao = a.display_order ?? Number.POSITIVE_INFINITY;
-    const bo = b.display_order ?? Number.POSITIVE_INFINITY;
-    if (ao !== bo) return ao - bo;
-    return a.id - b.id;
 }
 
 export function createDraftListStore<
