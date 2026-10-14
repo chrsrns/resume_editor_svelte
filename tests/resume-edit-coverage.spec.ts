@@ -729,6 +729,75 @@ test('reorder existing skills updates display_order on save', async ({ page }) =
     expect(byId[102]).toEqual({ display_order: 10 });
 });
 
+test('reorder education key points updates display_order on save', async ({ page }) => {
+    const educationId = 201;
+    const edu = {
+        id: educationId,
+        resume_id: resumeId,
+        education_stage: 'Bachelor',
+        institution_name: 'Uni',
+        degree: null,
+        start_date: '2020',
+        end_date: null,
+        description: null,
+        display_order: 1,
+        active: true,
+        created_at: ''
+    };
+    const kpA = {
+        id: 301,
+        education_id: educationId,
+        key_point: 'First',
+        display_order: 1,
+        created_at: ''
+    };
+    const kpB = {
+        id: 302,
+        education_id: educationId,
+        key_point: 'Second',
+        display_order: 2,
+        created_at: ''
+    };
+
+    await setAuthToken(page);
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/education/${educationId}/key_points`,
+        200,
+        [kpA, kpB]
+    );
+    await openEditPage(page, { education: [edu] }, 'education');
+
+    const updates: { id: number; payload: unknown }[] = [];
+    await mockApiMethods(page, '**/api/education_key_points/*', {
+        PUT: {
+            status: 200,
+            body: kpA,
+            callback: async (req) => {
+                const id = extractLastPathId(req.url());
+                const payload = await req.postDataJSON();
+                updates.push({ id, payload });
+            }
+        }
+    });
+
+    await page.getByRole('button', { name: 'Bachelor — Uni' }).click();
+    const firstHandle = page
+        .getByRole('group', { name: 'Education key point' })
+        .first()
+        .getByRole('button', { name: 'Reorder education key point' });
+    await firstHandle.focus();
+    await page.keyboard.press('ArrowDown');
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('All changes saved successfully!')).toBeVisible();
+
+    expect(updates).toHaveLength(2);
+    const byId = Object.fromEntries(updates.map((u) => [u.id, u.payload]));
+    expect(byId[301]).toEqual({ display_order: 20 });
+    expect(byId[302]).toEqual({ display_order: 10 });
+});
+
 test('update existing skill name sends update on save', async ({ page }) => {
     const skillA = {
         id: 101,
