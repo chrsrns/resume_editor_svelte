@@ -22,6 +22,7 @@ import {
 } from './draftStore.svelte';
 import { toNumberOrNull } from './shared';
 import { defineFields } from './fields';
+import { FIELD_LIMITS, checkMaxLen } from '$lib/limits';
 
 export type ProjectDraft = {
     id: number;
@@ -95,7 +96,8 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
     normalizeBaseline: projectFields.normalizeBaseline,
     validate: (d) => {
         if (!d.project_name.trim()) return 'Project name is required';
-        if (d.video_url.trim().length > 500) return 'Video URL must be 500 characters or less';
+        const videoError = checkMaxLen('Video URL', d.video_url, FIELD_LIMITS.video_url);
+        if (videoError) return videoError;
         return null;
     },
     buildCreatePayload: (d) => ({

@@ -11,6 +11,7 @@
     import Building2 from '@lucide/svelte/icons/building-2';
     import Calendar from '@lucide/svelte/icons/calendar';
     import Tag from '@lucide/svelte/icons/tag';
+    import { FIELD_LIMITS } from '$lib/limits';
 
     let { editable = false, resume = null } = $props<{
         editable?: boolean;
@@ -35,13 +36,13 @@
             <TextInput
                 label="Company"
                 value={draft.company_name}
-                maxlength={255}
+                maxlength={FIELD_LIMITS.company_name}
                 oninput={(e) => basics.setField('company_name', inputValue(e))}
             />
             <TextInput
                 label="Role / title"
                 value={draft.role_title}
-                maxlength={255}
+                maxlength={FIELD_LIMITS.role_title}
                 oninput={(e) => basics.setField('role_title', inputValue(e))}
             />
             <PartialDateInput
@@ -52,14 +53,14 @@
             <TextInput
                 label="Label"
                 value={draft.variant_label}
-                maxlength={255}
+                maxlength={FIELD_LIMITS.variant_label}
                 oninput={(e) => basics.setField('variant_label', inputValue(e))}
             />
         </div>
         <TextArea
             label="Job description"
             value={draft.job_description}
-            maxlength={20000}
+            maxlength={FIELD_LIMITS.job_description}
             rows={8}
             oninput={(e) => basics.setField('job_description', areaValue(e))}
         />

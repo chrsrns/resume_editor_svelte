@@ -15,6 +15,7 @@
     import ActiveStatus from '../ui/ActiveStatus.svelte';
     import ActiveToggle from '../ui/ActiveToggle.svelte';
     import type { ProjectDraft } from '$lib/stores/draft/portfolio.svelte';
+    import { FIELD_LIMITS } from '$lib/limits';
 
     type KeyPointDraft = {
         id: number;
@@ -183,7 +184,7 @@
             <TextInput
                 label="Video URL"
                 bind:value={newVideoUrl}
-                maxlength={500}
+                maxlength={FIELD_LIMITS.video_url}
                 title="Optional. Link to a project video."
             />
             <TextInput
@@ -253,7 +254,7 @@
                     <TextInput
                         label="Video URL"
                         bind:value={d.video_url}
-                        maxlength={500}
+                        maxlength={FIELD_LIMITS.video_url}
                         title="Optional. Link to a project video."
                         onblur={() => onValidateProject(d.id)}
                     />

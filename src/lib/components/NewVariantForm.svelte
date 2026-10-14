@@ -12,6 +12,7 @@
     import PartialDateInput from './ui/PartialDateInput.svelte';
     import TextArea from './ui/TextArea.svelte';
     import TextInput from './ui/TextInput.svelte';
+    import { FIELD_LIMITS, checkMaxLen } from '$lib/limits';
 
     let { baseId, oncancel } = $props<{
         baseId: number;
@@ -65,18 +66,12 @@
     }
 
     function validateForm(): string | null {
-        if (companyName.trim().length > 255) {
-            return 'Company name must be 255 characters or less';
-        }
-        if (roleTitle.trim().length > 255) {
-            return 'Role title must be 255 characters or less';
-        }
-        if (variantLabel.trim().length > 255) {
-            return 'Variant label must be 255 characters or less';
-        }
-        if (jobDescription.trim().length > 20000) {
-            return 'Job description must be 20,000 characters or less';
-        }
+        return (
+            checkMaxLen('Company name', companyName, FIELD_LIMITS.company_name) ??
+            checkMaxLen('Role title', roleTitle, FIELD_LIMITS.role_title) ??
+            checkMaxLen('Variant label', variantLabel, FIELD_LIMITS.variant_label) ??
+            checkMaxLen('Job description', jobDescription, FIELD_LIMITS.job_description)
+        );
         if (targetDate.trim() && !/^\d{4}(-\d{2}(-\d{2})?)?$/.test(targetDate.trim())) {
             return 'Target date must be YYYY, YYYY-MM, or YYYY-MM-DD';
         }
@@ -128,13 +123,13 @@
         <TextInput
             label="Company"
             value={companyName}
-            maxlength={255}
+            maxlength={FIELD_LIMITS.company_name}
             oninput={(e) => (companyName = (e.currentTarget as HTMLInputElement).value)}
         />
         <TextInput
             label="Role / title"
             value={roleTitle}
-            maxlength={255}
+            maxlength={FIELD_LIMITS.role_title}
             oninput={(e) => (roleTitle = (e.currentTarget as HTMLInputElement).value)}
         />
         <PartialDateInput
@@ -145,13 +140,13 @@
         <TextInput
             label="Label"
             value={variantLabel}
-            maxlength={255}
+            maxlength={FIELD_LIMITS.variant_label}
             oninput={(e) => (variantLabel = (e.currentTarget as HTMLInputElement).value)}
         />
         <TextArea
             label="Job description"
             value={jobDescription}
-            maxlength={20000}
+            maxlength={FIELD_LIMITS.job_description}
             rows={8}
             oninput={(e) => (jobDescription = (e.currentTarget as HTMLTextAreaElement).value)}
         />

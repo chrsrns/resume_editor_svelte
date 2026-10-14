@@ -8,6 +8,7 @@ import type { Resume, UpdateResumeRequest } from '$lib/types';
 import { createDraftItemStore } from './draftStore.svelte';
 import { buildBasicsUpdatePayload } from './basicsPayload';
 import { defineFields } from './fields';
+import { FIELD_LIMITS, checkMaxLen } from '$lib/limits';
 
 type BasicsDraft = {
     id: number;
@@ -90,26 +91,21 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
             return 'Invalid email format';
         }
 
-        if (d.executive_summary.trim().length > 5000) {
-            return 'Executive summary must be 5,000 characters or less';
-        }
-
-        if (d.video.trim().length > 500) {
-            return 'Video must be 500 characters or less';
+        const lenError =
+            checkMaxLen('Executive summary', d.executive_summary, FIELD_LIMITS.executive_summary) ??
+            checkMaxLen('Video', d.video, FIELD_LIMITS.video_url);
+        if (lenError) {
+            return lenError;
         }
 
         if (d.is_variant) {
-            if (d.company_name.trim().length > 255) {
-                return 'Company name must be 255 characters or less';
-            }
-            if (d.role_title.trim().length > 255) {
-                return 'Role title must be 255 characters or less';
-            }
-            if (d.variant_label.trim().length > 255) {
-                return 'Variant label must be 255 characters or less';
-            }
-            if (d.job_description.trim().length > 20000) {
-                return 'Job description must be 20,000 characters or less';
+            const variantLenError =
+                checkMaxLen('Company name', d.company_name, FIELD_LIMITS.company_name) ??
+                checkMaxLen('Role title', d.role_title, FIELD_LIMITS.role_title) ??
+                checkMaxLen('Variant label', d.variant_label, FIELD_LIMITS.variant_label) ??
+                checkMaxLen('Job description', d.job_description, FIELD_LIMITS.job_description);
+            if (variantLenError) {
+                return variantLenError;
             }
             if (
                 d.target_date.trim() &&
