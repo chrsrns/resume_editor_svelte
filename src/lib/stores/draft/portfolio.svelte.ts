@@ -93,22 +93,22 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
     normalizeDraft: (d) => ({
-        project_name: d.project_name,
-        image_url: d.image_url,
-        project_link: d.project_link,
-        source_code_link: d.source_code_link,
-        description: d.description,
-        video_url: d.video_url,
+        project_name: d.project_name.trim(),
+        image_url: toNullable(d.image_url),
+        project_link: toNullable(d.project_link),
+        source_code_link: toNullable(d.source_code_link),
+        description: toNullable(d.description),
+        video_url: toNullable(d.video_url),
         display_order: toNumberOrNull(d.display_order),
         active: d.active
     }),
     normalizeBaseline: (b) => ({
         project_name: b.project_name,
-        image_url: b.image_url ?? '',
-        project_link: b.project_link ?? '',
-        source_code_link: b.source_code_link ?? '',
-        description: b.description ?? '',
-        video_url: b.video_url ?? '',
+        image_url: b.image_url,
+        project_link: b.project_link,
+        source_code_link: b.source_code_link,
+        description: b.description,
+        video_url: b.video_url,
         display_order: b.display_order,
         active: b.active
     }),
@@ -118,7 +118,7 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
         return null;
     },
     buildCreatePayload: (d) => ({
-        project_name: d.project_name,
+        project_name: d.project_name.trim(),
         image_url: toNullable(d.image_url),
         project_link: toNullable(d.project_link),
         source_code_link: toNullable(d.source_code_link),
@@ -129,19 +129,19 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
     }),
     buildUpdatePayload: (d, b) => {
         const payload: UpdatePortfolioProjectRequest = {};
-        if (d.project_name !== b.project_name) {
-            payload.project_name = d.project_name;
+        if (d.project_name.trim() !== b.project_name) {
+            payload.project_name = d.project_name.trim();
         }
-        if (d.image_url !== b.image_url) {
+        if (toNullable(d.image_url) !== b.image_url) {
             payload.image_url = toNullable(d.image_url);
         }
-        if (d.project_link !== b.project_link) {
+        if (toNullable(d.project_link) !== b.project_link) {
             payload.project_link = toNullable(d.project_link);
         }
-        if (d.source_code_link !== b.source_code_link) {
+        if (toNullable(d.source_code_link) !== b.source_code_link) {
             payload.source_code_link = toNullable(d.source_code_link);
         }
-        if (d.description !== b.description) {
+        if (toNullable(d.description) !== b.description) {
             payload.description = toNullable(d.description);
         }
         const draftVideoUrl = toNullable(d.video_url);
@@ -174,20 +174,20 @@ const keyPointsStore = createChildGroupStore<KeyPointDraft, PortfolioKeyPoint, '
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({ key_point: d.key_point }),
+    normalizeDraft: (d) => ({ key_point: d.key_point.trim() }),
     normalizeBaseline: (b) => ({ key_point: b.key_point }),
     validate: (d) => {
         if (!d.key_point.trim()) return 'Key point is required';
         return null;
     },
     buildCreatePayload: (d) => ({
-        key_point: d.key_point,
+        key_point: d.key_point.trim(),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
         const payload: UpdatePortfolioKeyPointRequest = {};
-        if (d.key_point !== b.key_point) {
-            payload.key_point = d.key_point;
+        if (d.key_point.trim() !== b.key_point) {
+            payload.key_point = d.key_point.trim();
         }
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
@@ -214,20 +214,20 @@ const technologiesStore = createChildGroupStore<TechnologyDraft, PortfolioTechno
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({ technology_name: d.technology_name }),
+    normalizeDraft: (d) => ({ technology_name: d.technology_name.trim() }),
     normalizeBaseline: (b) => ({ technology_name: b.technology_name }),
     validate: (d) => {
         if (!d.technology_name.trim()) return 'Technology name is required';
         return null;
     },
     buildCreatePayload: (d) => ({
-        technology_name: d.technology_name,
+        technology_name: d.technology_name.trim(),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
         const payload: UpdatePortfolioTechnologyRequest = {};
-        if (d.technology_name !== b.technology_name) {
-            payload.technology_name = d.technology_name;
+        if (d.technology_name.trim() !== b.technology_name) {
+            payload.technology_name = d.technology_name.trim();
         }
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {

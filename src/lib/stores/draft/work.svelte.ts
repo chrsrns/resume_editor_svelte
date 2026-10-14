@@ -75,18 +75,18 @@ const workStore = createDraftListStore<WorkDraft, WorkExperience>({
     }),
     normalizeDraft: (d) => ({
         job_title: d.job_title,
-        company_name: d.company_name,
+        company_name: toNullable(d.company_name),
         start_date: d.start_date,
-        end_date: d.end_date,
-        description: d.description,
+        end_date: toNullable(d.end_date),
+        description: toNullable(d.description),
         active: d.active
     }),
     normalizeBaseline: (b) => ({
         job_title: b.job_title,
-        company_name: b.company_name ?? '',
+        company_name: b.company_name,
         start_date: b.start_date,
-        end_date: b.end_date ?? '',
-        description: b.description ?? '',
+        end_date: b.end_date,
+        description: b.description,
         active: b.active
     }),
     validate: (d) => {
@@ -169,20 +169,20 @@ const keyPointsStore = createChildGroupStore<KeyPointDraft, WorkExperienceKeyPoi
         active: existing?.active ?? true,
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({ key_point: d.key_point }),
+    normalizeDraft: (d) => ({ key_point: d.key_point.trim() }),
     normalizeBaseline: (b) => ({ key_point: b.key_point }),
     validate: (d) => {
         if (!d.key_point.trim()) return 'Key point is required';
         return null;
     },
     buildCreatePayload: (d) => ({
-        key_point: d.key_point,
+        key_point: d.key_point.trim(),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
         const payload: UpdateWorkExperienceKeyPointRequest = {};
-        if (d.key_point !== b.key_point) {
-            payload.key_point = d.key_point;
+        if (d.key_point.trim() !== b.key_point) {
+            payload.key_point = d.key_point.trim();
         }
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
