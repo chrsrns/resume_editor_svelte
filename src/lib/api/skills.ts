@@ -1,30 +1,24 @@
-import { apiRequest, ApiError } from './client';
+import { apiRequest, apiCall, ApiError } from './client';
 import type { Skill, NewSkillRequest, UpdateSkillRequest } from '$lib/types';
 
 export async function listSkills(resumeId: number): Promise<Skill[]> {
-    const { body } = await apiRequest<Skill[]>(`/resume/${resumeId}/skills`, { auth: true });
-    if (body === undefined) throw new ApiError(500, 'Missing response body');
-    return body;
+    return apiCall<Skill[]>(`/resume/${resumeId}/skills`, { auth: true });
 }
 
 export async function createSkill(resumeId: number, payload: NewSkillRequest): Promise<Skill> {
-    const { body } = await apiRequest<Skill>(`/resume/${resumeId}/skills`, {
+    return apiCall<Skill>(`/resume/${resumeId}/skills`, {
         method: 'POST',
         body: payload,
         auth: true
     });
-    if (body === undefined) throw new ApiError(500, 'Missing response body');
-    return body;
 }
 
 export async function updateSkill(skillId: number, payload: UpdateSkillRequest): Promise<Skill> {
-    const { body } = await apiRequest<Skill>(`/skills/${skillId}`, {
+    return apiCall<Skill>(`/skills/${skillId}`, {
         method: 'PUT',
         body: payload,
         auth: true
     });
-    if (body === undefined) throw new ApiError(500, 'Missing response body');
-    return body;
 }
 
 export async function deleteSkill(skillId: number): Promise<void> {
