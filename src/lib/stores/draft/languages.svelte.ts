@@ -18,6 +18,7 @@ import {
     createParentChildSection
 } from './draftStore.svelte';
 import { toNumberOrNull } from './shared';
+import { defineFields } from './fields';
 
 type LanguageDraft = {
     id: number;
@@ -39,34 +40,35 @@ export type LanguageAction =
     | { type: 'updateFramework'; id: number; payload: UpdateFrameworkRequest }
     | { type: 'deleteFramework'; id: number };
 
+const languageFields = defineFields<LanguageDraft, Language>()({
+    language_name: { kind: 'required-trim' }
+});
+
 const languagesStore = createDraftListStore<LanguageDraft, Language>({
     toDraft: (l) => ({
         id: l.id,
-        language_name: l.language_name,
+        ...languageFields.toDraft(l),
         display_order: l.display_order == null ? '' : String(l.display_order)
     }),
     toBaseline: (d, existing, meta) => ({
         id: d.id,
         resume_id: existing?.resume_id ?? meta?.resume_id ?? 0,
-        language_name: d.language_name.trim(),
+        ...languageFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({ language_name: d.language_name.trim() }),
-    normalizeBaseline: (b) => ({ language_name: b.language_name }),
+    normalizeDraft: languageFields.normalizeDraft,
+    normalizeBaseline: languageFields.normalizeBaseline,
     validate: (d) => {
         if (!d.language_name.trim()) return 'Language name is required';
         return null;
     },
     buildCreatePayload: (d) => ({
-        language_name: d.language_name.trim(),
+        ...languageFields.buildCreatePayload(d),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload: UpdateLanguageRequest = {};
-        if (d.language_name.trim() !== b.language_name) {
-            payload.language_name = d.language_name.trim();
-        }
+        const payload = languageFields.buildUpdatePayload(d, b) as UpdateLanguageRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;
@@ -77,34 +79,35 @@ const languagesStore = createDraftListStore<LanguageDraft, Language>({
     getMeta: (b) => ({ resume_id: b.resume_id, created_at: b.created_at })
 });
 
+const frameworkFields = defineFields<FrameworkDraft, Framework>()({
+    framework_name: { kind: 'required-trim' }
+});
+
 const frameworksStore = createChildGroupStore<FrameworkDraft, Framework, 'languageId'>({
     toDraft: (f) => ({
         id: f.id,
-        framework_name: f.framework_name,
+        ...frameworkFields.toDraft(f),
         display_order: f.display_order == null ? '' : String(f.display_order)
     }),
     toBaseline: (d, languageId, existing, meta) => ({
         id: d.id,
         language_id: languageId,
-        framework_name: d.framework_name.trim(),
+        ...frameworkFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({ framework_name: d.framework_name.trim() }),
-    normalizeBaseline: (b) => ({ framework_name: b.framework_name }),
+    normalizeDraft: frameworkFields.normalizeDraft,
+    normalizeBaseline: frameworkFields.normalizeBaseline,
     validate: (d) => {
         if (!d.framework_name.trim()) return 'Framework name is required';
         return null;
     },
     buildCreatePayload: (d) => ({
-        framework_name: d.framework_name.trim(),
+        ...frameworkFields.buildCreatePayload(d),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload: UpdateFrameworkRequest = {};
-        if (d.framework_name.trim() !== b.framework_name) {
-            payload.framework_name = d.framework_name.trim();
-        }
+        const payload = frameworkFields.buildUpdatePayload(d, b) as UpdateFrameworkRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;

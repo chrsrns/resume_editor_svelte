@@ -4,9 +4,8 @@
     import Card from '$lib/components/sections/shared/Card.svelte';
     import CardActions from '$lib/components/sections/shared/CardActions.svelte';
     import CollapsibleCard from '$lib/components/sections/shared/CollapsibleCard.svelte';
-    import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
     import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
-    import NestedList from '$lib/components/sections/shared/NestedList.svelte';
+    import ChildItemListEditor from '$lib/components/sections/shared/ChildItemListEditor.svelte';
     import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import TextArea from '$lib/components/ui/TextArea.svelte';
@@ -16,6 +15,7 @@
     import ActiveStatus from '../ui/ActiveStatus.svelte';
     import ActiveToggle from '../ui/ActiveToggle.svelte';
     import type { ProjectDraft } from '$lib/stores/draft/portfolio.svelte';
+    import { FIELD_LIMITS } from '$lib/limits';
 
     type KeyPointDraft = {
         id: number;
@@ -37,10 +37,10 @@
         onUpdateProject,
         onRemoveProject,
         onAddKeyPoint,
-        onUpdateKeyPoint: _onUpdateKeyPoint,
+        onUpdateKeyPoint,
         onRemoveKeyPoint,
         onAddTechnology,
-        onUpdateTechnology: _onUpdateTechnology,
+        onUpdateTechnology,
         onRemoveTechnology,
         onReorder,
         onReorderKeyPoints,
@@ -88,19 +88,11 @@
     // UI state for collapsed cards
     let collapsedById = $state<Record<number, boolean>>({});
 
-    // UI state for new key point text
-    let newKeyPointText = $state<Record<number, string>>({});
 
-    // UI state for new technology text
-    let newTechText = $state<Record<number, string>>({});
 
     // Local drag state (UI only, no API calls)
     let draggingId = $state<number | null>(null);
     let dragOverId = $state<number | null>(null);
-    let keyPointDragging = $state<{ group: number; id: number } | null>(null);
-    let keyPointDragOver = $state<{ group: number; id: number } | null>(null);
-    let techDragging = $state<{ group: number; id: number } | null>(null);
-    let techDragOver = $state<{ group: number; id: number } | null>(null);
 
     function handleAddProject() {
         if (newName.trim().length === 0) {
@@ -123,19 +115,7 @@
         newDescription = '';
     }
 
-    function handleAddKeyPoint(projectId: number) {
-        const text = (newKeyPointText[projectId] ?? '').trim();
-        if (text.length === 0) return;
-        onAddKeyPoint(projectId, { key_point: text });
-        newKeyPointText = { ...newKeyPointText, [projectId]: '' };
-    }
 
-    function handleAddTechnology(projectId: number) {
-        const text = (newTechText[projectId] ?? '').trim();
-        if (text.length === 0) return;
-        onAddTechnology(projectId, { technology_name: text });
-        newTechText = { ...newTechText, [projectId]: '' };
-    }
 
     function handleDragStart(id: number, e: DragEvent) {
         draggingId = id;
@@ -181,97 +161,15 @@
         onReorder(id, ids[nextIndex]);
     }
 
-    function handleKeyPointDragStart(projectId: number, id: number, e: DragEvent) {
-        keyPointDragging = { group: projectId, id };
-        keyPointDragOver = null;
-        if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', String(id));
-        }
-    }
 
-    function handleKeyPointDragEnd() {
-        keyPointDragging = null;
-        keyPointDragOver = null;
-    }
 
-    function handleKeyPointDragOver(projectId: number, id: number, e: DragEvent) {
-        if (keyPointDragging == null) return;
-        e.preventDefault();
-        e.stopPropagation();
-        keyPointDragOver = { group: projectId, id };
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    }
 
-    function handleKeyPointDrop(projectId: number, id: number, e: DragEvent) {
-        e.preventDefault();
-        e.stopPropagation();
-        const fromItem = keyPointDragging;
-        handleKeyPointDragEnd();
-        if (fromItem == null || fromItem.id === id) return;
-        onReorderKeyPoints(projectId, fromItem.id, id);
-    }
 
-    function handleKeyPointHandleKeydown(projectId: number, id: number, e: KeyboardEvent) {
-        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-        e.preventDefault();
 
-        const visibleKeyPoints = (keyPoints[projectId] ?? []).filter(
-            (kp: (typeof keyPoints)[number][number]) => kp._status !== 'deleted'
-        );
-        const ids = visibleKeyPoints.map((kp: (typeof visibleKeyPoints)[0]) => kp.id);
-        const index = ids.indexOf(id);
-        if (index === -1) return;
-        const nextIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
-        if (nextIndex < 0 || nextIndex >= ids.length) return;
-        onReorderKeyPoints(projectId, id, ids[nextIndex]);
-    }
 
-    function handleTechDragStart(projectId: number, id: number, e: DragEvent) {
-        techDragging = { group: projectId, id };
-        techDragOver = null;
-        if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', String(id));
-        }
-    }
 
-    function handleTechDragEnd() {
-        techDragging = null;
-        techDragOver = null;
-    }
 
-    function handleTechDragOver(projectId: number, id: number, e: DragEvent) {
-        if (techDragging == null) return;
-        e.preventDefault();
-        e.stopPropagation();
-        techDragOver = { group: projectId, id };
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    }
 
-    function handleTechDrop(projectId: number, id: number, e: DragEvent) {
-        e.preventDefault();
-        e.stopPropagation();
-        const fromItem = techDragging;
-        handleTechDragEnd();
-        if (fromItem == null || fromItem.id === id) return;
-        onReorderTechnologies(projectId, fromItem.id, id);
-    }
-
-    function handleTechHandleKeydown(projectId: number, id: number, e: KeyboardEvent) {
-        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-        e.preventDefault();
-
-        const visibleTechs = (technologies[projectId] ?? []).filter(
-            (t: (typeof technologies)[number][number]) => t._status !== 'deleted'
-        );
-        const ids = visibleTechs.map((t: (typeof visibleTechs)[0]) => t.id);
-        const index = ids.indexOf(id);
-        if (index === -1) return;
-        const nextIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
-        if (nextIndex < 0 || nextIndex >= ids.length) return;
-        onReorderTechnologies(projectId, id, ids[nextIndex]);
-    }
 </script>
 
 <SectionShell title="Portfolio" description="Projects with key points and technologies.">
@@ -286,7 +184,7 @@
             <TextInput
                 label="Video URL"
                 bind:value={newVideoUrl}
-                maxlength={500}
+                maxlength={FIELD_LIMITS.video_url}
                 title="Optional. Link to a project video."
             />
             <TextInput
@@ -356,7 +254,7 @@
                     <TextInput
                         label="Video URL"
                         bind:value={d.video_url}
-                        maxlength={500}
+                        maxlength={FIELD_LIMITS.video_url}
                         title="Optional. Link to a project video."
                         onblur={() => onValidateProject(d.id)}
                     />
@@ -392,148 +290,43 @@
                     </Button>
                 </CardActions>
 
-                <NestedList
-                    title="Key points"
-                    loading={false}
-                    empty={(keyPoints[d.id] ?? []).filter((kp) => kp._status !== 'deleted')
-                        .length === 0}
+                <ChildItemListEditor
+                    items={keyPoints[d.id] ?? []}
+                    field="key_point"
+                    listTitle="Key points"
+                    itemLabel="Portfolio key point"
+                    inputLabel="Key point"
+                    inputTitle="Key point text."
+                    addLabel="Add key point"
+                    addTitle="Add a bullet point about this project."
                     emptyText="No key points."
-                >
-                    {#each (keyPoints[d.id] ?? []).filter((kp) => kp._status !== 'deleted') as kp (kp.id)}
-                        <FieldsWrap
-                            role="group"
-                            aria-label="Portfolio key point"
-                            class={keyPointDragging != null &&
-                            keyPointDragOver != null &&
-                            keyPointDragOver.group === d.id &&
-                            keyPointDragOver.id === kp.id &&
-                            !(keyPointDragging.group === d.id && keyPointDragging.id === kp.id)
-                                ? 'dropOver'
-                                : ''}
-                            ondragover={(e) => handleKeyPointDragOver(d.id, kp.id, e)}
-                            ondrop={(e) => handleKeyPointDrop(d.id, kp.id, e)}
-                        >
-                            <DragHandle
-                                ondragstart={(e) => handleKeyPointDragStart(d.id, kp.id, e)}
-                                ondragend={() => handleKeyPointDragEnd()}
-                                onkeydown={(e) => handleKeyPointHandleKeydown(d.id, kp.id, e)}
-                                disabled={saving}
-                                dragging={keyPointDragging != null &&
-                                    keyPointDragging.group === d.id &&
-                                    keyPointDragging.id === kp.id}
-                                label="Reorder portfolio key point"
-                            />
-                            <TextInput
-                                label="Key point"
-                                bind:value={kp.key_point}
-                                title="Key point text."
-                                onblur={() => onValidateKeyPoint(kp.id)}
-                            />
-                            <Button variant="danger" onclick={() => onRemoveKeyPoint(kp.id)}>
-                                {#snippet icon()}<Trash2 size={16} />{/snippet}
-                                Delete
-                            </Button>
-                        </FieldsWrap>
-                    {/each}
-                </NestedList>
+                    dragLabel="Reorder portfolio key point"
+                    {saving}
+                    onadd={(text) => onAddKeyPoint(d.id, { key_point: text })}
+                    onupdate={(id, value) => onUpdateKeyPoint(id, { key_point: value })}
+                    onremove={onRemoveKeyPoint}
+                    onreorder={(fromId, toId) => onReorderKeyPoints(d.id, fromId, toId)}
+                    onvalidate={onValidateKeyPoint}
+                />
 
-                <FieldsWrap>
-                    <TextInput
-                        label="Add key point"
-                        title="Add a bullet point about this project."
-                        value={newKeyPointText[d.id] ?? ''}
-                        oninput={(e) =>
-                            (newKeyPointText = {
-                                ...newKeyPointText,
-                                [d.id]: (e.target as HTMLInputElement).value
-                            })}
-                        onkeydown={(e) => {
-                            if (
-                                e.key === 'Enter' &&
-                                (newKeyPointText[d.id] ?? '').trim().length > 0
-                            ) {
-                                handleAddKeyPoint(d.id);
-                            }
-                        }}
-                    />
-                    <Button
-                        onclick={() => handleAddKeyPoint(d.id)}
-                        disabled={saving || (newKeyPointText[d.id] ?? '').trim().length === 0}
-                    >
-                        {#snippet icon()}<Plus size={16} />{/snippet}
-                        Add
-                    </Button>
-                </FieldsWrap>
-
-                <NestedList
-                    title="Technologies"
-                    loading={false}
-                    empty={(technologies[d.id] ?? []).filter((t) => t._status !== 'deleted')
-                        .length === 0}
+                <ChildItemListEditor
+                    items={technologies[d.id] ?? []}
+                    field="technology_name"
+                    listTitle="Technologies"
+                    itemLabel="Portfolio technology"
+                    inputLabel="Technology"
+                    inputTitle="Technology name."
+                    addLabel="Add technology"
+                    addTitle="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
                     emptyText="No technologies."
-                >
-                    {#each (technologies[d.id] ?? []).filter((t) => t._status !== 'deleted') as t (t.id)}
-                        <FieldsWrap
-                            role="group"
-                            aria-label="Portfolio technology"
-                            class={techDragging != null &&
-                            techDragOver != null &&
-                            techDragOver.group === d.id &&
-                            techDragOver.id === t.id &&
-                            !(techDragging.group === d.id && techDragging.id === t.id)
-                                ? 'dropOver'
-                                : ''}
-                            ondragover={(e) => handleTechDragOver(d.id, t.id, e)}
-                            ondrop={(e) => handleTechDrop(d.id, t.id, e)}
-                        >
-                            <DragHandle
-                                ondragstart={(e) => handleTechDragStart(d.id, t.id, e)}
-                                ondragend={() => handleTechDragEnd()}
-                                onkeydown={(e) => handleTechHandleKeydown(d.id, t.id, e)}
-                                disabled={saving}
-                                dragging={techDragging != null &&
-                                    techDragging.group === d.id &&
-                                    techDragging.id === t.id}
-                                label="Reorder portfolio technology"
-                            />
-                            <TextInput
-                                label="Technology"
-                                bind:value={t.technology_name}
-                                title="Technology name."
-                                onblur={() => onValidateTechnology(t.id)}
-                            />
-                            <Button variant="danger" onclick={() => onRemoveTechnology(t.id)}>
-                                {#snippet icon()}<Trash2 size={16} />{/snippet}
-                                Delete
-                            </Button>
-                        </FieldsWrap>
-                    {/each}
-                </NestedList>
-
-                <FieldsWrap>
-                    <TextInput
-                        label="Add technology"
-                        title="Add a technology used (e.g. Rust, Svelte, PostgreSQL)."
-                        value={newTechText[d.id] ?? ''}
-                        oninput={(e) =>
-                            (newTechText = {
-                                ...newTechText,
-                                [d.id]: (e.target as HTMLInputElement).value
-                            })}
-                        onkeydown={(e) => {
-                            if (e.key === 'Enter' && (newTechText[d.id] ?? '').trim().length > 0) {
-                                handleAddTechnology(d.id);
-                            }
-                        }}
-                    />
-                    <Button
-                        onclick={() => handleAddTechnology(d.id)}
-                        disabled={saving || (newTechText[d.id] ?? '').trim().length === 0}
-                    >
-                        {#snippet icon()}<Plus size={16} />{/snippet}
-                        Add
-                    </Button>
-                </FieldsWrap>
+                    dragLabel="Reorder portfolio technology"
+                    {saving}
+                    onadd={(text) => onAddTechnology(d.id, { technology_name: text })}
+                    onupdate={(id, value) => onUpdateTechnology(id, { technology_name: value })}
+                    onremove={onRemoveTechnology}
+                    onreorder={(fromId, toId) => onReorderTechnologies(d.id, fromId, toId)}
+                    onvalidate={onValidateTechnology}
+                />
             </CollapsibleCard>
         {/each}
     </SectionMessage>

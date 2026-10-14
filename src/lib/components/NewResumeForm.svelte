@@ -5,6 +5,7 @@
     import type { NewResumeRequest } from '$lib/types';
     import Save from '@lucide/svelte/icons/save';
     import Image from '@lucide/svelte/icons/image';
+    import { FIELD_LIMITS, checkMaxLen } from '$lib/limits';
 
     type BasicsFormData = {
         name: string;
@@ -71,12 +72,14 @@
             validationError = 'Invalid email format';
             return false;
         }
-        if (executive_summary.trim().length > 5000) {
-            validationError = 'Executive summary must be 5,000 characters or less';
-            return false;
-        }
-        if (video.trim().length > 500) {
-            validationError = 'Video must be 500 characters or less';
+        const lenError =
+            checkMaxLen(
+                'Executive summary',
+                executive_summary,
+                FIELD_LIMITS.executive_summary
+            ) ?? checkMaxLen('Video', video, FIELD_LIMITS.video_url);
+        if (lenError) {
+            validationError = lenError;
             return false;
         }
         validationError = null;
@@ -135,7 +138,7 @@
         <TextInput
             label="Video"
             bind:value={video}
-            maxlength={500}
+            maxlength={FIELD_LIMITS.video_url}
             title="Optional. Link to a video."
         />
 
@@ -148,7 +151,7 @@
         <TextArea
             label="Executive summary"
             bind:value={executive_summary}
-            maxlength={5000}
+            maxlength={FIELD_LIMITS.executive_summary}
             rows={4}
             maxRows={8}
             title="Optional. A short professional summary."

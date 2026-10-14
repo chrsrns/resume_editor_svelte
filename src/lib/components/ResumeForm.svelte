@@ -3,6 +3,7 @@
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import TextArea from '$lib/components/ui/TextArea.svelte';
     import Image from '@lucide/svelte/icons/image';
+    import { FIELD_LIMITS } from '$lib/limits';
 
     let { formId }: { formId?: string } = $props();
 
@@ -76,7 +77,7 @@
             value={draft.video}
             oninput={(e) => handleFieldChange('video', (e.currentTarget as HTMLInputElement).value)}
             onblur={handleBlur}
-            maxlength={500}
+            maxlength={FIELD_LIMITS.video_url}
             title="Optional. Link to a video."
         />
 
@@ -97,7 +98,7 @@
                     (e.currentTarget as HTMLTextAreaElement).value
                 )}
             onblur={handleBlur}
-            maxlength={5000}
+            maxlength={FIELD_LIMITS.executive_summary}
             rows={4}
             maxRows={8}
             title="Optional. A short professional summary."

@@ -17,6 +17,7 @@ import {
     setValidationError,
     toNumberOrNull
 } from './shared';
+import { byDisplayOrder } from '$lib/displayOrder';
 
 export interface DraftAction {
     type: string;
@@ -93,22 +94,12 @@ export interface DraftListStore<
     isDirty(): boolean;
     resetToBaseline(): void;
     computeDiff(): DraftAction[];
-    applySaveResults(tempIdMap: Map<number, number>): void;
+    applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void;
     commitBaseline(): void;
     setSaving(value: boolean): void;
     getSaving(): boolean;
     setError(value: string | null): void;
     getError(): string | null;
-}
-
-function byDisplayOrder(
-    a: { display_order: number | null; id: number },
-    b: { display_order: number | null; id: number }
-) {
-    const ao = a.display_order ?? Number.POSITIVE_INFINITY;
-    const bo = b.display_order ?? Number.POSITIVE_INFINITY;
-    if (ao !== bo) return ao - bo;
-    return a.id - b.id;
 }
 
 export function createDraftListStore<
@@ -285,7 +276,7 @@ export function createDraftListStore<
         return actions;
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>): void {
+    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
         state.drafts = state.drafts
             .map((d) => {
                 if (d._status === 'new' && tempIdMap.has(d.id)) {
@@ -295,7 +286,7 @@ export function createDraftListStore<
                         _status: 'existing' as DraftStatus
                     };
                 }
-                if (d._status === 'deleted') {
+                if (d._status === 'deleted' && (d.id < 0 || (succeededDeleteIds?.has(d.id) ?? false))) {
                     return null;
                 }
                 return d;
@@ -311,8 +302,13 @@ export function createDraftListStore<
                 : { resume_id: 0, created_at: '' };
 
         state.baseline = state.drafts
-            .filter((d) => d._status === 'existing')
-            .map((d) => config.toBaseline(d, baselineMap.get(d.id), defaultMeta));
+            .filter((d) => d._status === 'existing' || d._status === 'deleted')
+            .map((d) =>
+                d._status === 'deleted'
+                    ? baselineMap.get(d.id)
+                    : config.toBaseline(d, baselineMap.get(d.id), defaultMeta)
+            )
+            .filter((b): b is TBaseline => b !== undefined);
     }
 
     function setSaving(value: boolean): void {
@@ -411,7 +407,7 @@ export interface ChildGroupStore<
     isDirty(): boolean;
     resetToBaseline(): void;
     computeDiff(): DraftAction[];
-    applySaveResults(tempIdMap: Map<number, number>): void;
+    applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void;
     commitBaseline(): void;
     getBaseline(): TBaseline[];
 }
@@ -678,7 +674,7 @@ export function createChildGroupStore<
         return actions;
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>): void {
+    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
         const nextDraftsMap: Record<number, DraftItem<TDraft>[]> = {};
 
         for (const parentId of Object.keys(state.draftsMap)) {
@@ -693,7 +689,10 @@ export function createChildGroupStore<
                             _status: 'existing' as DraftStatus
                         };
                     }
-                    if (d._status === 'deleted') {
+                    if (
+                        d._status === 'deleted' &&
+                        (d.id < 0 || (succeededDeleteIds?.has(d.id) ?? false))
+                    ) {
                         return null;
                     }
                     return d;
@@ -718,11 +717,17 @@ export function createChildGroupStore<
             if (numParentId < 0) continue; // Parent not saved yet
 
             const baselineGroup = state.baselineMap[numParentId] ?? [];
-            const visible = state.draftsMap[numParentId].filter((d) => d._status === 'existing');
+            const committed = state.draftsMap[numParentId].filter(
+                (d) => d._status === 'existing' || d._status === 'deleted'
+            );
 
-            for (const child of visible) {
+            for (const child of committed) {
                 const existing = baselineGroup.find((b) => b.id === child.id);
-                const baseline = config.toBaseline(child, numParentId, existing, defaultMeta);
+                const baseline =
+                    child._status === 'deleted'
+                        ? existing
+                        : config.toBaseline(child, numParentId, existing, defaultMeta);
+                if (!baseline) continue;
                 nextBaseline.push(baseline);
                 if (!nextBaselineMap[numParentId]) nextBaselineMap[numParentId] = [];
                 nextBaselineMap[numParentId].push(baseline);
@@ -787,7 +792,7 @@ export interface ParentChildSection<
     getValidationErrors(): string[];
     isDirty(): boolean;
     resetToBaseline(): void;
-    applySaveResults(tempIdMap: Map<number, number>): void;
+    applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void;
     commitBaseline(): void;
     computeDiff(): DraftAction[];
     getSaving(): boolean;
@@ -914,10 +919,10 @@ export function createParentChildSection<
         }
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>): void {
-        parentStore.applySaveResults(tempIdMap);
+    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
+        parentStore.applySaveResults(tempIdMap, succeededDeleteIds);
         for (const child of getChildStores()) {
-            child.applySaveResults(tempIdMap);
+            child.applySaveResults(tempIdMap, succeededDeleteIds);
         }
     }
 

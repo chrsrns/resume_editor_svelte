@@ -7,6 +7,7 @@
 import type { Skill, NewSkillRequest, UpdateSkillRequest } from '$lib/types';
 import { createDraftListStore } from './draftStore.svelte';
 import { toNumberOrNull } from './shared';
+import { defineFields } from './fields';
 
 type SkillDraft = {
     id: number;
@@ -20,29 +21,26 @@ export type SkillAction =
     | { type: 'update'; id: number; payload: UpdateSkillRequest }
     | { type: 'delete'; id: number };
 
+const skillFields = defineFields<SkillDraft, Skill>()({
+    skill_name: { kind: 'required-trim' },
+    confidence_percentage: { kind: 'num-required' }
+});
+
 const store = createDraftListStore<SkillDraft, Skill>({
     toDraft: (s) => ({
         id: s.id,
-        skill_name: s.skill_name,
-        confidence_percentage: String(s.confidence_percentage),
+        ...skillFields.toDraft(s),
         display_order: s.display_order == null ? '' : String(s.display_order)
     }),
     toBaseline: (d, existing, meta) => ({
         id: d.id,
         resume_id: existing?.resume_id ?? meta?.resume_id ?? 0,
-        skill_name: d.skill_name.trim(),
-        confidence_percentage: Number(d.confidence_percentage),
+        ...skillFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({
-        skill_name: d.skill_name.trim(),
-        confidence_percentage: Number(d.confidence_percentage)
-    }),
-    normalizeBaseline: (b) => ({
-        skill_name: b.skill_name,
-        confidence_percentage: b.confidence_percentage
-    }),
+    normalizeDraft: skillFields.normalizeDraft,
+    normalizeBaseline: skillFields.normalizeBaseline,
     validate: (d) => {
         if (!d.skill_name.trim()) return 'Skill name is required';
         if (d.confidence_percentage.trim() === '') return 'Confidence is required';
@@ -53,18 +51,11 @@ const store = createDraftListStore<SkillDraft, Skill>({
         return null;
     },
     buildCreatePayload: (d) => ({
-        skill_name: d.skill_name.trim(),
-        confidence_percentage: Number(d.confidence_percentage),
+        ...skillFields.buildCreatePayload(d),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload: UpdateSkillRequest = {};
-        if (d.skill_name.trim() !== b.skill_name) {
-            payload.skill_name = d.skill_name.trim();
-        }
-        if (Number(d.confidence_percentage) !== b.confidence_percentage) {
-            payload.confidence_percentage = Number(d.confidence_percentage);
-        }
+        const payload = skillFields.buildUpdatePayload(d, b) as UpdateSkillRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;

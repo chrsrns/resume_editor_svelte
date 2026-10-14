@@ -1,5 +1,8 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import MarkdownFilePicker from '$lib/components/ui/MarkdownFilePicker.svelte';
+    import { downloadBlob } from '$lib/download';
+    import { byDisplayOrder } from '$lib/displayOrder';
     import { SvelteURLSearchParams } from 'svelte/reactivity';
     import { page } from '$app/state';
     import { resolve } from '$app/paths';
@@ -82,12 +85,6 @@
         return found ? found.id : 'basics';
     }
 
-    function byDisplayOrder<T extends { display_order: number | null }>(a: T, b: T): number {
-        const ao = a.display_order ?? Number.MAX_SAFE_INTEGER;
-        const bo = b.display_order ?? Number.MAX_SAFE_INTEGER;
-        if (ao !== bo) return ao - bo;
-        return 0;
-    }
 
     let loading = $state(true);
     let sectionLoading = $state(false);
@@ -113,7 +110,7 @@
     let exportErrorTitle = $state('Export failed');
     let exportErrorMessage = $state('');
 
-    let importInput: HTMLInputElement | null = $state(null);
+    let openImport: (() => void) | undefined = $state();
     let importBusy = $state(false);
     let importErrorOpen = $state(false);
     let importErrorTitle = $state('Import failed');
@@ -296,14 +293,7 @@
         exportErrorOpen = false;
         try {
             const blob = await exportResumeMarkdown(resume.id);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${resume.name}.md`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            downloadBlob(blob, `${resume.name}.md`);
         } catch (e) {
             const err = e as ApiError;
             exportErrorTitle = 'Export failed';
@@ -316,15 +306,7 @@
         exportErrorOpen = false;
     }
 
-    function triggerImport() {
-        importInput?.click();
-    }
-
-    async function handleImportFile(e: Event) {
-        const input = e.currentTarget as HTMLInputElement;
-        const file = input.files?.[0];
-        if (!file) return;
-        input.value = '';
+    async function handleImportFile(file: File) {
         if (!resume) return;
         const confirmed = confirm(
             `Replace the contents of "${resume.name}" with "${file.name}"? This cannot be undone.`
@@ -369,7 +351,7 @@
 {:else if resume}
     {#snippet headerActions()}
         {#if resume?.is_variant}
-            <Button variant="secondary" onclick={triggerImport} disabled={importBusy}>
+            <Button variant="secondary" onclick={() => openImport?.()} disabled={importBusy}>
                 {#snippet icon()}<FileUp size={16} />{/snippet}
                 Import Markdown
             </Button>
@@ -429,13 +411,7 @@
         onclose={closeImportError}
     />
 
-    <input
-        bind:this={importInput}
-        type="file"
-        accept=".md,text/markdown"
-        onchange={handleImportFile}
-        class="hidden-file-input"
-    />
+    <MarkdownFilePicker bind:open={openImport} onpick={handleImportFile} />
 
     {#if sectionError}
         <p class="sectionError">{sectionError}</p>
@@ -960,9 +936,6 @@
         outline-offset: 2px;
     }
 
-    .hidden-file-input {
-        display: none;
-    }
 
     @media (max-width: 640px) {
         .sectionHead,

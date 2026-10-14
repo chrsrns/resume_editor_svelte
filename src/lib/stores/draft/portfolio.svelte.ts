@@ -20,7 +20,9 @@ import {
     createChildGroupStore,
     createParentChildSection
 } from './draftStore.svelte';
-import { toNumberOrNull, toNullable } from './shared';
+import { toNumberOrNull } from './shared';
+import { defineFields } from './fields';
+import { FIELD_LIMITS, checkMaxLen } from '$lib/limits';
 
 export type ProjectDraft = {
     id: number;
@@ -67,93 +69,46 @@ export type PortfolioAction =
     | { type: 'updateTechnology'; id: number; payload: UpdatePortfolioTechnologyRequest }
     | { type: 'deleteTechnology'; id: number };
 
+const projectFields = defineFields<ProjectDraft, PortfolioProject>()({
+    project_name: { kind: 'required-trim' },
+    image_url: { kind: 'optional-nullable' },
+    project_link: { kind: 'optional-nullable' },
+    source_code_link: { kind: 'optional-nullable' },
+    description: { kind: 'optional-nullable' },
+    video_url: { kind: 'optional-nullable' },
+    active: { kind: 'bool' }
+});
+
 const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
     toDraft: (p) => ({
         id: p.id,
-        project_name: p.project_name,
-        image_url: p.image_url ?? '',
-        project_link: p.project_link ?? '',
-        source_code_link: p.source_code_link ?? '',
-        description: p.description ?? '',
-        video_url: p.video_url ?? '',
-        display_order: p.display_order == null ? '' : String(p.display_order),
-        active: p.active
+        ...projectFields.toDraft(p),
+        display_order: p.display_order == null ? '' : String(p.display_order)
     }),
     toBaseline: (d, existing, meta) => ({
         id: d.id,
         resume_id: existing?.resume_id ?? meta?.resume_id ?? 0,
-        project_name: d.project_name.trim(),
-        image_url: toNullable(d.image_url),
-        project_link: toNullable(d.project_link),
-        source_code_link: toNullable(d.source_code_link),
-        description: toNullable(d.description),
-        video_url: toNullable(d.video_url),
+        ...projectFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
-        active: d.active,
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({
-        project_name: d.project_name,
-        image_url: d.image_url,
-        project_link: d.project_link,
-        source_code_link: d.source_code_link,
-        description: d.description,
-        video_url: d.video_url,
-        display_order: toNumberOrNull(d.display_order),
-        active: d.active
-    }),
-    normalizeBaseline: (b) => ({
-        project_name: b.project_name,
-        image_url: b.image_url ?? '',
-        project_link: b.project_link ?? '',
-        source_code_link: b.source_code_link ?? '',
-        description: b.description ?? '',
-        video_url: b.video_url ?? '',
-        display_order: b.display_order,
-        active: b.active
-    }),
+    normalizeDraft: projectFields.normalizeDraft,
+    normalizeBaseline: projectFields.normalizeBaseline,
     validate: (d) => {
         if (!d.project_name.trim()) return 'Project name is required';
-        if (d.video_url.trim().length > 500) return 'Video URL must be 500 characters or less';
+        const videoError = checkMaxLen('Video URL', d.video_url, FIELD_LIMITS.video_url);
+        if (videoError) return videoError;
         return null;
     },
     buildCreatePayload: (d) => ({
-        project_name: d.project_name,
-        image_url: toNullable(d.image_url),
-        project_link: toNullable(d.project_link),
-        source_code_link: toNullable(d.source_code_link),
-        description: toNullable(d.description),
-        video_url: toNullable(d.video_url),
-        display_order: toNumberOrNull(d.display_order),
-        active: d.active
+        ...projectFields.buildCreatePayload(d),
+        display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload: UpdatePortfolioProjectRequest = {};
-        if (d.project_name !== b.project_name) {
-            payload.project_name = d.project_name;
-        }
-        if (d.image_url !== b.image_url) {
-            payload.image_url = toNullable(d.image_url);
-        }
-        if (d.project_link !== b.project_link) {
-            payload.project_link = toNullable(d.project_link);
-        }
-        if (d.source_code_link !== b.source_code_link) {
-            payload.source_code_link = toNullable(d.source_code_link);
-        }
-        if (d.description !== b.description) {
-            payload.description = toNullable(d.description);
-        }
-        const draftVideoUrl = toNullable(d.video_url);
-        if (draftVideoUrl !== b.video_url) {
-            payload.video_url = draftVideoUrl;
-        }
+        const payload = projectFields.buildUpdatePayload(d, b) as UpdatePortfolioProjectRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;
-        }
-        if (d.active !== b.active) {
-            payload.active = d.active;
         }
         return payload;
     },
@@ -161,34 +116,35 @@ const projectsStore = createDraftListStore<ProjectDraft, PortfolioProject>({
     getMeta: (b) => ({ resume_id: b.resume_id, created_at: b.created_at })
 });
 
+const keyPointFields = defineFields<KeyPointDraft, PortfolioKeyPoint>()({
+    key_point: { kind: 'required-trim' }
+});
+
 const keyPointsStore = createChildGroupStore<KeyPointDraft, PortfolioKeyPoint, 'projectId'>({
     toDraft: (kp) => ({
         id: kp.id,
-        key_point: kp.key_point,
+        ...keyPointFields.toDraft(kp),
         display_order: kp.display_order == null ? '' : String(kp.display_order)
     }),
     toBaseline: (d, projectId, existing, meta) => ({
         id: d.id,
         portfolio_project_id: projectId,
-        key_point: d.key_point.trim(),
+        ...keyPointFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({ key_point: d.key_point }),
-    normalizeBaseline: (b) => ({ key_point: b.key_point }),
+    normalizeDraft: keyPointFields.normalizeDraft,
+    normalizeBaseline: keyPointFields.normalizeBaseline,
     validate: (d) => {
         if (!d.key_point.trim()) return 'Key point is required';
         return null;
     },
     buildCreatePayload: (d) => ({
-        key_point: d.key_point,
+        ...keyPointFields.buildCreatePayload(d),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload: UpdatePortfolioKeyPointRequest = {};
-        if (d.key_point !== b.key_point) {
-            payload.key_point = d.key_point;
-        }
+        const payload = keyPointFields.buildUpdatePayload(d, b) as UpdatePortfolioKeyPointRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;
@@ -201,34 +157,35 @@ const keyPointsStore = createChildGroupStore<KeyPointDraft, PortfolioKeyPoint, '
     getMeta: (kp) => ({ created_at: kp.created_at })
 });
 
+const technologyFields = defineFields<TechnologyDraft, PortfolioTechnology>()({
+    technology_name: { kind: 'required-trim' }
+});
+
 const technologiesStore = createChildGroupStore<TechnologyDraft, PortfolioTechnology, 'projectId'>({
     toDraft: (t) => ({
         id: t.id,
-        technology_name: t.technology_name,
+        ...technologyFields.toDraft(t),
         display_order: t.display_order == null ? '' : String(t.display_order)
     }),
     toBaseline: (d, projectId, existing, meta) => ({
         id: d.id,
         portfolio_project_id: projectId,
-        technology_name: d.technology_name.trim(),
+        ...technologyFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''
     }),
-    normalizeDraft: (d) => ({ technology_name: d.technology_name }),
-    normalizeBaseline: (b) => ({ technology_name: b.technology_name }),
+    normalizeDraft: technologyFields.normalizeDraft,
+    normalizeBaseline: technologyFields.normalizeBaseline,
     validate: (d) => {
         if (!d.technology_name.trim()) return 'Technology name is required';
         return null;
     },
     buildCreatePayload: (d) => ({
-        technology_name: d.technology_name,
+        ...technologyFields.buildCreatePayload(d),
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload: UpdatePortfolioTechnologyRequest = {};
-        if (d.technology_name !== b.technology_name) {
-            payload.technology_name = d.technology_name;
-        }
+        const payload = technologyFields.buildUpdatePayload(d, b) as UpdatePortfolioTechnologyRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;
