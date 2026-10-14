@@ -1,7 +1,4 @@
-import { get } from 'svelte/store';
-import { apiRequest, apiCall, ApiError } from './client';
-import { authToken, clearAuthToken } from '$lib/auth';
-import { clearCurrentUser } from '$lib/session';
+import { apiRequest, apiCall, apiRawRequest, ApiError } from './client';
 import type { Resume, NewResumeRequest, NewVariantRequest, UpdateResumeRequest } from '$lib/types';
 
 export async function listResumes(): Promise<Resume[]> {
@@ -45,101 +42,52 @@ export async function listVariants(id: number): Promise<Resume[]> {
 }
 
 export async function exportResumeMarkdown(id: number): Promise<Blob> {
-    const url = `${getApiBaseUrl()}/resume/${id}/export/markdown`;
-    const token = get(authToken);
-
-    const headers: Record<string, string> = {};
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(url, { method: 'GET', headers });
+    const { res, text, parsed } = await apiRawRequest(`/resume/${id}/export/markdown`, {
+        auth: true
+    });
 
     if (!res.ok) {
-        if (res.status === 401 && token) {
-            clearAuthToken();
-            clearCurrentUser();
-        }
-        const text = await res.text();
-        let message = 'Export failed';
-        try {
-            const parsed = JSON.parse(text) as { body?: string };
-            if (typeof parsed.body === 'string') message = parsed.body;
-        } catch {
-            // non-JSON response; use fallback message
-        }
+        const message = typeof parsed?.body === 'string' ? parsed.body : 'Export failed';
         throw new ApiError(res.status, message);
     }
 
-    return res.blob();
+    return new Blob([text], { type: 'text/markdown' });
 }
 
 export async function importResumeMarkdown(markdown: string): Promise<Resume> {
-    const url = `${getApiBaseUrl()}/resume/import/markdown`;
-    const token = get(authToken);
+    const { res, text, parsed } = await apiRawRequest('/resume/import/markdown', {
+        method: 'POST',
+        contentType: 'text/markdown',
+        rawBody: markdown,
+        auth: true
+    });
 
-    const headers: Record<string, string> = {
-        'Content-Type': 'text/markdown'
-    };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(url, { method: 'POST', headers, body: markdown });
-
-    if (res.status === 401 && token) {
-        clearAuthToken();
-        clearCurrentUser();
-    }
-
-    const text = await res.text();
-    let parsed: { body?: unknown };
-    try {
-        parsed = JSON.parse(text) as { body?: unknown };
-    } catch {
+    if (parsed === undefined) {
         throw new ApiError(res.status, 'Failed to parse response', text);
     }
-
     if (!res.ok) {
         const message = typeof parsed.body === 'string' ? parsed.body : 'Import failed';
         throw new ApiError(res.status, message);
     }
-
     if (parsed.body === undefined) throw new ApiError(500, 'Missing response body');
     return parsed.body as Resume;
 }
 
 export async function importResumeMarkdownInto(id: number, markdown: string): Promise<Resume> {
-    const url = `${getApiBaseUrl()}/resume/${id}/import/markdown`;
-    const token = get(authToken);
+    const { res, text, parsed } = await apiRawRequest(`/resume/${id}/import/markdown`, {
+        method: 'POST',
+        contentType: 'text/markdown',
+        rawBody: markdown,
+        auth: true
+    });
 
-    const headers: Record<string, string> = {
-        'Content-Type': 'text/markdown'
-    };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(url, { method: 'POST', headers, body: markdown });
-
-    if (res.status === 401 && token) {
-        clearAuthToken();
-        clearCurrentUser();
-    }
-
-    const text = await res.text();
-    let parsed: { body?: unknown };
-    try {
-        parsed = JSON.parse(text) as { body?: unknown };
-    } catch {
+    if (parsed === undefined) {
         throw new ApiError(res.status, 'Failed to parse response', text);
     }
-
     if (!res.ok) {
         const message = typeof parsed.body === 'string' ? parsed.body : 'Import failed';
         throw new ApiError(res.status, message);
     }
-
     if (parsed.body === undefined) throw new ApiError(500, 'Missing response body');
     return parsed.body as Resume;
 }
