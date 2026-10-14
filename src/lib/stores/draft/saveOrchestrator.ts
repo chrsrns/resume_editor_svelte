@@ -30,6 +30,28 @@ import {
 import { createLanguage, updateLanguage, deleteLanguage } from '$lib/api/languages';
 import { createFramework, updateFramework, deleteFramework } from '$lib/api/frameworks';
 import type { ApiError } from '$lib/api/client';
+import type {
+    NewSkillRequest,
+    UpdateSkillRequest,
+    NewEducationRequest,
+    UpdateEducationRequest,
+    NewEducationKeyPointRequest,
+    UpdateEducationKeyPointRequest,
+    NewWorkExperienceRequest,
+    UpdateWorkExperienceRequest,
+    NewWorkExperienceKeyPointRequest,
+    UpdateWorkExperienceKeyPointRequest,
+    NewPortfolioProjectRequest,
+    UpdatePortfolioProjectRequest,
+    NewPortfolioKeyPointRequest,
+    UpdatePortfolioKeyPointRequest,
+    NewPortfolioTechnologyRequest,
+    UpdatePortfolioTechnologyRequest,
+    NewLanguageRequest,
+    UpdateLanguageRequest,
+    NewFrameworkRequest,
+    UpdateFrameworkRequest
+} from '$lib/types';
 import type { DraftAction } from './draftStore';
 import { basics, skills, education, work, portfolio, languages } from './index';
 
@@ -73,24 +95,165 @@ function flushDeletes(store: SaveStore, succeeded: Set<number>): void {
     store.commitBaseline();
 }
 
+export type ChildGroupPlan = {
+    label: string;
+    actionTypes: { create: string; update: string; delete: string };
+    /** DraftAction field carrying the (possibly temp) parent id. */
+    parentIdField: string;
+    call: {
+        create: (resumeId: number, parentId: number, payload: unknown) => Promise<{ id: number }>;
+        update: (id: number, payload: unknown) => Promise<unknown>;
+        delete: (id: number) => Promise<unknown>;
+    };
+};
+
+export type EntitySectionPlan = {
+    kind: 'entity';
+    label: string;
+    store: SaveStore & { computeDiff(): DraftAction[] };
+    actionTypes: { create: string; update: string; delete: string };
+    call: {
+        create: (resumeId: number, payload: unknown) => Promise<{ id: number }>;
+        update: (id: number, payload: unknown) => Promise<unknown>;
+        delete: (id: number) => Promise<unknown>;
+    };
+    childGroups?: ChildGroupPlan[];
+};
+
+export type CustomSectionPlan = {
+    kind: 'custom';
+    label: string;
+    run: (resumeId: number) => Promise<SectionError[]>;
+};
+
+export type SectionPlan = EntitySectionPlan | CustomSectionPlan;
+
+/**
+ * Generic save pipeline: parent creates → child creates (temp-id resolved)
+ * → merged updates → child deletes → parent deletes. Deletes drop only on
+ * success or 404; child creates under a failed parent are skipped.
+ */
+export async function processSection(
+    resumeId: number,
+    plan: SectionPlan
+): Promise<{ errors: SectionError[] }> {
+    if (plan.kind === 'custom') {
+        return { errors: await plan.run(resumeId) };
+    }
+
+    const errors: SectionError[] = [];
+    const succeededDeletes = new Set<number>();
+    const store = plan.store;
+    const actions = store.computeDiff();
+    const groups = plan.childGroups ?? [];
+
+    const parentCreates = actions.filter((a) => a.type === plan.actionTypes.create);
+    const parentUpdates = actions.filter((a) => a.type === plan.actionTypes.update);
+    const parentDeletes = actions.filter((a) => a.type === plan.actionTypes.delete);
+
+    const tempIdMap = new Map<number, number>();
+    const createResults = await Promise.allSettled(
+        parentCreates.map(async (action) => {
+            const result = await plan.call.create(resumeId, action.payload);
+            return { tempId: action.tempId!, realId: result.id };
+        })
+    );
+    for (const result of createResults) {
+        if (result.status === 'fulfilled') {
+            tempIdMap.set(result.value.tempId, result.value.realId);
+        } else {
+            errors.push(errorFromReason(result.reason, plan.label));
+        }
+    }
+    store.applySaveResults(tempIdMap);
+    store.commitBaseline();
+
+    if (groups.length > 0) {
+        const childCreateOps = groups.flatMap((g) =>
+            actions
+                .filter((a) => a.type === g.actionTypes.create)
+                .filter((a) => {
+                    const parentId = a[g.parentIdField] as number;
+                    return parentId >= 0 || tempIdMap.has(parentId);
+                })
+                .map((action) => async () => {
+                    const parentId = action[g.parentIdField] as number;
+                    const realParent = tempIdMap.get(parentId) ?? parentId;
+                    const result = await g.call.create(resumeId, realParent, action.payload);
+                    return { tempId: action.tempId!, realId: result.id };
+                })
+        );
+        const childCreateResults = await Promise.allSettled(childCreateOps.map((op) => op()));
+        for (const result of childCreateResults) {
+            if (result.status === 'fulfilled') {
+                tempIdMap.set(result.value.tempId, result.value.realId);
+            } else {
+                errors.push(errorFromReason(result.reason, plan.label));
+            }
+        }
+        store.applySaveResults(tempIdMap);
+        store.commitBaseline();
+    }
+
+    const updateOps = [
+        ...parentUpdates.map((a) => () => plan.call.update(a.id!, a.payload)),
+        ...groups.flatMap((g) =>
+            actions
+                .filter((a) => a.type === g.actionTypes.update)
+                .map((a) => () => g.call.update(a.id!, a.payload))
+        )
+    ];
+    const updateResults = await Promise.allSettled(updateOps.map((op) => op()));
+    for (const result of updateResults) {
+        if (result.status === 'rejected') {
+            errors.push(errorFromReason(result.reason, plan.label));
+        }
+    }
+    store.commitBaseline();
+
+    const childDeleteEntries = groups.flatMap((g) =>
+        actions
+            .filter((a) => a.type === g.actionTypes.delete)
+            .map((action) => ({
+                action,
+                section: g.label,
+                run: () => g.call.delete(action.id!)
+            }))
+    );
+    const childDeleteResults = await Promise.allSettled(childDeleteEntries.map((e) => e.run()));
+    childDeleteResults.forEach((result, i) => {
+        const id = childDeleteEntries[i].action.id!;
+        if (result.status === 'fulfilled' || (result.reason as ApiError)?.status === 404) {
+            succeededDeletes.add(id);
+        } else {
+            errors.push(errorFromReason(result.reason, childDeleteEntries[i].section));
+        }
+    });
+    store.commitBaseline();
+
+    const parentDeleteResults = await Promise.allSettled(
+        parentDeletes.map((a) => plan.call.delete(a.id!))
+    );
+    collectDeletes(plan.label, parentDeleteResults, parentDeletes, errors, succeededDeletes);
+    flushDeletes(store, succeededDeletes);
+
+    return { errors };
+}
+
 export async function saveAll(resumeId: number): Promise<SaveResult> {
     const errors: SectionError[] = [];
 
     try {
-        if (basics.isDirty()) {
-            try {
-                await updateResume(resumeId, basics.toUpdatePayload());
-                basics.commitBaseline();
-            } catch (e) {
-                errors.push(errorFromReason(e, 'Basics'));
-            }
+        for (const plan of [
+            basicsPlan,
+            skillsPlan,
+            educationPlan,
+            workPlan,
+            portfolioPlan,
+            languagesPlan
+        ]) {
+            errors.push(...(await processSection(resumeId, plan)).errors);
         }
-
-        errors.push(...(await processSkillsSection(resumeId)).errors);
-        errors.push(...(await processEducationSection(resumeId)).errors);
-        errors.push(...(await processWorkSection(resumeId)).errors);
-        errors.push(...(await processPortfolioSection(resumeId)).errors);
-        errors.push(...(await processLanguagesSection(resumeId)).errors);
 
         if (errors.length === 0) {
             return { success: true, message: 'All changes saved successfully!', errors: [] };
@@ -111,373 +274,187 @@ export async function saveAll(resumeId: number): Promise<SaveResult> {
     }
 }
 
-async function processSkillsSection(resumeId: number): Promise<{ errors: SectionError[] }> {
-    const errors: SectionError[] = [];
-    const actions = skills.computeDiff();
-    const creates = actions.filter((a) => a.type === 'create');
-    const updates = actions.filter((a) => a.type === 'update');
-    const deletes = actions.filter((a) => a.type === 'delete');
-
-    const createResults = await Promise.allSettled(
-        creates.map(async (action) => {
-            const result = await createSkill(resumeId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const tempIdMap = new Map<number, number>();
-    for (const result of createResults) {
-        if (result.status === 'fulfilled') {
-            tempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Skills'));
+const basicsPlan: SectionPlan = {
+    kind: 'custom',
+    label: 'Basics',
+    run: async (resumeId) => {
+        if (!basics.isDirty()) return [];
+        try {
+            await updateResume(resumeId, basics.toUpdatePayload());
+            basics.commitBaseline();
+            return [];
+        } catch (e) {
+            return [errorFromReason(e, 'Basics')];
         }
     }
-    skills.applySaveResults(tempIdMap);
-    skills.commitBaseline();
+};
 
-    const succeededDeletes = new Set<number>();
-
-    const updateResults = await Promise.allSettled(
-        updates.map((action) => updateSkill(action.id, action.payload))
-    );
-    for (const result of updateResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Skills'));
+const skillsPlan: SectionPlan = {
+    kind: 'entity',
+    label: 'Skills',
+    store: skills,
+    actionTypes: { create: 'create', update: 'update', delete: 'delete' },
+    call: {
+        create: (resumeId, payload) => createSkill(resumeId, payload as NewSkillRequest),
+        update: (id, payload) => updateSkill(id, payload as UpdateSkillRequest),
+        delete: (id) => deleteSkill(id)
     }
-    skills.commitBaseline();
+};
 
-    const deleteResults = await Promise.allSettled(
-        deletes.map((action) => deleteSkill(action.id))
-    );
-    collectDeletes('Skills', deleteResults, deletes, errors, succeededDeletes);
-    flushDeletes(skills, succeededDeletes);
-
-    return { errors };
-}
-
-async function processEducationSection(resumeId: number): Promise<{ errors: SectionError[] }> {
-    const errors: SectionError[] = [];
-    const actions = education.computeDiff();
-    const succeededDeletes = new Set<number>();
-    const educationCreates = actions.filter((a) => a.type === 'createEducation');
-    const keyPointCreates = actions.filter((a) => a.type === 'createKeyPoint');
-    const educationUpdates = actions.filter((a) => a.type === 'updateEducation');
-    const keyPointUpdates = actions.filter((a) => a.type === 'updateKeyPoint');
-    const educationDeletes = actions.filter((a) => a.type === 'deleteEducation');
-    const keyPointDeletes = actions.filter((a) => a.type === 'deleteKeyPoint');
-
-    const educationCreateResults = await Promise.allSettled(
-        educationCreates.map(async (action) => {
-            const result = await createEducation(resumeId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const educationTempIdMap = new Map<number, number>();
-    for (const result of educationCreateResults) {
-        if (result.status === 'fulfilled') {
-            educationTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Education'));
+const educationPlan: SectionPlan = {
+    kind: 'entity',
+    label: 'Education',
+    store: education,
+    actionTypes: {
+        create: 'createEducation',
+        update: 'updateEducation',
+        delete: 'deleteEducation'
+    },
+    call: {
+        create: (resumeId, payload) => createEducation(resumeId, payload as NewEducationRequest),
+        update: (id, payload) => updateEducation(id, payload as UpdateEducationRequest),
+        delete: (id) => deleteEducation(id)
+    },
+    childGroups: [
+        {
+            label: 'Education key points',
+            actionTypes: {
+                create: 'createKeyPoint',
+                update: 'updateKeyPoint',
+                delete: 'deleteKeyPoint'
+            },
+            parentIdField: 'educationId',
+            call: {
+                create: (resumeId, parentId, payload) =>
+                    createEducationKeyPoint(resumeId, parentId, payload as NewEducationKeyPointRequest),
+                update: (id, payload) =>
+                    updateEducationKeyPoint(id, payload as UpdateEducationKeyPointRequest),
+                delete: (id) => deleteEducationKeyPoint(id)
+            }
         }
-    }
-    education.applySaveResults(educationTempIdMap);
-    education.commitBaseline();
+    ]
+};
 
-    const keyPointCreateResults = await Promise.allSettled(
-        keyPointCreates.map(async (action) => {
-            const educationId = educationTempIdMap.get(action.educationId) ?? action.educationId;
-            const result = await createEducationKeyPoint(resumeId, educationId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const keyPointTempIdMap = new Map<number, number>();
-    for (const result of keyPointCreateResults) {
-        if (result.status === 'fulfilled') {
-            keyPointTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Education key points'));
+const workPlan: SectionPlan = {
+    kind: 'entity',
+    label: 'Work',
+    store: work,
+    actionTypes: { create: 'createWork', update: 'updateWork', delete: 'deleteWork' },
+    call: {
+        create: (resumeId, payload) =>
+            createWorkExperience(resumeId, payload as NewWorkExperienceRequest),
+        update: (id, payload) => updateWorkExperience(id, payload as UpdateWorkExperienceRequest),
+        delete: (id) => deleteWorkExperience(id)
+    },
+    childGroups: [
+        {
+            label: 'Work key points',
+            actionTypes: {
+                create: 'createKeyPoint',
+                update: 'updateKeyPoint',
+                delete: 'deleteKeyPoint'
+            },
+            parentIdField: 'workId',
+            call: {
+                create: (resumeId, parentId, payload) =>
+                    createWorkExperienceKeyPoint(
+                        resumeId,
+                        parentId,
+                        payload as NewWorkExperienceKeyPointRequest
+                    ),
+                update: (id, payload) =>
+                    updateWorkExperienceKeyPoint(id, payload as UpdateWorkExperienceKeyPointRequest),
+                delete: (id) => deleteWorkExperienceKeyPoint(id)
+            }
         }
-    }
-    education.applySaveResults(new Map([...educationTempIdMap, ...keyPointTempIdMap]));
-    education.commitBaseline();
+    ]
+};
 
-    const updateResults = await Promise.allSettled([
-        ...educationUpdates.map((action) => updateEducation(action.id, action.payload)),
-        ...keyPointUpdates.map((action) => updateEducationKeyPoint(action.id, action.payload))
-    ]);
-    for (const result of updateResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Education'));
-    }
-    education.commitBaseline();
-
-    const childDeleteResults = await Promise.allSettled(
-        keyPointDeletes.map((action) => deleteEducationKeyPoint(action.id))
-    );
-    collectDeletes(
-        'Education key points',
-        childDeleteResults,
-        keyPointDeletes,
-        errors,
-        succeededDeletes
-    );
-    education.commitBaseline();
-
-    const parentDeleteResults = await Promise.allSettled(
-        educationDeletes.map((action) => deleteEducation(action.id))
-    );
-    collectDeletes('Education', parentDeleteResults, educationDeletes, errors, succeededDeletes);
-    flushDeletes(education, succeededDeletes);
-
-    return { errors };
-}
-
-async function processWorkSection(resumeId: number): Promise<{ errors: SectionError[] }> {
-    const errors: SectionError[] = [];
-    const actions = work.computeDiff();
-    const succeededDeletes = new Set<number>();
-    const workCreates = actions.filter((a) => a.type === 'createWork');
-    const keyPointCreates = actions.filter((a) => a.type === 'createKeyPoint');
-    const workUpdates = actions.filter((a) => a.type === 'updateWork');
-    const keyPointUpdates = actions.filter((a) => a.type === 'updateKeyPoint');
-    const workDeletes = actions.filter((a) => a.type === 'deleteWork');
-    const keyPointDeletes = actions.filter((a) => a.type === 'deleteKeyPoint');
-
-    const workCreateResults = await Promise.allSettled(
-        workCreates.map(async (action) => {
-            const result = await createWorkExperience(resumeId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const workTempIdMap = new Map<number, number>();
-    for (const result of workCreateResults) {
-        if (result.status === 'fulfilled') {
-            workTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Work'));
+const portfolioPlan: SectionPlan = {
+    kind: 'entity',
+    label: 'Portfolio',
+    store: portfolio,
+    actionTypes: {
+        create: 'createProject',
+        update: 'updateProject',
+        delete: 'deleteProject'
+    },
+    call: {
+        create: (resumeId, payload) =>
+            createPortfolioProject(resumeId, payload as NewPortfolioProjectRequest),
+        update: (id, payload) => updatePortfolioProject(id, payload as UpdatePortfolioProjectRequest),
+        delete: (id) => deletePortfolioProject(id)
+    },
+    childGroups: [
+        {
+            label: 'Portfolio',
+            actionTypes: {
+                create: 'createKeyPoint',
+                update: 'updateKeyPoint',
+                delete: 'deleteKeyPoint'
+            },
+            parentIdField: 'projectId',
+            call: {
+                create: (resumeId, parentId, payload) =>
+                    createPortfolioKeyPoint(resumeId, parentId, payload as NewPortfolioKeyPointRequest),
+                update: (id, payload) =>
+                    updatePortfolioKeyPoint(id, payload as UpdatePortfolioKeyPointRequest),
+                delete: (id) => deletePortfolioKeyPoint(id)
+            }
+        },
+        {
+            label: 'Portfolio',
+            actionTypes: {
+                create: 'createTechnology',
+                update: 'updateTechnology',
+                delete: 'deleteTechnology'
+            },
+            parentIdField: 'projectId',
+            call: {
+                create: (resumeId, parentId, payload) =>
+                    createPortfolioTechnology(
+                        resumeId,
+                        parentId,
+                        payload as NewPortfolioTechnologyRequest
+                    ),
+                update: (id, payload) =>
+                    updatePortfolioTechnology(id, payload as UpdatePortfolioTechnologyRequest),
+                delete: (id) => deletePortfolioTechnology(id)
+            }
         }
-    }
-    work.applySaveResults(workTempIdMap);
-    work.commitBaseline();
+    ]
+};
 
-    const keyPointCreateResults = await Promise.allSettled(
-        keyPointCreates.map(async (action) => {
-            const workId = workTempIdMap.get(action.workId) ?? action.workId;
-            const result = await createWorkExperienceKeyPoint(resumeId, workId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const keyPointTempIdMap = new Map<number, number>();
-    for (const result of keyPointCreateResults) {
-        if (result.status === 'fulfilled') {
-            keyPointTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Work key points'));
+const languagesPlan: SectionPlan = {
+    kind: 'entity',
+    label: 'Languages',
+    store: languages,
+    actionTypes: {
+        create: 'createLanguage',
+        update: 'updateLanguage',
+        delete: 'deleteLanguage'
+    },
+    call: {
+        create: (resumeId, payload) => createLanguage(resumeId, payload as NewLanguageRequest),
+        update: (id, payload) => updateLanguage(id, payload as UpdateLanguageRequest),
+        delete: (id) => deleteLanguage(id)
+    },
+    childGroups: [
+        {
+            label: 'Language frameworks',
+            actionTypes: {
+                create: 'createFramework',
+                update: 'updateFramework',
+                delete: 'deleteFramework'
+            },
+            parentIdField: 'languageId',
+            call: {
+                create: (resumeId, parentId, payload) =>
+                    createFramework(resumeId, parentId, payload as NewFrameworkRequest),
+                update: (id, payload) => updateFramework(id, payload as UpdateFrameworkRequest),
+                delete: (id) => deleteFramework(id)
+            }
         }
-    }
-    work.applySaveResults(new Map([...workTempIdMap, ...keyPointTempIdMap]));
-    work.commitBaseline();
+    ]
+};
 
-    const updateResults = await Promise.allSettled([
-        ...workUpdates.map((action) => updateWorkExperience(action.id, action.payload)),
-        ...keyPointUpdates.map((action) => updateWorkExperienceKeyPoint(action.id, action.payload))
-    ]);
-    for (const result of updateResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Work'));
-    }
-    work.commitBaseline();
-
-    const childDeleteResults = await Promise.allSettled(
-        keyPointDeletes.map((action) => deleteWorkExperienceKeyPoint(action.id))
-    );
-    collectDeletes(
-        'Work key points',
-        childDeleteResults,
-        keyPointDeletes,
-        errors,
-        succeededDeletes
-    );
-    work.commitBaseline();
-
-    const parentDeleteResults = await Promise.allSettled(
-        workDeletes.map((action) => deleteWorkExperience(action.id))
-    );
-    collectDeletes('Work', parentDeleteResults, workDeletes, errors, succeededDeletes);
-    flushDeletes(work, succeededDeletes);
-
-    return { errors };
-}
-
-async function processPortfolioSection(resumeId: number): Promise<{ errors: SectionError[] }> {
-    const errors: SectionError[] = [];
-    const actions = portfolio.computeDiff();
-    const succeededDeletes = new Set<number>();
-    const projectCreates = actions.filter((a) => a.type === 'createProject');
-    const keyPointCreates = actions.filter((a) => a.type === 'createKeyPoint');
-    const technologyCreates = actions.filter((a) => a.type === 'createTechnology');
-    const projectUpdates = actions.filter((a) => a.type === 'updateProject');
-    const keyPointUpdates = actions.filter((a) => a.type === 'updateKeyPoint');
-    const technologyUpdates = actions.filter((a) => a.type === 'updateTechnology');
-    const projectDeletes = actions.filter((a) => a.type === 'deleteProject');
-    const keyPointDeletes = actions.filter((a) => a.type === 'deleteKeyPoint');
-    const technologyDeletes = actions.filter((a) => a.type === 'deleteTechnology');
-
-    const projectCreateResults = await Promise.allSettled(
-        projectCreates.map(async (action) => {
-            const result = await createPortfolioProject(resumeId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const projectTempIdMap = new Map<number, number>();
-    for (const result of projectCreateResults) {
-        if (result.status === 'fulfilled') {
-            projectTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Portfolio'));
-        }
-    }
-    portfolio.applySaveResults(projectTempIdMap);
-    portfolio.commitBaseline();
-
-    const keyPointCreateResults = await Promise.allSettled(
-        keyPointCreates.map(async (action) => {
-            const projectId = projectTempIdMap.get(action.projectId) ?? action.projectId;
-            const result = await createPortfolioKeyPoint(resumeId, projectId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const keyPointTempIdMap = new Map<number, number>();
-    for (const result of keyPointCreateResults) {
-        if (result.status === 'fulfilled') {
-            keyPointTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Portfolio key points'));
-        }
-    }
-
-    const technologyCreateResults = await Promise.allSettled(
-        technologyCreates.map(async (action) => {
-            const projectId = projectTempIdMap.get(action.projectId) ?? action.projectId;
-            const result = await createPortfolioTechnology(resumeId, projectId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const technologyTempIdMap = new Map<number, number>();
-    for (const result of technologyCreateResults) {
-        if (result.status === 'fulfilled') {
-            technologyTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Portfolio technologies'));
-        }
-    }
-    portfolio.applySaveResults(
-        new Map([...projectTempIdMap, ...keyPointTempIdMap, ...technologyTempIdMap])
-    );
-    portfolio.commitBaseline();
-
-    const updateResults = await Promise.allSettled([
-        ...projectUpdates.map((action) => updatePortfolioProject(action.id, action.payload)),
-        ...keyPointUpdates.map((action) => updatePortfolioKeyPoint(action.id, action.payload)),
-        ...technologyUpdates.map((action) => updatePortfolioTechnology(action.id, action.payload))
-    ]);
-    for (const result of updateResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Portfolio'));
-    }
-    portfolio.commitBaseline();
-
-    const childDeleteActions = [...keyPointDeletes, ...technologyDeletes];
-    const childDeleteResults = await Promise.allSettled([
-        ...keyPointDeletes.map((action) => deletePortfolioKeyPoint(action.id)),
-        ...technologyDeletes.map((action) => deletePortfolioTechnology(action.id))
-    ]);
-    collectDeletes(
-        'Portfolio',
-        childDeleteResults,
-        childDeleteActions,
-        errors,
-        succeededDeletes
-    );
-    portfolio.commitBaseline();
-
-    const parentDeleteResults = await Promise.allSettled(
-        projectDeletes.map((action) => deletePortfolioProject(action.id))
-    );
-    collectDeletes('Portfolio', parentDeleteResults, projectDeletes, errors, succeededDeletes);
-    flushDeletes(portfolio, succeededDeletes);
-
-    return { errors };
-}
-
-async function processLanguagesSection(resumeId: number): Promise<{ errors: SectionError[] }> {
-    const errors: SectionError[] = [];
-    const actions = languages.computeDiff();
-    const succeededDeletes = new Set<number>();
-    const languageCreates = actions.filter((a) => a.type === 'createLanguage');
-    const frameworkCreates = actions.filter((a) => a.type === 'createFramework');
-    const languageUpdates = actions.filter((a) => a.type === 'updateLanguage');
-    const frameworkUpdates = actions.filter((a) => a.type === 'updateFramework');
-    const languageDeletes = actions.filter((a) => a.type === 'deleteLanguage');
-    const frameworkDeletes = actions.filter((a) => a.type === 'deleteFramework');
-
-    const languageCreateResults = await Promise.allSettled(
-        languageCreates.map(async (action) => {
-            const result = await createLanguage(resumeId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const languageTempIdMap = new Map<number, number>();
-    for (const result of languageCreateResults) {
-        if (result.status === 'fulfilled') {
-            languageTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Languages'));
-        }
-    }
-    languages.applySaveResults(languageTempIdMap);
-    languages.commitBaseline();
-
-    const frameworkCreateResults = await Promise.allSettled(
-        frameworkCreates.map(async (action) => {
-            const languageId = languageTempIdMap.get(action.languageId) ?? action.languageId;
-            const result = await createFramework(resumeId, languageId, action.payload);
-            return { tempId: action.tempId, realId: result.id };
-        })
-    );
-    const frameworkTempIdMap = new Map<number, number>();
-    for (const result of frameworkCreateResults) {
-        if (result.status === 'fulfilled') {
-            frameworkTempIdMap.set(result.value.tempId, result.value.realId);
-        } else {
-            errors.push(errorFromReason(result.reason, 'Language frameworks'));
-        }
-    }
-    languages.applySaveResults(new Map([...languageTempIdMap, ...frameworkTempIdMap]));
-    languages.commitBaseline();
-
-    const updateResults = await Promise.allSettled([
-        ...languageUpdates.map((action) => updateLanguage(action.id, action.payload)),
-        ...frameworkUpdates.map((action) => updateFramework(action.id, action.payload))
-    ]);
-    for (const result of updateResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Languages'));
-    }
-    languages.commitBaseline();
-
-    const childDeleteResults = await Promise.allSettled(
-        frameworkDeletes.map((action) => deleteFramework(action.id))
-    );
-    collectDeletes(
-        'Language frameworks',
-        childDeleteResults,
-        frameworkDeletes,
-        errors,
-        succeededDeletes
-    );
-    languages.commitBaseline();
-
-    const parentDeleteResults = await Promise.allSettled(
-        languageDeletes.map((action) => deleteLanguage(action.id))
-    );
-    collectDeletes('Languages', parentDeleteResults, languageDeletes, errors, succeededDeletes);
-    flushDeletes(languages, succeededDeletes);
-
-    return { errors };
-}
