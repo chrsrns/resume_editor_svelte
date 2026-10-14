@@ -30,6 +30,7 @@ import {
 import { createLanguage, updateLanguage, deleteLanguage } from '$lib/api/languages';
 import { createFramework, updateFramework, deleteFramework } from '$lib/api/frameworks';
 import type { ApiError } from '$lib/api/client';
+import type { DraftAction } from './draftStore';
 import { basics, skills, education, work, portfolio, languages } from './index';
 
 export type SaveResult = {
@@ -43,6 +44,33 @@ type SectionError = { section: string; error: string };
 function errorFromReason(reason: unknown, section: string): SectionError {
     const err = reason as ApiError;
     return { section, error: err.message || 'Failed to save item' };
+}
+
+function collectDeletes(
+    section: string,
+    results: PromiseSettledResult<unknown>[],
+    actions: DraftAction[],
+    errors: SectionError[],
+    succeeded: Set<number>
+): void {
+    results.forEach((result, i) => {
+        const id = actions[i].id!;
+        if (result.status === 'fulfilled' || (result.reason as ApiError)?.status === 404) {
+            succeeded.add(id);
+        } else {
+            errors.push(errorFromReason(result.reason, section));
+        }
+    });
+}
+
+type SaveStore = {
+    applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void;
+    commitBaseline(): void;
+};
+
+function flushDeletes(store: SaveStore, succeeded: Set<number>): void {
+    store.applySaveResults(new Map(), succeeded);
+    store.commitBaseline();
 }
 
 export async function saveAll(resumeId: number): Promise<SaveResult> {
@@ -107,14 +135,21 @@ async function processSkillsSection(resumeId: number): Promise<{ errors: Section
     skills.applySaveResults(tempIdMap);
     skills.commitBaseline();
 
-    const updateDeleteResults = await Promise.allSettled([
-        ...updates.map((action) => updateSkill(action.id, action.payload)),
-        ...deletes.map((action) => deleteSkill(action.id))
-    ]);
-    for (const result of updateDeleteResults) {
+    const succeededDeletes = new Set<number>();
+
+    const updateResults = await Promise.allSettled(
+        updates.map((action) => updateSkill(action.id, action.payload))
+    );
+    for (const result of updateResults) {
         if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Skills'));
     }
     skills.commitBaseline();
+
+    const deleteResults = await Promise.allSettled(
+        deletes.map((action) => deleteSkill(action.id))
+    );
+    collectDeletes('Skills', deleteResults, deletes, errors, succeededDeletes);
+    flushDeletes(skills, succeededDeletes);
 
     return { errors };
 }
@@ -122,6 +157,7 @@ async function processSkillsSection(resumeId: number): Promise<{ errors: Section
 async function processEducationSection(resumeId: number): Promise<{ errors: SectionError[] }> {
     const errors: SectionError[] = [];
     const actions = education.computeDiff();
+    const succeededDeletes = new Set<number>();
     const educationCreates = actions.filter((a) => a.type === 'createEducation');
     const keyPointCreates = actions.filter((a) => a.type === 'createKeyPoint');
     const educationUpdates = actions.filter((a) => a.type === 'updateEducation');
@@ -176,19 +212,20 @@ async function processEducationSection(resumeId: number): Promise<{ errors: Sect
     const childDeleteResults = await Promise.allSettled(
         keyPointDeletes.map((action) => deleteEducationKeyPoint(action.id))
     );
-    for (const result of childDeleteResults) {
-        if (result.status === 'rejected')
-            errors.push(errorFromReason(result.reason, 'Education key points'));
-    }
+    collectDeletes(
+        'Education key points',
+        childDeleteResults,
+        keyPointDeletes,
+        errors,
+        succeededDeletes
+    );
     education.commitBaseline();
 
     const parentDeleteResults = await Promise.allSettled(
         educationDeletes.map((action) => deleteEducation(action.id))
     );
-    for (const result of parentDeleteResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Education'));
-    }
-    education.commitBaseline();
+    collectDeletes('Education', parentDeleteResults, educationDeletes, errors, succeededDeletes);
+    flushDeletes(education, succeededDeletes);
 
     return { errors };
 }
@@ -196,6 +233,7 @@ async function processEducationSection(resumeId: number): Promise<{ errors: Sect
 async function processWorkSection(resumeId: number): Promise<{ errors: SectionError[] }> {
     const errors: SectionError[] = [];
     const actions = work.computeDiff();
+    const succeededDeletes = new Set<number>();
     const workCreates = actions.filter((a) => a.type === 'createWork');
     const keyPointCreates = actions.filter((a) => a.type === 'createKeyPoint');
     const workUpdates = actions.filter((a) => a.type === 'updateWork');
@@ -250,19 +288,20 @@ async function processWorkSection(resumeId: number): Promise<{ errors: SectionEr
     const childDeleteResults = await Promise.allSettled(
         keyPointDeletes.map((action) => deleteWorkExperienceKeyPoint(action.id))
     );
-    for (const result of childDeleteResults) {
-        if (result.status === 'rejected')
-            errors.push(errorFromReason(result.reason, 'Work key points'));
-    }
+    collectDeletes(
+        'Work key points',
+        childDeleteResults,
+        keyPointDeletes,
+        errors,
+        succeededDeletes
+    );
     work.commitBaseline();
 
     const parentDeleteResults = await Promise.allSettled(
         workDeletes.map((action) => deleteWorkExperience(action.id))
     );
-    for (const result of parentDeleteResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Work'));
-    }
-    work.commitBaseline();
+    collectDeletes('Work', parentDeleteResults, workDeletes, errors, succeededDeletes);
+    flushDeletes(work, succeededDeletes);
 
     return { errors };
 }
@@ -270,6 +309,7 @@ async function processWorkSection(resumeId: number): Promise<{ errors: SectionEr
 async function processPortfolioSection(resumeId: number): Promise<{ errors: SectionError[] }> {
     const errors: SectionError[] = [];
     const actions = portfolio.computeDiff();
+    const succeededDeletes = new Set<number>();
     const projectCreates = actions.filter((a) => a.type === 'createProject');
     const keyPointCreates = actions.filter((a) => a.type === 'createKeyPoint');
     const technologyCreates = actions.filter((a) => a.type === 'createTechnology');
@@ -343,22 +383,25 @@ async function processPortfolioSection(resumeId: number): Promise<{ errors: Sect
     }
     portfolio.commitBaseline();
 
+    const childDeleteActions = [...keyPointDeletes, ...technologyDeletes];
     const childDeleteResults = await Promise.allSettled([
         ...keyPointDeletes.map((action) => deletePortfolioKeyPoint(action.id)),
         ...technologyDeletes.map((action) => deletePortfolioTechnology(action.id))
     ]);
-    for (const result of childDeleteResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Portfolio'));
-    }
+    collectDeletes(
+        'Portfolio',
+        childDeleteResults,
+        childDeleteActions,
+        errors,
+        succeededDeletes
+    );
     portfolio.commitBaseline();
 
     const parentDeleteResults = await Promise.allSettled(
         projectDeletes.map((action) => deletePortfolioProject(action.id))
     );
-    for (const result of parentDeleteResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Portfolio'));
-    }
-    portfolio.commitBaseline();
+    collectDeletes('Portfolio', parentDeleteResults, projectDeletes, errors, succeededDeletes);
+    flushDeletes(portfolio, succeededDeletes);
 
     return { errors };
 }
@@ -366,6 +409,7 @@ async function processPortfolioSection(resumeId: number): Promise<{ errors: Sect
 async function processLanguagesSection(resumeId: number): Promise<{ errors: SectionError[] }> {
     const errors: SectionError[] = [];
     const actions = languages.computeDiff();
+    const succeededDeletes = new Set<number>();
     const languageCreates = actions.filter((a) => a.type === 'createLanguage');
     const frameworkCreates = actions.filter((a) => a.type === 'createFramework');
     const languageUpdates = actions.filter((a) => a.type === 'updateLanguage');
@@ -420,19 +464,20 @@ async function processLanguagesSection(resumeId: number): Promise<{ errors: Sect
     const childDeleteResults = await Promise.allSettled(
         frameworkDeletes.map((action) => deleteFramework(action.id))
     );
-    for (const result of childDeleteResults) {
-        if (result.status === 'rejected')
-            errors.push(errorFromReason(result.reason, 'Language frameworks'));
-    }
+    collectDeletes(
+        'Language frameworks',
+        childDeleteResults,
+        frameworkDeletes,
+        errors,
+        succeededDeletes
+    );
     languages.commitBaseline();
 
     const parentDeleteResults = await Promise.allSettled(
         languageDeletes.map((action) => deleteLanguage(action.id))
     );
-    for (const result of parentDeleteResults) {
-        if (result.status === 'rejected') errors.push(errorFromReason(result.reason, 'Languages'));
-    }
-    languages.commitBaseline();
+    collectDeletes('Languages', parentDeleteResults, languageDeletes, errors, succeededDeletes);
+    flushDeletes(languages, succeededDeletes);
 
     return { errors };
 }

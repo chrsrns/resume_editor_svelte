@@ -230,6 +230,53 @@ describe('createDraftListStore', () => {
         expect(store.isDirty()).toBe(false);
     });
 
+    it('keeps a failed delete dirty and retryable', () => {
+        const { store } = createStore();
+        store.initialize([
+            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' }
+        ]);
+
+        store.remove(1);
+        store.applySaveResults(new Map());
+        store.commitBaseline();
+
+        expect(store.isDirty()).toBe(true);
+        expect(store.getBaseline()).toHaveLength(1);
+        expect(store.computeDiff()).toEqual([
+            expect.objectContaining({ type: 'deleteItem', id: 1 })
+        ]);
+    });
+
+    it('drops a deleted draft only when its delete succeeded', () => {
+        const { store } = createStore();
+        store.initialize([
+            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' },
+            { id: 2, resume_id: 10, title: 'B', confidence: 90, display_order: 2, created_at: '' }
+        ]);
+
+        store.remove(1);
+        store.remove(2);
+        store.applySaveResults(new Map(), new Set([1]));
+        store.commitBaseline();
+
+        expect(store.getBaseline().map((b) => b.id)).toEqual([2]);
+        expect(store.isDirty()).toBe(true);
+        expect(store.computeDiff()).toEqual([
+            expect.objectContaining({ type: 'deleteItem', id: 2 })
+        ]);
+    });
+
+    it('drops a new-then-deleted draft without a request', () => {
+        const { store } = createStore();
+        store.initialize([]);
+        store.add({ title: 'B', confidence: '90' });
+        store.remove(-1);
+
+        store.applySaveResults(new Map());
+        expect(store.getDrafts()).toHaveLength(0);
+        expect(store.isDirty()).toBe(false);
+    });
+
     it('resets to baseline', () => {
         const { store } = createStore();
         store.initialize([
@@ -418,6 +465,40 @@ describe('createChildGroupStore', () => {
         expect(store.getVisibleChildren(10)).toHaveLength(0);
         expect(store.isDirty()).toBe(true);
         expect(store.computeDiff()[0]).toMatchObject({ type: 'deleteComment', id: 1 });
+    });
+
+    it('keeps a failed-deleted child dirty and retryable', () => {
+        const { store } = createChildStore();
+        store.initialize([{ id: 1, post_id: 10, text: 'A', display_order: 1, created_at: '' }]);
+
+        store.removeChild(1);
+        store.applySaveResults(new Map());
+        store.commitBaseline();
+
+        expect(store.isDirty()).toBe(true);
+        expect(store.getBaseline()).toHaveLength(1);
+        expect(store.computeDiff()).toEqual([
+            expect.objectContaining({ type: 'deleteComment', id: 1 })
+        ]);
+    });
+
+    it('drops a deleted child only when its delete succeeded', () => {
+        const { store } = createChildStore();
+        store.initialize([
+            { id: 1, post_id: 10, text: 'A', display_order: 1, created_at: '' },
+            { id: 2, post_id: 10, text: 'B', display_order: 2, created_at: '' }
+        ]);
+
+        store.removeChild(1);
+        store.removeChild(2);
+        store.applySaveResults(new Map(), new Set([1]));
+        store.commitBaseline();
+
+        expect(store.getBaseline().map((b) => b.id)).toEqual([2]);
+        expect(store.isDirty()).toBe(true);
+        expect(store.computeDiff()).toEqual([
+            expect.objectContaining({ type: 'deleteComment', id: 2 })
+        ]);
     });
 });
 
