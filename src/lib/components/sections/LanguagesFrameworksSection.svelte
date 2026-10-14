@@ -4,9 +4,8 @@
     import Card from '$lib/components/sections/shared/Card.svelte';
     import CardActions from '$lib/components/sections/shared/CardActions.svelte';
     import CollapsibleCard from '$lib/components/sections/shared/CollapsibleCard.svelte';
-    import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
     import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
-    import NestedList from '$lib/components/sections/shared/NestedList.svelte';
+    import ChildItemListEditor from '$lib/components/sections/shared/ChildItemListEditor.svelte';
     import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import TextInput from '$lib/components/ui/TextInput.svelte';
@@ -64,14 +63,10 @@
     // UI state for collapsed cards
     let collapsedById = $state<Record<number, boolean>>({});
 
-    // UI state for new framework text
-    let newFrameworkText = $state<Record<number, string>>({});
 
     // Local drag state (UI only, no API calls)
     let draggingId = $state<number | null>(null);
     let dragOverId = $state<number | null>(null);
-    let frameworkDragging = $state<{ group: number; id: number } | null>(null);
-    let frameworkDragOver = $state<{ group: number; id: number } | null>(null);
 
     function handleAddLanguage() {
         if (newLanguageName.trim().length === 0) {
@@ -83,12 +78,6 @@
         newLanguageName = '';
     }
 
-    function handleAddFramework(languageId: number) {
-        const text = (newFrameworkText[languageId] ?? '').trim();
-        if (text.length === 0) return;
-        onAddFramework(languageId, { framework_name: text });
-        newFrameworkText = { ...newFrameworkText, [languageId]: '' };
-    }
 
     function handleDragStart(id: number, e: DragEvent) {
         draggingId = id;
@@ -134,51 +123,10 @@
         onReorder(id, ids[nextIndex]);
     }
 
-    function handleFrameworkDragStart(languageId: number, id: number, e: DragEvent) {
-        frameworkDragging = { group: languageId, id };
-        frameworkDragOver = null;
-        if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', String(id));
-        }
-    }
 
-    function handleFrameworkDragEnd() {
-        frameworkDragging = null;
-        frameworkDragOver = null;
-    }
 
-    function handleFrameworkDragOver(languageId: number, id: number, e: DragEvent) {
-        if (frameworkDragging == null) return;
-        e.preventDefault();
-        e.stopPropagation();
-        frameworkDragOver = { group: languageId, id };
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    }
 
-    function handleFrameworkDrop(languageId: number, id: number, e: DragEvent) {
-        e.preventDefault();
-        e.stopPropagation();
-        const fromItem = frameworkDragging;
-        handleFrameworkDragEnd();
-        if (fromItem == null || fromItem.id === id) return;
-        onReorderFrameworks(languageId, fromItem.id, id);
-    }
 
-    function handleFrameworkHandleKeydown(languageId: number, id: number, e: KeyboardEvent) {
-        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-        e.preventDefault();
-
-        const visibleFrameworks = (frameworks[languageId] ?? []).filter(
-            (f: (typeof frameworks)[number][number]) => f._status !== 'deleted'
-        );
-        const ids = visibleFrameworks.map((f: (typeof visibleFrameworks)[0]) => f.id);
-        const index = ids.indexOf(id);
-        if (index === -1) return;
-        const nextIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
-        if (nextIndex < 0 || nextIndex >= ids.length) return;
-        onReorderFrameworks(languageId, id, ids[nextIndex]);
-    }
 </script>
 
 <SectionShell title="Languages & frameworks" description="Languages with nested frameworks.">
@@ -247,87 +195,24 @@
                     </Button>
                 </CardActions>
 
-                <FieldsWrap>
-                    <TextInput
-                        label="Add framework"
-                        title="Add a framework/library for this language (e.g. Svelte, Rocket)."
-                        value={newFrameworkText[d.id] ?? ''}
-                        oninput={(e) =>
-                            (newFrameworkText = {
-                                ...newFrameworkText,
-                                [d.id]: (e.target as HTMLInputElement).value
-                            })}
-                        onkeydown={(e) => {
-                            if (
-                                e.key === 'Enter' &&
-                                (newFrameworkText[d.id] ?? '').trim().length > 0
-                            ) {
-                                handleAddFramework(d.id);
-                            }
-                        }}
-                    />
-                    <Button
-                        onclick={() => handleAddFramework(d.id)}
-                        disabled={saving || (newFrameworkText[d.id] ?? '').trim().length === 0}
-                    >
-                        {#snippet icon()}<Plus size={16} />{/snippet}
-                        Add
-                    </Button>
-                </FieldsWrap>
-
-                <NestedList
-                    title="Frameworks"
-                    loading={false}
-                    empty={(frameworks[d.id] ?? []).filter(
-                        (f: (typeof frameworks)[number][number]) => f._status !== 'deleted'
-                    ).length === 0}
+                <ChildItemListEditor
+                    items={frameworks[d.id] ?? []}
+                    field="framework_name"
+                    listTitle="Frameworks"
+                    itemLabel="Framework"
+                    inputLabel="Framework"
+                    inputTitle="Framework/library name."
+                    addLabel="Add framework"
+                    addTitle="Add a framework/library for this language (e.g. Svelte, Rocket)."
                     emptyText="No frameworks."
-                >
-                    {#each (frameworks[d.id] ?? []).filter((f: (typeof frameworks)[number][number]) => f._status !== 'deleted') as f (f.id)}
-                        <FieldsWrap
-                            role="group"
-                            aria-label="Framework"
-                            class={frameworkDragging != null &&
-                            frameworkDragOver != null &&
-                            frameworkDragOver.group === d.id &&
-                            frameworkDragOver.id === f.id &&
-                            !(frameworkDragging.group === d.id && frameworkDragging.id === f.id)
-                                ? 'dropOver'
-                                : ''}
-                            ondragover={(e) => handleFrameworkDragOver(d.id, f.id, e)}
-                            ondrop={(e) => handleFrameworkDrop(d.id, f.id, e)}
-                        >
-                            <DragHandle
-                                ondragstart={(e) => handleFrameworkDragStart(d.id, f.id, e)}
-                                ondragend={handleFrameworkDragEnd}
-                                onkeydown={(e) => handleFrameworkHandleKeydown(d.id, f.id, e)}
-                                disabled={saving}
-                                dragging={frameworkDragging != null &&
-                                    frameworkDragging.group === d.id &&
-                                    frameworkDragging.id === f.id}
-                                label="Reorder framework"
-                            />
-                            <TextInput
-                                label="Framework"
-                                value={f.framework_name}
-                                oninput={(e) =>
-                                    onUpdateFramework(f.id, {
-                                        framework_name: (e.currentTarget as HTMLInputElement).value
-                                    })}
-                                onblur={() => onValidateFramework(f.id)}
-                                title="Framework/library name."
-                            />
-                            <Button
-                                variant="danger"
-                                onclick={() => onRemoveFramework(f.id)}
-                                disabled={saving}
-                            >
-                                {#snippet icon()}<Trash2 size={16} />{/snippet}
-                                Delete
-                            </Button>
-                        </FieldsWrap>
-                    {/each}
-                </NestedList>
+                    dragLabel="Reorder framework"
+                    {saving}
+                    onadd={(text) => onAddFramework(d.id, { framework_name: text })}
+                    onupdate={(id, value) => onUpdateFramework(id, { framework_name: value })}
+                    onremove={onRemoveFramework}
+                    onreorder={(fromId, toId) => onReorderFrameworks(d.id, fromId, toId)}
+                    onvalidate={onValidateFramework}
+                />
             </CollapsibleCard>
         {/each}
     </SectionMessage>

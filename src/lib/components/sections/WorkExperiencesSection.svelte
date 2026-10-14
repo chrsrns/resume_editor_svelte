@@ -4,9 +4,8 @@
     import Card from '$lib/components/sections/shared/Card.svelte';
     import CardActions from '$lib/components/sections/shared/CardActions.svelte';
     import CollapsibleCard from '$lib/components/sections/shared/CollapsibleCard.svelte';
-    import DragHandle from '$lib/components/sections/shared/DragHandle.svelte';
     import FieldsWrap from '$lib/components/sections/shared/FieldsWrap.svelte';
-    import NestedList from '$lib/components/sections/shared/NestedList.svelte';
+    import ChildItemListEditor from '$lib/components/sections/shared/ChildItemListEditor.svelte';
     import SectionMessage from '$lib/components/sections/shared/SectionMessage.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import TextArea from '$lib/components/ui/TextArea.svelte';
@@ -74,14 +73,10 @@
     // UI state for collapsed cards
     let collapsedById = $state<Record<number, boolean>>({});
 
-    // UI state for new key point text
-    let newKeyPointText = $state<Record<number, string>>({});
 
     // Local drag state (UI only, no API calls)
     let draggingId = $state<number | null>(null);
     let dragOverId = $state<number | null>(null);
-    let keyPointDragging = $state<{ group: number; id: number } | null>(null);
-    let keyPointDragOver = $state<{ group: number; id: number } | null>(null);
 
     function handleAddWork() {
         if (newTitle.trim().length === 0 || newStart.trim().length === 0) {
@@ -102,12 +97,6 @@
         newDescription = '';
     }
 
-    function handleAddKeyPoint(workId: number) {
-        const text = (newKeyPointText[workId] ?? '').trim();
-        if (text.length === 0) return;
-        onAddKeyPoint(workId, { key_point: text });
-        newKeyPointText = { ...newKeyPointText, [workId]: '' };
-    }
 
     function handleDragStart(id: number, e: DragEvent) {
         draggingId = id;
@@ -153,51 +142,10 @@
         onReorder(id, ids[nextIndex]);
     }
 
-    function handleKeyPointDragStart(workId: number, id: number, e: DragEvent) {
-        keyPointDragging = { group: workId, id };
-        keyPointDragOver = null;
-        if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', String(id));
-        }
-    }
 
-    function handleKeyPointDragEnd() {
-        keyPointDragging = null;
-        keyPointDragOver = null;
-    }
 
-    function handleKeyPointDragOver(workId: number, id: number, e: DragEvent) {
-        if (keyPointDragging == null) return;
-        e.preventDefault();
-        e.stopPropagation();
-        keyPointDragOver = { group: workId, id };
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    }
 
-    function handleKeyPointDrop(workId: number, id: number, e: DragEvent) {
-        e.preventDefault();
-        e.stopPropagation();
-        const fromItem = keyPointDragging;
-        handleKeyPointDragEnd();
-        if (fromItem == null || fromItem.id === id) return;
-        onReorderKeyPoints(workId, fromItem.id, id);
-    }
 
-    function handleKeyPointHandleKeydown(workId: number, id: number, e: KeyboardEvent) {
-        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-        e.preventDefault();
-
-        const visibleKeyPoints = (keyPoints[workId] ?? []).filter(
-            (kp: (typeof keyPoints)[number][number]) => kp._status !== 'deleted'
-        );
-        const ids = visibleKeyPoints.map((kp: (typeof visibleKeyPoints)[0]) => kp.id);
-        const index = ids.indexOf(id);
-        if (index === -1) return;
-        const nextIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
-        if (nextIndex < 0 || nextIndex >= ids.length) return;
-        onReorderKeyPoints(workId, id, ids[nextIndex]);
-    }
 </script>
 
 <SectionShell title="Work experience" description="Work experiences and key points.">
@@ -334,96 +282,24 @@
                     </Button>
                 </CardActions>
 
-                <NestedList
-                    title="Key points"
-                    loading={false}
-                    empty={(keyPoints[d.id] ?? []).filter(
-                        (kp: (typeof keyPoints)[number][number]) => kp._status !== 'deleted'
-                    ).length === 0}
+                <ChildItemListEditor
+                    items={keyPoints[d.id] ?? []}
+                    field="key_point"
+                    listTitle="Key points"
+                    itemLabel="Work experience key point"
+                    inputLabel="Key point"
+                    inputTitle="Key point text."
+                    addLabel="Add key point"
+                    addTitle="Add a bullet point for this work experience."
                     emptyText="No key points."
-                >
-                    {#each (keyPoints[d.id] ?? []).filter((kp: (typeof keyPoints)[number][number]) => kp._status !== 'deleted') as kp (kp.id)}
-                        <FieldsWrap
-                            role="group"
-                            aria-label="Work experience key point"
-                            class={keyPointDragging != null &&
-                            keyPointDragOver != null &&
-                            keyPointDragOver.group === d.id &&
-                            keyPointDragOver.id === kp.id &&
-                            !(keyPointDragging.group === d.id && keyPointDragging.id === kp.id)
-                                ? 'dropOver'
-                                : ''}
-                            ondragover={(e) => handleKeyPointDragOver(d.id, kp.id, e)}
-                            ondrop={(e) => handleKeyPointDrop(d.id, kp.id, e)}
-                        >
-                            <DragHandle
-                                ondragstart={(e) => handleKeyPointDragStart(d.id, kp.id, e)}
-                                ondragend={handleKeyPointDragEnd}
-                                onkeydown={(e) => handleKeyPointHandleKeydown(d.id, kp.id, e)}
-                                disabled={saving}
-                                dragging={keyPointDragging != null &&
-                                    keyPointDragging.group === d.id &&
-                                    keyPointDragging.id === kp.id}
-                                label="Reorder work experience key point"
-                            />
-                            <TextInput
-                                label="Key point"
-                                value={kp.key_point}
-                                oninput={(e) =>
-                                    onUpdateKeyPoint(kp.id, {
-                                        key_point: (e.currentTarget as HTMLInputElement).value
-                                    })}
-                                onblur={() => onValidateKeyPoint(kp.id)}
-                                title="Key point text."
-                                onkeydown={(e) => {
-                                    if (
-                                        e.key === 'Enter' &&
-                                        (kp.key_point ?? '').trim().length > 0
-                                    ) {
-                                        // No-op - saving is now global
-                                    }
-                                }}
-                            />
-                            <Button
-                                variant="danger"
-                                onclick={() => onRemoveKeyPoint(kp.id)}
-                                disabled={saving}
-                            >
-                                {#snippet icon()}<Trash2 size={16} />{/snippet}
-                                Delete
-                            </Button>
-                        </FieldsWrap>
-                    {/each}
-                </NestedList>
-
-                <FieldsWrap>
-                    <TextInput
-                        label="Add key point"
-                        title="Add a bullet point for this work experience."
-                        value={newKeyPointText[d.id] ?? ''}
-                        oninput={(e) =>
-                            (newKeyPointText = {
-                                ...newKeyPointText,
-                                [d.id]: (e.target as HTMLInputElement).value
-                            })}
-                        onkeydown={(e) => {
-                            if (
-                                e.key === 'Enter' &&
-                                (newKeyPointText[d.id] ?? '').trim().length > 0
-                            ) {
-                                handleAddKeyPoint(d.id);
-                            }
-                        }}
-                    />
-                    <Button
-                        onclick={() => handleAddKeyPoint(d.id)}
-                        disabled={saving || (newKeyPointText[d.id] ?? '').trim().length === 0}
-                        title="Add key point"
-                    >
-                        {#snippet icon()}<Plus size={16} />{/snippet}
-                        Add
-                    </Button>
-                </FieldsWrap>
+                    dragLabel="Reorder work experience key point"
+                    {saving}
+                    onadd={(text) => onAddKeyPoint(d.id, { key_point: text })}
+                    onupdate={(id, value) => onUpdateKeyPoint(id, { key_point: value })}
+                    onremove={onRemoveKeyPoint}
+                    onreorder={(fromId, toId) => onReorderKeyPoints(d.id, fromId, toId)}
+                    onvalidate={onValidateKeyPoint}
+                />
             </CollapsibleCard>
         {/each}
     </SectionMessage>
