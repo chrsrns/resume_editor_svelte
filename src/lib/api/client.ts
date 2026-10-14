@@ -131,3 +131,69 @@ export async function apiRequest<T = unknown>(
 
     return { res, body };
 }
+
+export type ApiRequestOptions = {
+    method?: string;
+    body?: unknown;
+    auth?: boolean;
+};
+
+/**
+ * Envelope-JSON request returning the parsed body directly.
+ * Throws ApiError(500, 'Missing response body') when the envelope has no body.
+ */
+export async function apiCall<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+    const { body } = await apiRequest<T>(path, options);
+    if (body === undefined) throw new ApiError(500, 'Missing response body');
+    return body;
+}
+
+export type ApiRawRequestOptions = {
+    method?: string;
+    contentType?: string;
+    rawBody?: string;
+    auth?: boolean;
+};
+
+/**
+ * Raw-transport request for non-JSON payloads (e.g. text/markdown).
+ * Single attempt — no retry. Fetch exceptions propagate raw.
+ * Returns the response plus eagerly-read text and a best-effort parsed
+ * envelope (`undefined` when the body is not JSON).
+ */
+export async function apiRawRequest(
+    path: string,
+    options: ApiRawRequestOptions = {}
+): Promise<{ res: Response; text: string; parsed: { body?: unknown } | undefined }> {
+    const url = `${getApiBaseUrl()}${path}`;
+    const token = get(authToken);
+
+    const headers: Record<string, string> = {};
+    if (options.contentType) {
+        headers['Content-Type'] = options.contentType;
+    }
+    if (options.auth && token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(url, {
+        method: options.method ?? 'GET',
+        headers,
+        body: options.rawBody
+    });
+
+    if (res.status === 401 && options.auth) {
+        clearAuthToken();
+        clearCurrentUser();
+    }
+
+    const text = await res.text();
+    let parsed: { body?: unknown } | undefined;
+    try {
+        parsed = JSON.parse(text) as { body?: unknown };
+    } catch {
+        parsed = undefined;
+    }
+
+    return { res, text, parsed };
+}
