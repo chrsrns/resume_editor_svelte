@@ -8,15 +8,21 @@
      * Bind `open` to trigger the picker from your own button:
      * `<MarkdownFilePicker bind:open={openPicker} onpick={handleFile} />`
      */
+    import { onMount } from 'svelte';
+
     let {
         onpick,
-        open = $bindable(() => input?.click())
+        open = $bindable<(() => void) | undefined>()
     }: {
         onpick: (file: File) => void;
         open?: () => void;
     } = $props();
 
     let input: HTMLInputElement | undefined = $state();
+
+    onMount(() => {
+        open = () => input?.click();
+    });
 
     function handleChange(e: Event) {
         const el = e.currentTarget as HTMLInputElement;
