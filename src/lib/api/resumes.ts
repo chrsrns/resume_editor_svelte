@@ -5,7 +5,7 @@ export async function listResumes(): Promise<Resume[]> {
     return apiCall<Resume[]>('/resumes', { auth: true });
 }
 
-export async function getResume(id: number): Promise<Resume> {
+export async function getResume(id: string): Promise<Resume> {
     return apiCall<Resume>(`/resume/${id}`, { auth: true });
 }
 
@@ -17,7 +17,7 @@ export async function createResume(payload: NewResumeRequest): Promise<Resume> {
     });
 }
 
-export async function updateResume(id: number, payload: UpdateResumeRequest): Promise<Resume> {
+export async function updateResume(id: string, payload: UpdateResumeRequest): Promise<Resume> {
     return apiCall<Resume>(`/resume/${id}`, {
         method: 'PUT',
         body: payload,
@@ -25,11 +25,11 @@ export async function updateResume(id: number, payload: UpdateResumeRequest): Pr
     });
 }
 
-export async function deleteResume(id: number): Promise<void> {
+export async function deleteResume(id: string): Promise<void> {
     await apiRequest(`/resume/${id}`, { method: 'DELETE', auth: true });
 }
 
-export async function createVariant(id: number, payload: NewVariantRequest): Promise<Resume> {
+export async function createVariant(id: string, payload: NewVariantRequest): Promise<Resume> {
     return apiCall<Resume>(`/resume/${id}/variants`, {
         method: 'POST',
         body: payload,
@@ -37,11 +37,11 @@ export async function createVariant(id: number, payload: NewVariantRequest): Pro
     });
 }
 
-export async function listVariants(id: number): Promise<Resume[]> {
+export async function listVariants(id: string): Promise<Resume[]> {
     return apiCall<Resume[]>(`/resume/${id}/variants`, { auth: true });
 }
 
-export async function exportResumeMarkdown(id: number): Promise<Blob> {
+export async function exportResumeMarkdown(id: string): Promise<Blob> {
     const { res, text, parsed } = await apiRawRequest(`/resume/${id}/export/markdown`, {
         auth: true
     });
@@ -73,7 +73,7 @@ export async function importResumeMarkdown(markdown: string): Promise<Resume> {
     return parsed.body as Resume;
 }
 
-export async function importResumeMarkdownInto(id: number, markdown: string): Promise<Resume> {
+export async function importResumeMarkdownInto(id: string, markdown: string): Promise<Resume> {
     const { res, text, parsed } = await apiRawRequest(`/resume/${id}/import/markdown`, {
         method: 'POST',
         contentType: 'text/markdown',

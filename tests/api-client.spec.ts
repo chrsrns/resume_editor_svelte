@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const listUrl = '**/api/resumes';
 
 const resume = {
-    id: 1,
+    id: 'r1',
     name: 'Test Resume',
     profile_image_url: null,
     location: null,
@@ -13,7 +13,7 @@ const resume = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: null,
-    is_public: true,
+    visibility: 'public',
     is_variant: false,
     base_resume_id: null,
     show_variant_tag: null,

@@ -2,6 +2,7 @@
     import { basics } from '$lib/stores/draft';
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import TextArea from '$lib/components/ui/TextArea.svelte';
+    import VisibilityRadioGroup from '$lib/components/ui/VisibilityRadioGroup.svelte';
     import Image from '@lucide/svelte/icons/image';
     import { FIELD_LIMITS } from '$lib/limits';
 
@@ -105,15 +106,10 @@
         />
 
         <div class="checkboxRow">
-            <label class="checkbox">
-                <input
-                    type="checkbox"
-                    checked={draft.is_public}
-                    onchange={(e) => handleFieldChange('is_public', e.currentTarget.checked)}
-                    title="If enabled, this resume is visible publicly."
-                />
-                <span>Public</span>
-            </label>
+            <VisibilityRadioGroup
+                value={draft.visibility}
+                onchange={(v) => handleFieldChange('visibility', v)}
+            />
             {#if draft.is_variant}
                 <label class="checkbox">
                     <input

@@ -4,14 +4,14 @@
  * This is now a thin configuration layer over `createDraftItemStore`.
  */
 
-import type { Resume, UpdateResumeRequest } from '$lib/types';
+import type { Resume, UpdateResumeRequest, Visibility } from '$lib/types';
 import { createDraftItemStore } from './draftStore.svelte';
 import { buildBasicsUpdatePayload } from './basicsPayload';
 import { defineFields } from './fields';
 import { FIELD_LIMITS, checkMaxLen } from '$lib/limits';
 
 type BasicsDraft = {
-    id: number;
+    id: string;
     name: string;
     email: string;
     profile_image_url: string;
@@ -20,7 +20,7 @@ type BasicsDraft = {
     video: string;
     mobile_number: string;
     executive_summary: string;
-    is_public: boolean;
+    visibility: Visibility;
     is_variant: boolean;
     show_variant_tag: boolean;
     company_name: string;
@@ -31,7 +31,7 @@ type BasicsDraft = {
 };
 
 type BaselineBasics = {
-    id: number;
+    id: string;
     name: string;
     email: string;
     profile_image_url: string | null;
@@ -40,7 +40,7 @@ type BaselineBasics = {
     video: string | null;
     mobile_number: string | null;
     executive_summary: string | null;
-    is_public: boolean;
+    visibility: Visibility;
     is_variant: boolean;
     show_variant_tag: boolean | null;
     company_name: string | null;
@@ -59,7 +59,7 @@ const basicsFields = defineFields<BasicsDraft, BaselineBasics>()({
     video: { kind: 'optional-nullable' },
     mobile_number: { kind: 'optional-nullable' },
     executive_summary: { kind: 'optional-nullable' },
-    is_public: { kind: 'bool' },
+    visibility: { kind: 'required-raw' },
     is_variant: { kind: 'bool' },
     show_variant_tag: { kind: 'bool-optional' },
     company_name: { kind: 'optional-nullable' },
@@ -131,7 +131,7 @@ export function initialize(resume: Resume): void {
         video: resume.video ?? null,
         mobile_number: resume.mobile_number,
         executive_summary: resume.executive_summary ?? null,
-        is_public: resume.is_public,
+        visibility: resume.visibility,
         is_variant: resume.is_variant,
         show_variant_tag: resume.show_variant_tag,
         company_name: resume.company_name,

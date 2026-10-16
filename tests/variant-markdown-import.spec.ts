@@ -10,7 +10,7 @@ const user = {
 };
 
 const baseResume: Resume = {
-    id: 1,
+    id: 'r1',
     name: 'Base Resume',
     profile_image_url: null,
     location: null,
@@ -22,7 +22,7 @@ const baseResume: Resume = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: 1,
-    is_public: true,
+    visibility: 'public',
     is_variant: false,
     base_resume_id: null,
     show_variant_tag: null,
@@ -36,10 +36,10 @@ const baseResume: Resume = {
 
 const variantResume: Resume = {
     ...baseResume,
-    id: 2,
+    id: 'r2',
     name: 'Variant Resume',
     is_variant: true,
-    base_resume_id: 1,
+    base_resume_id: 'r1',
     show_variant_tag: true,
     company_name: 'Acme',
     role_title: 'Engineer',
@@ -53,7 +53,7 @@ async function waitForApp(page: Page) {
     await page.waitForLoadState('networkidle');
 }
 
-async function mockEmptySections(page: Page, id: number) {
+async function mockEmptySections(page: Page, id: string) {
     await mockApiResponse(page, `**/api/resume/${id}/education`, 200, []);
     await mockApiResponse(page, `**/api/resume/${id}/work_experiences`, 200, []);
     await mockApiResponse(page, `**/api/resume/${id}/skills`, 200, []);
@@ -74,7 +74,7 @@ test('API helper posts to the explicit import route with auth and markdown conte
     let contentType: string | null = null;
     let postBody: string | null = null;
 
-    await page.route('**/api/resume/2/import/markdown', async (route) => {
+    await page.route('**/api/resume/r2/import/markdown', async (route) => {
         authHeader = route.request().headers()['authorization'] ?? null;
         contentType = route.request().headers()['content-type'] ?? null;
         postBody = route.request().postData();
@@ -91,12 +91,12 @@ test('API helper posts to the explicit import route with auth and markdown conte
     const result = await page.evaluate(async () => {
         const moduleUrl = '/resume_editor/src/lib/api/resumes.ts';
         const api = (await import(moduleUrl)) as {
-            importResumeMarkdownInto: (id: number, markdown: string) => Promise<unknown>;
+            importResumeMarkdownInto: (id: string, markdown: string) => Promise<unknown>;
         };
-        return api.importResumeMarkdownInto(2, '# Variant\n\n- Email: owner@example.com\n');
+        return api.importResumeMarkdownInto('r2', '# Variant\n\n- Email: owner@example.com\n');
     });
 
-    expect(result).toMatchObject({ id: 2, is_variant: true });
+    expect(result).toMatchObject({ id: 'r2', is_variant: true });
     expect(authHeader).toBe('Bearer test-token');
     expect(contentType).toMatch(/text\/markdown/);
     expect(postBody).toContain('# Variant');
@@ -166,20 +166,20 @@ test('confirm accept sends the import and reloads new data in place', async ({ p
     let current = { ...variantResume };
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await page.route('**/api/resume/2', async (route) => {
+    await page.route('**/api/resume/r2', async (route) => {
         await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({ body: current })
         });
     });
-    await mockApiResponse(page, '**/api/resume/1', 200, baseResume);
-    await mockEmptySections(page, 2);
+    await mockApiResponse(page, '**/api/resume/r1', 200, baseResume);
+    await mockEmptySections(page, 'r2');
 
     let importUrl: string | null = null;
     let authHeader: string | null = null;
     let contentType: string | null = null;
-    await page.route('**/api/resume/2/import/markdown', async (route) => {
+    await page.route('**/api/resume/r2/import/markdown', async (route) => {
         importUrl = route.request().url();
         authHeader = route.request().headers()['authorization'] ?? null;
         contentType = route.request().headers()['content-type'] ?? null;
@@ -195,7 +195,7 @@ test('confirm accept sends the import and reloads new data in place', async ({ p
         });
     });
 
-    await page.goto('/resume_editor/resumes/2');
+    await page.goto('/resume_editor/resumes/r2');
     await expect(page.getByRole('heading', { name: 'Variant Resume' })).toBeVisible();
 
     let dialogMessage = '';
@@ -207,9 +207,9 @@ test('confirm accept sends the import and reloads new data in place', async ({ p
 
     await expect(page.getByRole('heading', { name: 'Imported Variant' })).toBeVisible();
     await expect(page.getByText('Fresh summary')).toBeVisible();
-    await expect(page).toHaveURL('/resume_editor/resumes/2');
+    await expect(page).toHaveURL('/resume_editor/resumes/r2');
     expect(dialogMessage).toMatch(/replace/i);
-    expect(importUrl).toContain('/api/resume/2/import/markdown');
+    expect(importUrl).toContain('/api/resume/r2/import/markdown');
     expect(authHeader).toBe('Bearer test-token');
     expect(contentType).toMatch(/text\/markdown/);
 });
@@ -219,7 +219,7 @@ test('confirm accept sends the import and reloads new data in place', async ({ p
 test('confirm cancel sends no request', async ({ page }) => {
     let importCalls = 0;
     await openVariantDetail(page);
-    await page.route('**/api/resume/2/import/markdown', async (route) => {
+    await page.route('**/api/resume/r2/import/markdown', async (route) => {
         importCalls += 1;
         await route.fulfill({
             status: 200,
@@ -241,7 +241,7 @@ test('confirm cancel sends no request', async ({ page }) => {
 test('same-file re-pick re-fires the confirm flow', async ({ page }) => {
     let importCalls = 0;
     await openVariantDetail(page);
-    await page.route('**/api/resume/2/import/markdown', async (route) => {
+    await page.route('**/api/resume/r2/import/markdown', async (route) => {
         importCalls += 1;
         await route.fulfill({
             status: 200,
@@ -272,16 +272,16 @@ test('action disabled while the request is in flight', async ({ page }) => {
     let current = { ...variantResume };
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await page.route('**/api/resume/2', async (route) => {
+    await page.route('**/api/resume/r2', async (route) => {
         await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({ body: current })
         });
     });
-    await mockApiResponse(page, '**/api/resume/1', 200, baseResume);
-    await mockEmptySections(page, 2);
-    await page.route('**/api/resume/2/import/markdown', async (route) => {
+    await mockApiResponse(page, '**/api/resume/r1', 200, baseResume);
+    await mockEmptySections(page, 'r2');
+    await page.route('**/api/resume/r2/import/markdown', async (route) => {
         started = true;
         await gate;
         current = { ...variantResume, name: 'Imported Variant' };
@@ -292,7 +292,7 @@ test('action disabled while the request is in flight', async ({ page }) => {
         });
     });
 
-    await page.goto('/resume_editor/resumes/2');
+    await page.goto('/resume_editor/resumes/r2');
     await expect(page.getByRole('heading', { name: 'Variant Resume' })).toBeVisible();
 
     page.once('dialog', (dialog) => void dialog.accept());
@@ -312,7 +312,7 @@ test('action disabled while the request is in flight', async ({ page }) => {
 
 test('JSON failure shows the API body verbatim', async ({ page }) => {
     await openVariantDetail(page);
-    await page.route('**/api/resume/2/import/markdown', async (route) => {
+    await page.route('**/api/resume/r2/import/markdown', async (route) => {
         await route.fulfill({
             status: 400,
             contentType: 'application/json',
@@ -325,7 +325,7 @@ test('JSON failure shows the API body verbatim', async ({ page }) => {
 
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByText('Metadata keys require a variant target')).toBeVisible();
-    await expect(page).toHaveURL('/resume_editor/resumes/2');
+    await expect(page).toHaveURL('/resume_editor/resumes/r2');
 
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).last().click();
     await expect(page.getByRole('button', { name: 'Import Markdown', exact: true })).toBeEnabled();
@@ -335,7 +335,7 @@ test('JSON failure shows the API body verbatim', async ({ page }) => {
 
 test('non-JSON failure shows the fallback message', async ({ page }) => {
     await openVariantDetail(page);
-    await page.route('**/api/resume/2/import/markdown', async (route) => {
+    await page.route('**/api/resume/r2/import/markdown', async (route) => {
         await route.fulfill({
             status: 413,
             contentType: 'text/plain',
@@ -364,8 +364,8 @@ test('list-page 200 update redirects to the updated resume edit page', async ({ 
             body: JSON.stringify({ body: variantResume })
         });
     });
-    await mockApiResponse(page, '**/api/resume/2', 200, variantResume);
-    await mockEmptySections(page, 2);
+    await mockApiResponse(page, '**/api/resume/r2', 200, variantResume);
+    await mockEmptySections(page, 'r2');
 
     await page.goto('/resume_editor/resumes');
     await page.waitForLoadState('networkidle');
@@ -380,6 +380,6 @@ test('list-page 200 update redirects to the updated resume edit page', async ({ 
         buffer: Buffer.from('# Variant Resume\n\n- Email: owner@example.com\n')
     });
 
-    await expect(page).toHaveURL('/resume_editor/resumes/2/edit');
+    await expect(page).toHaveURL('/resume_editor/resumes/r2/edit');
     await expect(page.getByText('Edit resume')).toBeVisible();
 });

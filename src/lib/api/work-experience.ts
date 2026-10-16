@@ -8,14 +8,14 @@ import type {
     UpdateWorkExperienceKeyPointRequest
 } from '$lib/types';
 
-export async function listWorkExperiences(resumeId: number): Promise<WorkExperience[]> {
+export async function listWorkExperiences(resumeId: string): Promise<WorkExperience[]> {
     return apiCall<WorkExperience[]>(`/resume/${resumeId}/work_experiences`, {
         auth: true
     });
 }
 
 export async function createWorkExperience(
-    resumeId: number,
+    resumeId: string,
     payload: NewWorkExperienceRequest
 ): Promise<WorkExperience> {
     return apiCall<WorkExperience>(`/resume/${resumeId}/work_experiences`, {
@@ -41,7 +41,7 @@ export async function deleteWorkExperience(workId: number): Promise<void> {
 }
 
 export async function listWorkExperienceKeyPoints(
-    resumeId: number,
+    resumeId: string,
     workId: number
 ): Promise<WorkExperienceKeyPoint[]> {
     return apiCall<WorkExperienceKeyPoint[]>(
@@ -51,7 +51,7 @@ export async function listWorkExperienceKeyPoints(
 }
 
 export async function createWorkExperienceKeyPoint(
-    resumeId: number,
+    resumeId: string,
     workId: number,
     payload: NewWorkExperienceKeyPointRequest
 ): Promise<WorkExperienceKeyPoint> {

@@ -10,7 +10,7 @@ import type {
 
 const workItem: WorkExperience = {
     id: 1,
-    resume_id: 10,
+    resume_id: 'r10',
     job_title: 'Dev',
     company_name: 'Acme',
     start_date: '2020-01',
@@ -32,7 +32,7 @@ const workKeyPoint: WorkExperienceKeyPoint = {
 
 const project: PortfolioProject = {
     id: 2,
-    resume_id: 10,
+    resume_id: 'r10',
     project_name: 'Proj',
     image_url: null,
     project_link: null,

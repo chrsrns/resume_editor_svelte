@@ -48,7 +48,7 @@ export interface DraftListStoreConfig<
     toBaseline: (
         draft: TDraft,
         existing?: TBaseline,
-        defaultMeta?: { resume_id: number; created_at: string }
+        defaultMeta?: { resume_id: string; created_at: string }
     ) => TBaseline;
 
     /** Return a normalized object for dirty-detection signature of a draft. */
@@ -73,7 +73,7 @@ export interface DraftListStoreConfig<
     actionType: { create: string; update: string; delete: string };
 
     /** Extract metadata from a baseline item for fallback values in `toBaseline`. */
-    getMeta?: (baseline: TBaseline) => { resume_id: number; created_at: string };
+    getMeta?: (baseline: TBaseline) => { resume_id: string; created_at: string };
 }
 
 export interface DraftListStore<
@@ -296,10 +296,10 @@ export function createDraftListStore<
 
     function commitBaseline(): void {
         const baselineMap = new Map(state.baseline.map((b) => [b.id, b]));
-        const defaultMeta: { resume_id: number; created_at: string } =
+        const defaultMeta: { resume_id: string; created_at: string } =
             state.baseline.length > 0 && config.getMeta
                 ? config.getMeta(state.baseline[0])
-                : { resume_id: 0, created_at: '' };
+                : { resume_id: '', created_at: '' };
 
         state.baseline = state.drafts
             .filter((d) => d._status === 'existing' || d._status === 'deleted')
@@ -989,7 +989,7 @@ export function createParentChildSection<
     };
 }
 
-export interface DraftItemState<TDraft extends { id: number }, TBaseline extends { id: number }> {
+export interface DraftItemState<TDraft extends { id: number | string }, TBaseline extends { id: number | string }> {
     draft: DraftItem<TDraft> | null;
     baseline: TBaseline | null;
     saving: boolean;
@@ -997,8 +997,8 @@ export interface DraftItemState<TDraft extends { id: number }, TBaseline extends
 }
 
 export interface DraftItemStoreConfig<
-    TDraft extends { id: number },
-    TBaseline extends { id: number }
+    TDraft extends { id: number | string },
+    TBaseline extends { id: number | string }
 > {
     /** Convert a server baseline into a draft shape. */
     toDraft: (baseline: TBaseline) => TDraft;
@@ -1019,7 +1019,7 @@ export interface DraftItemStoreConfig<
     buildPayload: (draft: TDraft) => unknown;
 }
 
-export interface DraftItemStore<TDraft extends { id: number }, TBaseline extends { id: number }> {
+export interface DraftItemStore<TDraft extends { id: number | string }, TBaseline extends { id: number | string }> {
     initialize(baseline: TBaseline): void;
     getDraft(): DraftItem<TDraft>;
     getField<K extends keyof TDraft>(field: K): TDraft[K];
@@ -1037,8 +1037,8 @@ export interface DraftItemStore<TDraft extends { id: number }, TBaseline extends
 }
 
 export function createDraftItemStore<
-    TDraft extends { id: number },
-    TBaseline extends { id: number }
+    TDraft extends { id: number | string },
+    TBaseline extends { id: number | string }
 >(
     state: DraftItemState<TDraft, TBaseline>,
     config: DraftItemStoreConfig<TDraft, TBaseline>

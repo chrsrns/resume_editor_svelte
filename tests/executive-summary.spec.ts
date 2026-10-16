@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { mockApiResponse, setAuthToken } from './mocks';
 import type { Resume } from '$lib/types';
 
-const resumeId = 1;
+const resumeId = 'r1';
 const resume: Resume = {
     id: resumeId,
     name: 'Test Resume',
@@ -16,7 +16,7 @@ const resume: Resume = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: 1,
-    is_public: true,
+    visibility: 'public',
     is_variant: false,
     base_resume_id: null,
     show_variant_tag: null,
@@ -164,7 +164,7 @@ test('executive summary survives markdown export and import round-trip', async (
         page.getByRole('button', { name: 'Export Markdown', exact: true }).click()
     ]);
 
-    const importedId = 99;
+    const importedId = 'r99';
     const importedResume = {
         ...resume,
         id: importedId,
@@ -222,7 +222,7 @@ test('video survives markdown export and import round-trip', async ({ page }) =>
         page.getByRole('button', { name: 'Export Markdown', exact: true }).click()
     ]);
 
-    const importedId = 99;
+    const importedId = 'r99';
     const importedResume = {
         ...resume,
         id: importedId,

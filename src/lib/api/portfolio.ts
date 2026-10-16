@@ -11,7 +11,7 @@ import type {
     UpdatePortfolioTechnologyRequest
 } from '$lib/types';
 
-export async function listPortfolioProjects(resumeId: number): Promise<PortfolioProject[]> {
+export async function listPortfolioProjects(resumeId: string): Promise<PortfolioProject[]> {
     return apiCall<PortfolioProject[]>(
         `/resume/${resumeId}/portfolio_projects`,
         {
@@ -21,7 +21,7 @@ export async function listPortfolioProjects(resumeId: number): Promise<Portfolio
 }
 
 export async function createPortfolioProject(
-    resumeId: number,
+    resumeId: string,
     payload: NewPortfolioProjectRequest
 ): Promise<PortfolioProject> {
     return apiCall<PortfolioProject>(`/resume/${resumeId}/portfolio_projects`, {
@@ -47,7 +47,7 @@ export async function deletePortfolioProject(projectId: number): Promise<void> {
 }
 
 export async function listPortfolioKeyPoints(
-    resumeId: number,
+    resumeId: string,
     projectId: number
 ): Promise<PortfolioKeyPoint[]> {
     return apiCall<PortfolioKeyPoint[]>(
@@ -57,7 +57,7 @@ export async function listPortfolioKeyPoints(
 }
 
 export async function createPortfolioKeyPoint(
-    resumeId: number,
+    resumeId: string,
     projectId: number,
     payload: NewPortfolioKeyPointRequest
 ): Promise<PortfolioKeyPoint> {
@@ -83,7 +83,7 @@ export async function deletePortfolioKeyPoint(keyPointId: number): Promise<void>
 }
 
 export async function listPortfolioTechnologies(
-    resumeId: number,
+    resumeId: string,
     projectId: number
 ): Promise<PortfolioTechnology[]> {
     return apiCall<PortfolioTechnology[]>(
@@ -93,7 +93,7 @@ export async function listPortfolioTechnologies(
 }
 
 export async function createPortfolioTechnology(
-    resumeId: number,
+    resumeId: string,
     projectId: number,
     payload: NewPortfolioTechnologyRequest
 ): Promise<PortfolioTechnology> {

@@ -6,7 +6,7 @@
     import { authToken } from '$lib/auth';
     import NewVariantForm from '$lib/components/NewVariantForm.svelte';
 
-    const baseId = $derived(Number(page.params.id));
+    const baseId = $derived(page.params.id ?? '');
 
     onMount(() => {
         if (!$authToken) {

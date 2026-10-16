@@ -17,7 +17,7 @@
     import { getResume, exportResumeMarkdown, importResumeMarkdownInto } from '$lib/api/resumes';
     import { listSkills } from '$lib/api/skills';
     import { listWorkExperienceKeyPoints, listWorkExperiences } from '$lib/api/work-experience';
-    import type { ApiError } from '$lib/api/client';
+    import { ApiError } from '$lib/api/client';
     import type {
         Education,
         EducationKeyPoint,
@@ -31,7 +31,7 @@
         WorkExperience,
         WorkExperienceKeyPoint
     } from '$lib/types';
-    import { parsePartialDate, formatPartialDateLong } from '$lib/types';
+    import { parsePartialDate, formatPartialDateLong, visibilityLabel } from '$lib/types';
     import { formatVariantTargetDate } from '$lib/variants';
     import { currentUser } from '$lib/session';
     import ResumeViewHeader from '$lib/components/ResumeViewHeader.svelte';
@@ -89,11 +89,12 @@
     let loading = $state(true);
     let sectionLoading = $state(false);
     let error = $state<string | null>(null);
+    let notFound = $state(false);
     let sectionError = $state<string | null>(null);
     let resume = $state<Resume | null>(null);
     let baseResumeName = $state<string | null>(null);
     const activeTab = $derived(parseTabId(page.url.searchParams.get('tab')));
-    const resumeId = $derived(Number(page.params.id));
+    const resumeId = $derived(page.params.id ?? '');
 
     let educations = $state<Education[]>([]);
     let educationKeyPoints = $state<Record<number, EducationKeyPoint[]>>({});
@@ -176,7 +177,7 @@
         });
     }
 
-    async function loadSections(id: number) {
+    async function loadSections(id: string) {
         const [educationItems, workItems, portfolioItems, skillItems, languageItems] =
             await Promise.all([
                 listEducations(id),
@@ -238,11 +239,12 @@
         );
     }
 
-    async function load(id: number) {
+    async function load(id: string) {
         loading = true;
         error = null;
+        notFound = false;
         sectionError = null;
-        const stale = () => Number(page.params.id) !== id;
+        const stale = () => page.params.id !== id;
         try {
             const next = await getResume(id);
             if (stale()) return;
@@ -261,7 +263,13 @@
                 if (!stale()) sectionError = (e as ApiError).message;
             }
         } catch (e) {
-            if (!stale()) error = (e as ApiError).message;
+            if (!stale()) {
+                if (e instanceof ApiError && e.status === 404) {
+                    notFound = true;
+                } else {
+                    error = (e as ApiError).message;
+                }
+            }
         } finally {
             if (!stale()) loading = false;
         }
@@ -342,9 +350,11 @@
 
 {#if loading}
     <p class="stateText">Loading…</p>
+{:else if notFound}
+    <p class="stateText">Resume not found or is private</p>
 {:else if error}
     <p class="stateText error">{error}</p>
-    <Button variant="secondary" onclick={() => load(Number(page.params.id))} disabled={loading}>
+    <Button variant="secondary" onclick={() => load(page.params.id ?? '')} disabled={loading}>
         {#snippet icon()}<RefreshCw size={16} />{/snippet}
         Retry
     </Button>
@@ -445,7 +455,7 @@
             <FieldRow
                 Icon={Eye}
                 label="Visibility"
-                value={resume.is_public ? 'Public' : 'Private'}
+                value={visibilityLabel(resume.visibility)}
             />
             <FieldRow Icon={Mail} label="Email" value={resume.email} />
             <FieldRow

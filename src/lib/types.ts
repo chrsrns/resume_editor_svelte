@@ -14,8 +14,18 @@ export type User = {
     updated_at: string;
 };
 
+export type Visibility = 'private' | 'unlisted' | 'public';
+
+export function visibilityLabel(visibility: Visibility): string {
+    return visibility === 'public' ? 'Public' : visibility === 'unlisted' ? 'Unlisted' : 'Private';
+}
+
+export function visibilityClass(visibility: Visibility): string {
+    return visibility;
+}
+
 export type Resume = {
-    id: number;
+    id: string;
     name: string;
     profile_image_url: string | null;
     location: string | null;
@@ -27,9 +37,9 @@ export type Resume = {
     created_at: string;
     updated_at: string;
     created_by: number | null;
-    is_public: boolean;
+    visibility: Visibility;
     is_variant: boolean;
-    base_resume_id: number | null;
+    base_resume_id: string | null;
     show_variant_tag: boolean | null;
     company_name: string | null;
     role_title: string | null;
@@ -58,7 +68,7 @@ export type NewResumeRequest = {
     video?: string | null;
     mobile_number?: string | null;
     executive_summary?: string | null;
-    is_public?: boolean | null;
+    visibility?: Visibility;
 };
 
 export type UpdateResumeRequest = {
@@ -70,7 +80,7 @@ export type UpdateResumeRequest = {
     video?: string | null;
     mobile_number?: string | null;
     executive_summary?: string | null;
-    is_public?: boolean | null;
+    visibility?: Visibility;
     company_name?: string | null;
     role_title?: string | null;
     target_date?: string | null;
@@ -85,13 +95,13 @@ export type NewVariantRequest = {
     target_date?: string | null;
     job_description?: string | null;
     variant_label?: string | null;
-    is_public?: boolean;
+    visibility?: Visibility;
     show_variant_tag?: boolean;
 };
 
 export type Skill = {
     id: number;
-    resume_id: number;
+    resume_id: string;
     skill_name: string;
     confidence_percentage: number;
     display_order: number | null;
@@ -112,7 +122,7 @@ export type UpdateSkillRequest = {
 
 export type Language = {
     id: number;
-    resume_id: number;
+    resume_id: string;
     language_name: string;
     display_order: number | null;
     created_at: string;
@@ -148,7 +158,7 @@ export type UpdateFrameworkRequest = {
 
 export type Education = {
     id: number;
-    resume_id: number;
+    resume_id: string;
     education_stage: string;
     institution_name: string;
     degree: string | null;
@@ -202,7 +212,7 @@ export type UpdateEducationKeyPointRequest = {
 
 export type WorkExperience = {
     id: number;
-    resume_id: number;
+    resume_id: string;
     job_title: string;
     company_name: string | null;
     start_date: string;
@@ -255,7 +265,7 @@ export type UpdateWorkExperienceKeyPointRequest = {
 
 export type PortfolioProject = {
     id: number;
-    resume_id: number;
+    resume_id: string;
     project_name: string;
     image_url: string | null;
     project_link: string | null;

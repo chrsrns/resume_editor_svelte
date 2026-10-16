@@ -2,7 +2,8 @@
     import TextInput from '$lib/components/ui/TextInput.svelte';
     import TextArea from '$lib/components/ui/TextArea.svelte';
     import Button from '$lib/components/ui/Button.svelte';
-    import type { NewResumeRequest } from '$lib/types';
+    import VisibilityRadioGroup from '$lib/components/ui/VisibilityRadioGroup.svelte';
+    import type { NewResumeRequest, Visibility } from '$lib/types';
     import Save from '@lucide/svelte/icons/save';
     import Image from '@lucide/svelte/icons/image';
     import { FIELD_LIMITS, checkMaxLen } from '$lib/limits';
@@ -16,7 +17,7 @@
         video?: string;
         mobile_number: string;
         executive_summary?: string;
-        is_public: boolean;
+        visibility: Visibility;
     };
 
     let {
@@ -41,7 +42,7 @@
     let video = $state('');
     let mobile_number = $state('');
     let executive_summary = $state('');
-    let is_public = $state(false);
+    let visibility = $state<Visibility>('private');
     let validationError = $state<string | null>(null);
 
     // Initialize from initial if provided
@@ -55,7 +56,7 @@
             video = initial.video ?? '';
             mobile_number = initial.mobile_number ?? '';
             executive_summary = initial.executive_summary ?? '';
-            is_public = initial.is_public ?? false;
+            visibility = initial.visibility ?? 'private';
         }
     });
 
@@ -99,7 +100,7 @@
                 video: video.trim() || null,
                 mobile_number: mobile_number.trim() || null,
                 executive_summary: executive_summary.trim() || null,
-                is_public
+                visibility
             });
         }
     }
@@ -157,14 +158,10 @@
             title="Optional. A short professional summary."
         />
 
-        <label class="checkbox">
-            <input
-                type="checkbox"
-                bind:checked={is_public}
-                title="If enabled, this resume is visible publicly."
-            />
-            <span>Public</span>
-        </label>
+        <VisibilityRadioGroup
+            value={visibility}
+            onchange={(v) => (visibility = v)}
+        />
 
         {#if validationError}
             <p class="error-message">{validationError}</p>
@@ -265,19 +262,6 @@
     .preview-empty span {
         font-size: 12px;
         text-align: center;
-    }
-
-    .checkbox {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        font-size: 14px;
-        color: var(--color-text);
-        cursor: pointer;
-    }
-
-    .checkbox input {
-        cursor: pointer;
     }
 
     .error-message {

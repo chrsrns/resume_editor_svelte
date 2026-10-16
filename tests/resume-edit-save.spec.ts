@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { mockApiResponse, setAuthToken } from './mocks';
 
-const resumeId = 1;
+const resumeId = 'r1';
 const resumeUrl = `**/api/resume/${resumeId}`;
 const skillsUrl = `**/api/resume/${resumeId}/skills`;
 
@@ -16,7 +16,7 @@ const resume = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: 1,
-    is_public: true,
+    visibility: 'public',
     is_variant: false,
     base_resume_id: null,
     show_variant_tag: null,

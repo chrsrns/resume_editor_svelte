@@ -6,16 +6,17 @@
     import { createVariant, getResume } from '$lib/api/resumes';
     import { ApiError } from '$lib/api/client';
     import { currentUser, refreshCurrentUser } from '$lib/session';
-    import type { Resume } from '$lib/types';
+    import type { Resume, Visibility } from '$lib/types';
     import Button from './ui/Button.svelte';
     import ErrorDialog from './ui/ErrorDialog.svelte';
     import PartialDateInput from './ui/PartialDateInput.svelte';
     import TextArea from './ui/TextArea.svelte';
     import TextInput from './ui/TextInput.svelte';
+    import VisibilityRadioGroup from './ui/VisibilityRadioGroup.svelte';
     import { FIELD_LIMITS, checkMaxLen } from '$lib/limits';
 
     let { baseId, oncancel } = $props<{
-        baseId: number;
+        baseId: string;
         oncancel: () => void;
     }>();
 
@@ -29,7 +30,7 @@
     let targetDate = $state('');
     let variantLabel = $state('');
     let jobDescription = $state('');
-    let isPublic = $state(false);
+    let visibility = $state<Visibility>('private');
     let showVariantTag = $state(true);
     let submitting = $state(false);
     let formError = $state<string | null>(null);
@@ -42,7 +43,7 @@
             base = await getResume(baseId);
             await refreshCurrentUser();
             const user = get(currentUser);
-            isPublic = base.is_public;
+            visibility = base.visibility;
             forbidden = !user || base.created_by !== user.id;
         } catch (e) {
             const err = e as ApiError;
@@ -93,7 +94,7 @@
                 target_date: nullable(targetDate),
                 job_description: nullable(jobDescription),
                 variant_label: nullable(variantLabel),
-                is_public: isPublic,
+                visibility,
                 show_variant_tag: showVariantTag
             });
             await goto(resolve(`/resumes/${created.id}/edit`));
@@ -151,11 +152,11 @@
             oninput={(e) => (jobDescription = (e.currentTarget as HTMLTextAreaElement).value)}
         />
 
+        <VisibilityRadioGroup
+            value={visibility}
+            onchange={(v) => (visibility = v)}
+        />
         <div class="checkboxRow">
-            <label class="checkboxLabel">
-                <input type="checkbox" bind:checked={isPublic} />
-                Public
-            </label>
             <label class="checkboxLabel">
                 <input type="checkbox" bind:checked={showVariantTag} />
                 Show variant tag

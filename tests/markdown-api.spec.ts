@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { mockApiResponse, setAuthToken } from './mocks';
 
-const resumeId = 1;
+const resumeId = 'r1';
 const resume = {
     id: resumeId,
     name: 'My Resume',
@@ -15,7 +15,7 @@ const resume = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: 1,
-    is_public: true,
+    visibility: 'public',
     is_variant: false,
     base_resume_id: null,
     show_variant_tag: null,
@@ -143,7 +143,7 @@ test('export API error shows error dialog on edit page', async ({ page }) => {
 test('import success navigates to new resume edit page', async ({ page }) => {
     await openListPage(page);
 
-    const newResume = { ...resume, id: 99, name: 'Imported Resume', created_by: 1 };
+    const newResume = { ...resume, id: 'r99', name: 'Imported Resume', created_by: 1 };
 
     await page.route('**/api/resume/import/markdown', async (route) => {
         await route.fulfill({
@@ -152,12 +152,12 @@ test('import success navigates to new resume edit page', async ({ page }) => {
             body: JSON.stringify({ body: newResume })
         });
     });
-    await mockApiResponse(page, '**/api/resume/99', 200, newResume);
-    await mockApiResponse(page, '**/api/resume/99/education', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/work_experiences', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/skills', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/portfolio_projects', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/languages', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99', 200, newResume);
+    await mockApiResponse(page, '**/api/resume/r99/education', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/work_experiences', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/skills', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/portfolio_projects', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/languages', 200, []);
 
     const [fileChooser] = await Promise.all([
         page.waitForEvent('filechooser'),
@@ -169,7 +169,7 @@ test('import success navigates to new resume edit page', async ({ page }) => {
         buffer: Buffer.from('# Imported Resume\n\n- Email: test@example.com\n')
     });
 
-    await expect(page).toHaveURL(`/resume_editor/resumes/99/edit`);
+    await expect(page).toHaveURL(`/resume_editor/resumes/r99/edit`);
 });
 
 // --- V39: import sends Authorization header ---
@@ -177,7 +177,7 @@ test('import success navigates to new resume edit page', async ({ page }) => {
 test('import sends Authorization header', async ({ page }) => {
     await openListPage(page);
 
-    const newResume = { ...resume, id: 99, name: 'Imported Resume', created_by: 1 };
+    const newResume = { ...resume, id: 'r99', name: 'Imported Resume', created_by: 1 };
 
     await page.route('**/api/resume/import/markdown', async (route) => {
         await route.fulfill({
@@ -186,12 +186,12 @@ test('import sends Authorization header', async ({ page }) => {
             body: JSON.stringify({ body: newResume })
         });
     });
-    await mockApiResponse(page, '**/api/resume/99', 200, newResume);
-    await mockApiResponse(page, '**/api/resume/99/education', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/work_experiences', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/skills', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/portfolio_projects', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/languages', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99', 200, newResume);
+    await mockApiResponse(page, '**/api/resume/r99/education', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/work_experiences', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/skills', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/portfolio_projects', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/languages', 200, []);
 
     const requestPromise = page.waitForRequest(
         (req) => req.url().includes('/resume/import/markdown') && req.method() === 'POST'
@@ -243,7 +243,7 @@ test('import API error shows error dialog with API message', async ({ page }) =>
 test('import sends Content-Type text/markdown', async ({ page }) => {
     await openListPage(page);
 
-    const newResume = { ...resume, id: 99, name: 'Imported Resume', created_by: 1 };
+    const newResume = { ...resume, id: 'r99', name: 'Imported Resume', created_by: 1 };
 
     await page.route('**/api/resume/import/markdown', async (route) => {
         await route.fulfill({
@@ -252,12 +252,12 @@ test('import sends Content-Type text/markdown', async ({ page }) => {
             body: JSON.stringify({ body: newResume })
         });
     });
-    await mockApiResponse(page, '**/api/resume/99', 200, newResume);
-    await mockApiResponse(page, '**/api/resume/99/education', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/work_experiences', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/skills', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/portfolio_projects', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/languages', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99', 200, newResume);
+    await mockApiResponse(page, '**/api/resume/r99/education', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/work_experiences', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/skills', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/portfolio_projects', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/languages', 200, []);
 
     const requestPromise = page.waitForRequest(
         (req) => req.url().includes('/resume/import/markdown') && req.method() === 'POST'
@@ -283,7 +283,7 @@ test('import with Video field returns resume with video and shows it', async ({ 
     await openListPage(page);
 
     const videoUrl = 'https://example.com/video';
-    const newResume = { ...resume, id: 99, name: 'Imported Resume', created_by: 1, video: videoUrl };
+    const newResume = { ...resume, id: 'r99', name: 'Imported Resume', created_by: 1, video: videoUrl };
 
     await page.route('**/api/resume/import/markdown', async (route) => {
         await route.fulfill({
@@ -292,12 +292,12 @@ test('import with Video field returns resume with video and shows it', async ({ 
             body: JSON.stringify({ body: newResume })
         });
     });
-    await mockApiResponse(page, '**/api/resume/99', 200, newResume);
-    await mockApiResponse(page, '**/api/resume/99/education', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/work_experiences', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/skills', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/portfolio_projects', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/languages', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99', 200, newResume);
+    await mockApiResponse(page, '**/api/resume/r99/education', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/work_experiences', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/skills', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/portfolio_projects', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/languages', 200, []);
 
     const [fileChooser] = await Promise.all([
         page.waitForEvent('filechooser'),
@@ -309,9 +309,9 @@ test('import with Video field returns resume with video and shows it', async ({ 
         buffer: Buffer.from(`# Imported Resume\n\n- Email: test@example.com\n- Video: ${videoUrl}\n`)
     });
 
-    await expect(page).toHaveURL(`/resume_editor/resumes/99/edit`);
+    await expect(page).toHaveURL(`/resume_editor/resumes/r99/edit`);
 
-    await page.goto('/resume_editor/resumes/99');
+    await page.goto('/resume_editor/resumes/r99');
     await waitForApp(page);
 
     const videoLink = page.getByRole('link', { name: videoUrl });
@@ -324,7 +324,7 @@ test('import with Video field returns resume with video and shows it', async ({ 
 test('import without Video shows dash placeholder', async ({ page }) => {
     await openListPage(page);
 
-    const newResume = { ...resume, id: 99, name: 'Imported Resume', created_by: 1 };
+    const newResume = { ...resume, id: 'r99', name: 'Imported Resume', created_by: 1 };
 
     await page.route('**/api/resume/import/markdown', async (route) => {
         await route.fulfill({
@@ -333,12 +333,12 @@ test('import without Video shows dash placeholder', async ({ page }) => {
             body: JSON.stringify({ body: newResume })
         });
     });
-    await mockApiResponse(page, '**/api/resume/99', 200, newResume);
-    await mockApiResponse(page, '**/api/resume/99/education', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/work_experiences', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/skills', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/portfolio_projects', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/languages', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99', 200, newResume);
+    await mockApiResponse(page, '**/api/resume/r99/education', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/work_experiences', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/skills', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/portfolio_projects', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/languages', 200, []);
 
     const [fileChooser] = await Promise.all([
         page.waitForEvent('filechooser'),
@@ -350,9 +350,9 @@ test('import without Video shows dash placeholder', async ({ page }) => {
         buffer: Buffer.from('# Imported Resume\n\n- Email: test@example.com\n')
     });
 
-    await expect(page).toHaveURL(`/resume_editor/resumes/99/edit`);
+    await expect(page).toHaveURL(`/resume_editor/resumes/r99/edit`);
 
-    await page.goto('/resume_editor/resumes/99');
+    await page.goto('/resume_editor/resumes/r99');
     await waitForApp(page);
 
     const videoRow = page.locator('.fieldRow', { hasText: 'Video' });
@@ -434,10 +434,10 @@ test('import preserves portfolio project video_url and shows it on detail view',
     await openListPage(page);
 
     const videoUrl = 'https://example.com/project-video';
-    const newResume = { ...resume, id: 99, name: 'Imported Resume', created_by: 1 };
+    const newResume = { ...resume, id: 'r99', name: 'Imported Resume', created_by: 1 };
     const project = {
         id: 101,
-        resume_id: 99,
+        resume_id: 'r99',
         project_name: 'Demo',
         image_url: null,
         project_link: null,
@@ -459,14 +459,14 @@ test('import preserves portfolio project video_url and shows it on detail view',
         });
     });
 
-    await mockApiResponse(page, '**/api/resume/99', 200, newResume);
-    await mockApiResponse(page, '**/api/resume/99/education', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/work_experiences', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/skills', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/portfolio_projects', 200, [project]);
-    await mockApiResponse(page, '**/api/resume/99/portfolio_projects/*/key_points', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/portfolio_projects/*/technologies', 200, []);
-    await mockApiResponse(page, '**/api/resume/99/languages', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99', 200, newResume);
+    await mockApiResponse(page, '**/api/resume/r99/education', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/work_experiences', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/skills', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/portfolio_projects', 200, [project]);
+    await mockApiResponse(page, '**/api/resume/r99/portfolio_projects/*/key_points', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/portfolio_projects/*/technologies', 200, []);
+    await mockApiResponse(page, '**/api/resume/r99/languages', 200, []);
 
     const markdown = `# Imported Resume\n\n- Email: test@example.com\n\n## Portfolio Projects\n\n- Project name: Demo\n- Image URL: \n- Video: ${videoUrl}\n- Project link: \n- Source code link: \n- Description: \n- Key point: shipped\n- Technology: Svelte\n`;
 
@@ -480,9 +480,9 @@ test('import preserves portfolio project video_url and shows it on detail view',
         buffer: Buffer.from(markdown)
     });
 
-    await expect(page).toHaveURL(`/resume_editor/resumes/99/edit`);
+    await expect(page).toHaveURL(`/resume_editor/resumes/r99/edit`);
 
-    await page.goto('/resume_editor/resumes/99?tab=portfolio');
+    await page.goto('/resume_editor/resumes/r99?tab=portfolio');
     await waitForApp(page);
 
     const videoLink = page.getByRole('link', { name: videoUrl });
