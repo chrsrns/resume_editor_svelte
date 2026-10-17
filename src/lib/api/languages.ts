@@ -1,12 +1,12 @@
 import { apiRequest, apiCall, ApiError } from './client';
 import type { Language, NewLanguageRequest, UpdateLanguageRequest } from '$lib/types';
 
-export async function listLanguages(resumeId: number): Promise<Language[]> {
+export async function listLanguages(resumeId: string): Promise<Language[]> {
     return apiCall<Language[]>(`/resume/${resumeId}/languages`, { auth: true });
 }
 
 export async function createLanguage(
-    resumeId: number,
+    resumeId: string,
     payload: NewLanguageRequest
 ): Promise<Language> {
     return apiCall<Language>(`/resume/${resumeId}/languages`, {

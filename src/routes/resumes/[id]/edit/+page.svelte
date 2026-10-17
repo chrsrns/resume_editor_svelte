@@ -235,7 +235,7 @@
         loading = true;
         error = null;
         try {
-            const id = Number(page.params.id);
+            const id = page.params.id ?? '';
             resume = await getResume(id);
 
             // Initialize draft modules

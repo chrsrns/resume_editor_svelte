@@ -12,7 +12,7 @@ import { resetTempIdCounter, toNumberOrNull } from './shared';
 
 type ItemBaseline = {
     id: number;
-    resume_id: number;
+    resume_id: string;
     title: string;
     confidence: number;
     display_order: number | null;
@@ -44,7 +44,7 @@ function createStore() {
             }),
             toBaseline: (d, existing, meta) => ({
                 id: d.id,
-                resume_id: existing?.resume_id ?? meta?.resume_id ?? 0,
+                resume_id: existing?.resume_id ?? meta?.resume_id ?? '',
                 title: d.title.trim(),
                 confidence: Number(d.confidence),
                 display_order: toNumberOrNull(d.display_order),
@@ -97,13 +97,13 @@ describe('createDraftListStore', () => {
         store.initialize([
             {
                 id: 1,
-                resume_id: 10,
+                resume_id: 'r10',
                 title: 'A',
                 confidence: 80,
                 display_order: 1,
                 created_at: 'c1'
             },
-            { id: 2, resume_id: 10, title: 'B', confidence: 90, display_order: 2, created_at: 'c2' }
+            { id: 2, resume_id: 'r10', title: 'B', confidence: 90, display_order: 2, created_at: 'c2' }
         ]);
 
         const visible = store.getVisibleDrafts();
@@ -140,7 +140,7 @@ describe('createDraftListStore', () => {
     it('updates drafts and detects dirty state', () => {
         const { store } = createStore();
         store.initialize([
-            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' }
+            { id: 1, resume_id: 'r10', title: 'A', confidence: 80, display_order: 1, created_at: '' }
         ]);
 
         expect(store.isDirty()).toBe(false);
@@ -154,8 +154,8 @@ describe('createDraftListStore', () => {
     it('reorders visible drafts and recalculates display order', () => {
         const { store } = createStore();
         store.initialize([
-            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' },
-            { id: 2, resume_id: 10, title: 'B', confidence: 90, display_order: 2, created_at: '' }
+            { id: 1, resume_id: 'r10', title: 'A', confidence: 80, display_order: 1, created_at: '' },
+            { id: 2, resume_id: 'r10', title: 'B', confidence: 90, display_order: 2, created_at: '' }
         ]);
 
         store.reorder(1, 2);
@@ -169,7 +169,7 @@ describe('createDraftListStore', () => {
     it('marks drafts deleted and excludes them from visible and dirty state', () => {
         const { store } = createStore();
         store.initialize([
-            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' }
+            { id: 1, resume_id: 'r10', title: 'A', confidence: 80, display_order: 1, created_at: '' }
         ]);
 
         store.remove(1);
@@ -180,7 +180,7 @@ describe('createDraftListStore', () => {
     it('computes create, update, and delete actions', () => {
         const { store } = createStore();
         store.initialize([
-            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' }
+            { id: 1, resume_id: 'r10', title: 'A', confidence: 80, display_order: 1, created_at: '' }
         ]);
 
         store.add({ title: 'B', confidence: '90' });
@@ -233,7 +233,7 @@ describe('createDraftListStore', () => {
     it('keeps a failed delete dirty and retryable', () => {
         const { store } = createStore();
         store.initialize([
-            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' }
+            { id: 1, resume_id: 'r10', title: 'A', confidence: 80, display_order: 1, created_at: '' }
         ]);
 
         store.remove(1);
@@ -250,8 +250,8 @@ describe('createDraftListStore', () => {
     it('drops a deleted draft only when its delete succeeded', () => {
         const { store } = createStore();
         store.initialize([
-            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' },
-            { id: 2, resume_id: 10, title: 'B', confidence: 90, display_order: 2, created_at: '' }
+            { id: 1, resume_id: 'r10', title: 'A', confidence: 80, display_order: 1, created_at: '' },
+            { id: 2, resume_id: 'r10', title: 'B', confidence: 90, display_order: 2, created_at: '' }
         ]);
 
         store.remove(1);
@@ -280,7 +280,7 @@ describe('createDraftListStore', () => {
     it('resets to baseline', () => {
         const { store } = createStore();
         store.initialize([
-            { id: 1, resume_id: 10, title: 'A', confidence: 80, display_order: 1, created_at: '' }
+            { id: 1, resume_id: 'r10', title: 'A', confidence: 80, display_order: 1, created_at: '' }
         ]);
         store.update(1, { title: 'Changed' });
         expect(store.isDirty()).toBe(true);
@@ -293,7 +293,7 @@ describe('createDraftListStore', () => {
     it('maintains metadata when committing baseline for new items', () => {
         const { store } = createStore();
         store.initialize([
-            { id: 1, resume_id: 42, title: 'A', confidence: 80, display_order: 1, created_at: 'c1' }
+            { id: 1, resume_id: 'r42', title: 'A', confidence: 80, display_order: 1, created_at: 'c1' }
         ]);
         store.add({ title: 'B', confidence: '90' });
 
@@ -303,7 +303,7 @@ describe('createDraftListStore', () => {
         const baseline = store.getBaseline();
         const newBaseline = baseline.find((b) => b.id === 2);
         expect(newBaseline).toBeDefined();
-        expect(newBaseline!.resume_id).toBe(42);
+        expect(newBaseline!.resume_id).toBe('r42');
     });
 });
 

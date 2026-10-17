@@ -34,7 +34,7 @@ const store = createDraftListStore<SkillDraft, Skill>({
     }),
     toBaseline: (d, existing, meta) => ({
         id: d.id,
-        resume_id: existing?.resume_id ?? meta?.resume_id ?? 0,
+        resume_id: existing?.resume_id ?? meta?.resume_id ?? '',
         ...skillFields.toBaseline(d),
         display_order: toNumberOrNull(d.display_order),
         created_at: existing?.created_at ?? meta?.created_at ?? ''

@@ -101,7 +101,7 @@ export type ChildGroupPlan = {
     /** DraftAction field carrying the (possibly temp) parent id. */
     parentIdField: string;
     call: {
-        create: (resumeId: number, parentId: number, payload: unknown) => Promise<{ id: number }>;
+        create: (resumeId: string, parentId: number, payload: unknown) => Promise<{ id: number }>;
         update: (id: number, payload: unknown) => Promise<unknown>;
         delete: (id: number) => Promise<unknown>;
     };
@@ -113,7 +113,7 @@ export type EntitySectionPlan = {
     store: SaveStore & { computeDiff(): DraftAction[] };
     actionTypes: { create: string; update: string; delete: string };
     call: {
-        create: (resumeId: number, payload: unknown) => Promise<{ id: number }>;
+        create: (resumeId: string, payload: unknown) => Promise<{ id: number }>;
         update: (id: number, payload: unknown) => Promise<unknown>;
         delete: (id: number) => Promise<unknown>;
     };
@@ -123,7 +123,7 @@ export type EntitySectionPlan = {
 export type CustomSectionPlan = {
     kind: 'custom';
     label: string;
-    run: (resumeId: number) => Promise<SectionError[]>;
+    run: (resumeId: string) => Promise<SectionError[]>;
 };
 
 export type SectionPlan = EntitySectionPlan | CustomSectionPlan;
@@ -134,7 +134,7 @@ export type SectionPlan = EntitySectionPlan | CustomSectionPlan;
  * success or 404; child creates under a failed parent are skipped.
  */
 export async function processSection(
-    resumeId: number,
+    resumeId: string,
     plan: SectionPlan
 ): Promise<{ errors: SectionError[] }> {
     if (plan.kind === 'custom') {
@@ -240,7 +240,7 @@ export async function processSection(
     return { errors };
 }
 
-export async function saveAll(resumeId: number): Promise<SaveResult> {
+export async function saveAll(resumeId: string): Promise<SaveResult> {
     const errors: SectionError[] = [];
 
     try {

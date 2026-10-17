@@ -8,12 +8,12 @@ import type {
     UpdateEducationKeyPointRequest
 } from '$lib/types';
 
-export async function listEducations(resumeId: number): Promise<Education[]> {
+export async function listEducations(resumeId: string): Promise<Education[]> {
     return apiCall<Education[]>(`/resume/${resumeId}/education`, { auth: true });
 }
 
 export async function createEducation(
-    resumeId: number,
+    resumeId: string,
     payload: NewEducationRequest
 ): Promise<Education> {
     return apiCall<Education>(`/resume/${resumeId}/education`, {
@@ -39,7 +39,7 @@ export async function deleteEducation(educationId: number): Promise<void> {
 }
 
 export async function listEducationKeyPoints(
-    resumeId: number,
+    resumeId: string,
     educationId: number
 ): Promise<EducationKeyPoint[]> {
     return apiCall<EducationKeyPoint[]>(
@@ -49,7 +49,7 @@ export async function listEducationKeyPoints(
 }
 
 export async function createEducationKeyPoint(
-    resumeId: number,
+    resumeId: string,
     educationId: number,
     payload: NewEducationKeyPointRequest
 ): Promise<EducationKeyPoint> {

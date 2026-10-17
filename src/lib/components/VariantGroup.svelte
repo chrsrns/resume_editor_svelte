@@ -1,7 +1,7 @@
 <script lang="ts">
     import { resolve } from '$app/paths';
     import { ChevronDown, Plus } from '@lucide/svelte';
-    import type { Resume } from '$lib/types';
+    import { visibilityClass, visibilityLabel, type Resume } from '$lib/types';
     import { sortVariants } from '$lib/variants';
     import Button from './ui/Button.svelte';
     import VariantRow from './VariantRow.svelte';
@@ -37,11 +37,11 @@
                 <ChevronDown size={16} class={collapsed ? 'collapsedIcon' : ''} />
             </button>
         {/if}
-        <a class="baseLink" href={resolve('/resumes/[id]', { id: base.id.toString() })}>
+        <a class="baseLink" href={resolve('/resumes/[id]', { id: base.id })}>
             <div class="titleLine">
                 <span class="itemTitle">{base.name}</span>
-                <span class="tag {base.is_public ? 'public' : 'private'}">
-                    {base.is_public ? 'Public' : 'Private'}
+                <span class="tag {visibilityClass(base.visibility)}">
+                    {visibilityLabel(base.visibility)}
                 </span>
                 {#if owned}
                     <span class="tag mine">Mine</span>
@@ -170,6 +170,11 @@
     .tag.private {
         background: var(--color-warning-light);
         color: var(--color-warning-dark);
+    }
+
+    .tag.unlisted {
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark);
     }
 
     .tag.mine {

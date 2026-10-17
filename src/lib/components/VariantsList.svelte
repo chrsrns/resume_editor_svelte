@@ -7,7 +7,7 @@
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     let { resumeId } = $props<{
-        resumeId: number;
+        resumeId: string;
     }>();
 
     let variants = $state<Resume[]>([]);
@@ -17,7 +17,7 @@
 
     const visibleVariants = $derived(showAll ? variants : variants.slice(0, 3));
 
-    async function load(id: number) {
+    async function load(id: string) {
         loading = true;
         error = null;
         try {

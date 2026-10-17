@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { mockApiFailure, mockApiResponse, clearApiRoute, setAuthToken } from './mocks';
 
-const resumeId = 1;
+const resumeId = 'r1';
 const resumeUrl = `**/api/resume/${resumeId}`;
 const resume: Record<string, unknown> = {
     id: resumeId,
@@ -16,7 +16,7 @@ const resume: Record<string, unknown> = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: 1,
-    is_public: true,
+    visibility: 'public',
     is_variant: false,
     base_resume_id: null,
     show_variant_tag: null,
@@ -53,7 +53,7 @@ test('retry button reloads a failed resume edit page', async ({ page }) => {
     await expect(page.getByText('Request failed')).not.toBeVisible();
 });
 
-async function mockEditSectionResponses(page: Page, resumeId: number) {
+async function mockEditSectionResponses(page: Page, resumeId: string) {
     await mockApiResponse(page, `**/api/resume/${resumeId}/skills`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/education`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences`, 200, []);

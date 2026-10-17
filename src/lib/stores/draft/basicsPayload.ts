@@ -1,4 +1,4 @@
-import type { UpdateResumeRequest } from '$lib/types';
+import type { UpdateResumeRequest, Visibility } from '$lib/types';
 import { toNullable } from './shared';
 
 export type BasicsPayloadDraft = {
@@ -10,7 +10,7 @@ export type BasicsPayloadDraft = {
     video: string;
     mobile_number: string;
     executive_summary: string;
-    is_public: boolean;
+    visibility: Visibility;
     is_variant: boolean;
     show_variant_tag: boolean;
     company_name: string;
@@ -29,7 +29,7 @@ export function buildBasicsUpdatePayload(draft: BasicsPayloadDraft): UpdateResum
         video: toNullable(draft.video),
         mobile_number: toNullable(draft.mobile_number),
         executive_summary: toNullable(draft.executive_summary),
-        is_public: draft.is_public
+        visibility: draft.visibility
     };
 
     if (!draft.is_variant) {

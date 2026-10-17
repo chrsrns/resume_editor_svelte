@@ -10,7 +10,7 @@ const shared = {
     video: '',
     mobile_number: '',
     executive_summary: '',
-    is_public: true
+    visibility: 'public' as const
 };
 
 describe('buildBasicsUpdatePayload', () => {

@@ -24,10 +24,10 @@ function targetDateSortKey(targetDate: string | null): string | null {
 export function compareVariants(a: Resume, b: Resume): number {
     const aDate = targetDateSortKey(a.target_date);
     const bDate = targetDateSortKey(b.target_date);
-    if (aDate === null && bDate === null) return b.id - a.id;
+    if (aDate === null && bDate === null) return b.id.localeCompare(a.id);
     if (aDate === null) return 1;
     if (bDate === null) return -1;
-    return bDate.localeCompare(aDate) || b.id - a.id;
+    return bDate.localeCompare(aDate) || b.id.localeCompare(a.id);
 }
 
 export function sortVariants(variants: Resume[]): Resume[] {
@@ -35,7 +35,7 @@ export function sortVariants(variants: Resume[]): Resume[] {
 }
 
 export function buildResumeListEntries(resumes: Resume[]): ResumeListEntry[] {
-    const variantsByBase = new Map<number, Resume[]>();
+    const variantsByBase = new Map<string, Resume[]>();
     const basesById = new Set(resumes.map((resume) => resume.id));
 
     for (const resume of resumes) {

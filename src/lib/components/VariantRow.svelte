@@ -1,6 +1,6 @@
 <script lang="ts">
     import { resolve } from '$app/paths';
-    import type { Resume } from '$lib/types';
+    import { visibilityClass, visibilityLabel, type Resume } from '$lib/types';
     import { formatVariantTargetDate, variantPrimaryText } from '$lib/variants';
 
     let { resume, orphan = false, owned = false } = $props<{
@@ -16,7 +16,7 @@
 <a
     class="variantLink"
     class:orphan
-    href={resolve('/resumes/[id]', { id: resume.id.toString() })}
+    href={resolve('/resumes/[id]', { id: resume.id })}
 >
     {#if !orphan}
         <span class="nestArrow" aria-hidden="true">↳</span>
@@ -36,8 +36,8 @@
             {#if resume.variant_label}
                 <span class="badge">{resume.variant_label}</span>
             {/if}
-            <span class="tag {resume.is_public ? 'public' : 'private'}">
-                {resume.is_public ? 'Public' : 'Private'}
+            <span class="tag {visibilityClass(resume.visibility)}">
+                {visibilityLabel(resume.visibility)}
             </span>
             {#if owned}
                 <span class="tag mine">Mine</span>
@@ -113,6 +113,11 @@
     .tag.private {
         background: var(--color-warning-light);
         color: var(--color-warning-dark);
+    }
+
+    .tag.unlisted {
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark);
     }
 
     .tag.mine {

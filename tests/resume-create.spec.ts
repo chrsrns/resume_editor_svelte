@@ -13,7 +13,7 @@ const user = {
 };
 
 const resume = {
-    id: 1,
+    id: 'r1',
     name: 'New Resume',
     profile_image_url: null,
     location: null,
@@ -25,7 +25,7 @@ const resume = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: 1,
-    is_public: false,
+    visibility: 'private',
     is_variant: false,
     base_resume_id: null,
     show_variant_tag: null,
@@ -59,7 +59,7 @@ test('create resume form redirects to new resume detail', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Email' }).fill('new@example.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
-    await expect(page).toHaveURL('/resume_editor/resumes/1');
+    await expect(page).toHaveURL('/resume_editor/resumes/r1');
     await expect(page.getByText('New Resume')).toBeVisible();
 });
 
@@ -95,7 +95,7 @@ test('create resume with video sets payload and redirects', async ({ page }) => 
     await page.getByRole('textbox', { name: 'Mobile number' }).fill('555-1234');
     await page.getByRole('button', { name: 'Create' }).click();
 
-    await expect(page).toHaveURL('/resume_editor/resumes/1');
+    await expect(page).toHaveURL('/resume_editor/resumes/r1');
     expect(postedBody).not.toBeNull();
     expect(postedBody?.['video']).toBe(videoUrl);
 });
@@ -153,5 +153,5 @@ test('create resume rejects video over 500 chars', async ({ page }) => {
     await page.getByRole('button', { name: 'Create' }).click();
 
     await expect(page.getByText('Video must be 500 characters or less')).toBeVisible();
-    await expect(page).not.toHaveURL('/resume_editor/resumes/1');
+    await expect(page).not.toHaveURL('/resume_editor/resumes/r1');
 });

@@ -67,8 +67,8 @@ export function createChildGroupStore<
 }
 
 export function createDraftItemStore<
-    TDraft extends { id: number },
-    TBaseline extends { id: number }
+    TDraft extends { id: number | string },
+    TBaseline extends { id: number | string }
 >(config: DraftItemStoreConfig<TDraft, TBaseline>): DraftItemStore<TDraft, TBaseline> {
     const state = $state<DraftItemState<TDraft, TBaseline>>({
         draft: null,

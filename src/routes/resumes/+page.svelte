@@ -55,7 +55,7 @@
         try {
             const text = await file.text();
             const resume = await importResumeMarkdown(text);
-            await goto(resolve('/resumes/[id]/edit', { id: resume.id.toString() }));
+            await goto(resolve('/resumes/[id]/edit', { id: resume.id }));
         } catch (err) {
             const e = err as ApiError;
             importErrorTitle = 'Import failed';
@@ -78,7 +78,7 @@
 <div class="header">
     <div>
         <h1>Resumes</h1>
-        <p class="muted">Public resumes, plus your private resumes when logged in.</p>
+        <p class="muted">Public resumes, plus your unlisted and private resumes when logged in.</p>
     </div>
     <div class="actions">
         {#if $authToken}

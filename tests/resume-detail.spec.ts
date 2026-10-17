@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { mockApiFailure, mockApiResponse, clearApiRoute } from './mocks';
 
-const resumeId = 1;
+const resumeId = 'r1';
 const resumeUrl = `**/api/resume/${resumeId}`;
 const resume = {
     id: resumeId,
@@ -16,7 +16,7 @@ const resume = {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     created_by: null,
-    is_public: true,
+    visibility: 'public',
     is_variant: false,
     base_resume_id: null,
     show_variant_tag: null,
@@ -90,7 +90,7 @@ test('tab switch reuses loaded data without refetching', async ({ page }) => {
     expect(refetched).toEqual([]);
 });
 
-async function mockSectionResponses(page: Page, resumeId: number) {
+async function mockSectionResponses(page: Page, resumeId: string) {
     await mockApiResponse(page, `**/api/resume/${resumeId}/education`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/skills`, 200, []);
@@ -98,7 +98,7 @@ async function mockSectionResponses(page: Page, resumeId: number) {
     await mockApiResponse(page, `**/api/resume/${resumeId}/languages`, 200, []);
 }
 
-async function mockSectionFailures(page: Page, resumeId: number) {
+async function mockSectionFailures(page: Page, resumeId: string) {
     await mockApiFailure(page, `**/api/resume/${resumeId}/education`);
     await mockApiFailure(page, `**/api/resume/${resumeId}/work_experiences`);
     await mockApiFailure(page, `**/api/resume/${resumeId}/skills`);

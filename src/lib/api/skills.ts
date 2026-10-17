@@ -1,11 +1,11 @@
 import { apiRequest, apiCall, ApiError } from './client';
 import type { Skill, NewSkillRequest, UpdateSkillRequest } from '$lib/types';
 
-export async function listSkills(resumeId: number): Promise<Skill[]> {
+export async function listSkills(resumeId: string): Promise<Skill[]> {
     return apiCall<Skill[]>(`/resume/${resumeId}/skills`, { auth: true });
 }
 
-export async function createSkill(resumeId: number, payload: NewSkillRequest): Promise<Skill> {
+export async function createSkill(resumeId: string, payload: NewSkillRequest): Promise<Skill> {
     return apiCall<Skill>(`/resume/${resumeId}/skills`, {
         method: 'POST',
         body: payload,

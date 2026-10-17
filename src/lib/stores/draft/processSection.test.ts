@@ -30,7 +30,7 @@ const plan = (store: FakeStore, log: string[]) => ({
     store,
     actionTypes: { create: 'createEducation', update: 'updateEducation', delete: 'deleteEducation' },
     call: {
-        create: async (resumeId: number, payload: unknown) => {
+        create: async (resumeId: string, payload: unknown) => {
             log.push('parentCreate');
             return { id: 500 };
         },
@@ -47,7 +47,7 @@ const plan = (store: FakeStore, log: string[]) => ({
             actionTypes: { create: 'createKeyPoint', update: 'updateKeyPoint', delete: 'deleteKeyPoint' },
             parentIdField: 'educationId',
             call: {
-                create: async (resumeId: number, parentId: number, payload: unknown) => {
+                create: async (resumeId: string, parentId: number, payload: unknown) => {
                     log.push(`childCreate:${parentId}`);
                     return { id: 600 };
                 },
@@ -76,7 +76,7 @@ describe('processSection', () => {
         const store = makeStore(actions) as FakeStore & { calls: string[] };
         store.calls = [];
 
-        const { errors } = await processSection(1, plan(store, log));
+        const { errors } = await processSection('r1', plan(store, log));
 
         expect(errors).toEqual([]);
         expect(log).toEqual([
@@ -113,7 +113,7 @@ describe('processSection', () => {
             throw new ApiError(500, 'boom');
         };
 
-        const { errors } = await processSection(1, p);
+        const { errors } = await processSection('r1', p);
 
         expect(log).toEqual(['parentCreate']);
         expect(errors).toHaveLength(1);
@@ -137,7 +137,7 @@ describe('processSection', () => {
             throw new ApiError(500, 'child delete boom');
         };
 
-        const { errors } = await processSection(1, p);
+        const { errors } = await processSection('r1', p);
 
         expect(errors).toHaveLength(2);
         expect(log).toEqual(['parentDelete:40']);
@@ -155,7 +155,7 @@ describe('processSection', () => {
             throw new ApiError(404, 'gone');
         };
 
-        const { errors } = await processSection(1, p);
+        const { errors } = await processSection('r1', p);
 
         expect(errors).toEqual([]);
         expect(store.calls.at(-2)).toBe('applySaveResults(|40)');
