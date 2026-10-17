@@ -52,7 +52,7 @@
 {:else if variants.length > 0}
     <section class="variantsCard" aria-label="Variants">
         <h3>Variants of this resume ({variants.length})</h3>
-        <ul class="variantList">
+        <ul class="variantList" class:scrollable={showAll}>
             {#each visibleVariants as variant (variant.id)}
                 <li>
                     <VariantRow resume={variant} owned />
@@ -88,6 +88,11 @@
         list-style: none;
         margin: 0;
         padding: 0;
+    }
+
+    .variantList.scrollable {
+        max-height: 20rem;
+        overflow-y: auto;
     }
 
     .variantList li + li {

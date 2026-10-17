@@ -63,7 +63,7 @@
     </div>
 
     {#if !collapsed && variants.length > 0}
-        <ul class="variantList" id={variantsListId}>
+        <ul class="variantList" class:scrollable={showAll} id={variantsListId}>
             {#each visibleVariants as variant (variant.id)}
                 <li>
                     <VariantRow resume={variant} {owned} />
@@ -206,6 +206,11 @@
         list-style: none;
         margin: 0;
         padding: 0;
+    }
+
+    .variantList.scrollable {
+        max-height: 20rem;
+        overflow-y: auto;
     }
 
     .variantList li + li {
