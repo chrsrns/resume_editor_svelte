@@ -6,17 +6,23 @@
     import Button from './ui/Button.svelte';
     import VariantRow from './VariantRow.svelte';
 
-    let { base, variants, owned = false } = $props<{
+    let { base, variants, owned = false, matchIds } = $props<{
         base: Resume;
         variants: Resume[];
         owned?: boolean;
+        matchIds?: ReadonlySet<string>;
     }>();
 
     let collapsed = $state(false);
     let showAll = $state(false);
 
+    const filtering = $derived(matchIds !== undefined);
     const sortedVariants = $derived(sortVariants(variants));
-    const visibleVariants = $derived(truncateVariants(sortedVariants, showAll));
+    const visibleVariants = $derived(
+        matchIds === undefined
+            ? truncateVariants(sortedVariants, showAll)
+            : sortedVariants.filter((variant) => matchIds.has(variant.id))
+    );
     const variantCountLabel = $derived(
         variants.length === 0 ? 'no variants' : `${variants.length} variant${variants.length === 1 ? '' : 's'}`
     );
@@ -24,8 +30,8 @@
 </script>
 
 <li class="variantGroup">
-    <div class="groupHeader" class:noDisclosure={variants.length === 0}>
-        {#if variants.length > 0}
+    <div class="groupHeader" class:noDisclosure={visibleVariants.length === 0}>
+        {#if visibleVariants.length > 0}
             <button
                 class="disclosure"
                 type="button"
@@ -62,15 +68,15 @@
         {/if}
     </div>
 
-    {#if !collapsed && variants.length > 0}
-        <ul class="variantList" class:scrollable={showAll} id={variantsListId}>
+    {#if !collapsed && visibleVariants.length > 0}
+        <ul class="variantList" class:scrollable={showAll || filtering} id={variantsListId}>
             {#each visibleVariants as variant (variant.id)}
                 <li>
                     <VariantRow resume={variant} {owned} />
                 </li>
             {/each}
         </ul>
-        {#if variants.length > 3}
+        {#if !filtering && variants.length > 3}
             <div class="showAllRow">
                 <Button variant="secondary" onclick={() => (showAll = !showAll)}>
                     {showAll ? 'Show fewer' : `Show all (${variants.length})…`}

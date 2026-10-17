@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { Resume } from './types';
 import {
     buildResumeListEntries,
+    filterResumeListEntries,
+    parseSearchTerms,
+    resumeMatches,
     sortVariants,
     truncateVariants,
     variantPrimaryText
@@ -120,5 +123,100 @@ describe('truncateVariants', () => {
     it('returns short lists unchanged', () => {
         const two = [resume({ id: 'v1' }), resume({ id: 'v2' })];
         expect(truncateVariants(two, false)).toHaveLength(2);
+    });
+});
+
+describe('parseSearchTerms', () => {
+    it('splits on whitespace and lowercases', () => {
+        expect(parseSearchTerms('  Acme   CORP ')).toEqual(['acme', 'corp']);
+    });
+
+    it('returns no terms for blank input', () => {
+        expect(parseSearchTerms('   ')).toEqual([]);
+        expect(parseSearchTerms('')).toEqual([]);
+    });
+});
+
+describe('resumeMatches', () => {
+    it('matches name, email, and variant targeting fields case-insensitively', () => {
+        const variant = resume({
+            name: 'Base',
+            email: 'Dev@Example.com',
+            company_name: 'Acme Corp',
+            role_title: 'Backend Engineer',
+            variant_label: 'fintech'
+        });
+        expect(resumeMatches(variant, parseSearchTerms('acme'))).toBe(true);
+        expect(resumeMatches(variant, parseSearchTerms('BACKEND'))).toBe(true);
+        expect(resumeMatches(variant, parseSearchTerms('example.com'))).toBe(true);
+        expect(resumeMatches(variant, parseSearchTerms('fintech'))).toBe(true);
+        expect(resumeMatches(variant, parseSearchTerms('zzz'))).toBe(false);
+    });
+
+    it('requires every term to hit some field of the same resume', () => {
+        const variant = resume({ company_name: 'Acme Corp', role_title: 'Backend Engineer' });
+        expect(resumeMatches(variant, parseSearchTerms('acme backend'))).toBe(true);
+        expect(resumeMatches(variant, parseSearchTerms('acme frontend'))).toBe(false);
+    });
+
+    it('matches job_description text', () => {
+        const variant = resume({ job_description: 'Owns the payments pipeline' });
+        expect(resumeMatches(variant, parseSearchTerms('pipeline'))).toBe(true);
+    });
+
+    it('matches target_date as ISO and as display form', () => {
+        const variant = resume({ target_date: '2026-03' });
+        expect(resumeMatches(variant, parseSearchTerms('2026-03'))).toBe(true);
+        expect(resumeMatches(variant, parseSearchTerms('march'))).toBe(true);
+        expect(resumeMatches(variant, parseSearchTerms('october'))).toBe(false);
+    });
+});
+
+describe('filterResumeListEntries', () => {
+    function fixture() {
+        const base = resume({ id: 'b1', name: 'Base One' });
+        const v1 = resume({
+            id: 'v1',
+            is_variant: true,
+            base_resume_id: 'b1',
+            company_name: 'Acme Corp'
+        });
+        const v2 = resume({
+            id: 'v2',
+            is_variant: true,
+            base_resume_id: 'b1',
+            company_name: 'Globex'
+        });
+        const orphan = resume({ id: 'o1', is_variant: true, name: 'Acme Orphan' });
+        return buildResumeListEntries([base, v1, v2, orphan]);
+    }
+
+    it('keeps a matched variant nested under an unmatched base', () => {
+        const entries = filterResumeListEntries(fixture(), parseSearchTerms('globex'));
+        expect(entries).toHaveLength(1);
+        expect(entries[0].kind).toBe('group');
+        if (entries[0].kind === 'group') {
+            expect(entries[0].matchIds?.has('v2')).toBe(true);
+            expect(entries[0].matchIds?.has('v1')).toBe(false);
+        }
+    });
+
+    it('keeps a base-matched group with an empty matchIds set', () => {
+        const entries = filterResumeListEntries(fixture(), parseSearchTerms('base one'));
+        expect(entries).toHaveLength(1);
+        if (entries[0].kind === 'group') {
+            expect(entries[0].matchIds?.size).toBe(0);
+        }
+    });
+
+    it('filters orphans by the same predicate', () => {
+        const entries = filterResumeListEntries(fixture(), parseSearchTerms('orphan'));
+        expect(entries).toHaveLength(1);
+        expect(entries[0]).toMatchObject({ kind: 'orphan', resume: { id: 'o1' } });
+    });
+
+    it('drops groups where neither base nor variants match', () => {
+        const entries = filterResumeListEntries(fixture(), parseSearchTerms('zzz'));
+        expect(entries).toEqual([]);
     });
 });

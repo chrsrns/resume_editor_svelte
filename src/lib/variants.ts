@@ -1,7 +1,7 @@
 import { formatPartialDateLong, parsePartialDate, type Resume } from './types';
 
 export type ResumeListEntry =
-    | { kind: 'group'; base: Resume; variants: Resume[] }
+    | { kind: 'group'; base: Resume; variants: Resume[]; matchIds?: ReadonlySet<string> }
     | { kind: 'orphan'; resume: Resume };
 
 export function variantPrimaryText(resume: Resume): string {
@@ -32,6 +32,44 @@ export function compareVariants(a: Resume, b: Resume): number {
 
 export function sortVariants(variants: Resume[]): Resume[] {
     return [...variants].sort(compareVariants);
+}
+
+const SEARCH_FIELDS = [
+    'name',
+    'email',
+    'company_name',
+    'role_title',
+    'variant_label',
+    'job_description',
+    'target_date'
+] as const;
+
+export function parseSearchTerms(query: string): string[] {
+    return query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
+
+export function resumeMatches(resume: Resume, terms: string[]): boolean {
+    const haystacks = SEARCH_FIELDS.map((field) => resume[field] ?? '');
+    const displayDate = formatVariantTargetDate(resume.target_date);
+    if (displayDate) haystacks.push(displayDate);
+    const lowered = haystacks.map((text) => text.toLowerCase());
+    return terms.every((term) => lowered.some((text) => text.includes(term)));
+}
+
+export function filterResumeListEntries(
+    entries: ResumeListEntry[],
+    terms: string[]
+): ResumeListEntry[] {
+    return entries.flatMap((entry): ResumeListEntry[] => {
+        if (entry.kind === 'orphan') {
+            return resumeMatches(entry.resume, terms) ? [entry] : [];
+        }
+        const matchIds = new Set(
+            entry.variants.filter((variant) => resumeMatches(variant, terms)).map((v) => v.id)
+        );
+        if (!resumeMatches(entry.base, terms) && matchIds.size === 0) return [];
+        return [{ ...entry, matchIds }];
+    });
 }
 
 export const TRUNCATED_VARIANT_COUNT = 3;
