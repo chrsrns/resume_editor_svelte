@@ -2,6 +2,7 @@
     import type { ApiError } from '$lib/api/client';
     import { listVariants } from '$lib/api/resumes';
     import type { Resume } from '$lib/types';
+    import { truncateVariants } from '$lib/variants';
     import Button from './ui/Button.svelte';
     import VariantRow from './VariantRow.svelte';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
@@ -15,7 +16,7 @@
     let error = $state<string | null>(null);
     let showAll = $state(false);
 
-    const visibleVariants = $derived(showAll ? variants : variants.slice(0, 3));
+    const visibleVariants = $derived(truncateVariants(variants, showAll));
 
     async function load(id: string) {
         loading = true;
@@ -51,17 +52,17 @@
 {:else if variants.length > 0}
     <section class="variantsCard" aria-label="Variants">
         <h3>Variants of this resume ({variants.length})</h3>
-        <ul class="variantList">
+        <ul class="variantList" class:scrollable={showAll}>
             {#each visibleVariants as variant (variant.id)}
                 <li>
                     <VariantRow resume={variant} owned />
                 </li>
             {/each}
         </ul>
-        {#if !showAll && variants.length > 3}
+        {#if variants.length > 3}
             <div class="showAllRow">
-                <Button variant="secondary" onclick={() => (showAll = true)}>
-                    Show all ({variants.length})…
+                <Button variant="secondary" onclick={() => (showAll = !showAll)}>
+                    {showAll ? 'Show fewer' : `Show all (${variants.length})…`}
                 </Button>
             </div>
         {/if}
@@ -87,6 +88,11 @@
         list-style: none;
         margin: 0;
         padding: 0;
+    }
+
+    .variantList.scrollable {
+        max-height: 20rem;
+        overflow-y: auto;
     }
 
     .variantList li + li {
