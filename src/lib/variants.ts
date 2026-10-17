@@ -34,6 +34,12 @@ export function sortVariants(variants: Resume[]): Resume[] {
     return [...variants].sort(compareVariants);
 }
 
+export const TRUNCATED_VARIANT_COUNT = 3;
+
+export function truncateVariants(variants: Resume[], expanded: boolean): Resume[] {
+    return expanded ? variants : variants.slice(0, TRUNCATED_VARIANT_COUNT);
+}
+
 export function buildResumeListEntries(resumes: Resume[]): ResumeListEntry[] {
     const variantsByBase = new Map<string, Resume[]>();
     const basesById = new Set(resumes.map((resume) => resume.id));

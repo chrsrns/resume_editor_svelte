@@ -2,7 +2,7 @@
     import { resolve } from '$app/paths';
     import { ChevronDown, Plus } from '@lucide/svelte';
     import { visibilityClass, visibilityLabel, type Resume } from '$lib/types';
-    import { sortVariants } from '$lib/variants';
+    import { sortVariants, truncateVariants } from '$lib/variants';
     import Button from './ui/Button.svelte';
     import VariantRow from './VariantRow.svelte';
 
@@ -16,7 +16,7 @@
     let showAll = $state(false);
 
     const sortedVariants = $derived(sortVariants(variants));
-    const visibleVariants = $derived(showAll ? sortedVariants : sortedVariants.slice(0, 3));
+    const visibleVariants = $derived(truncateVariants(sortedVariants, showAll));
     const variantCountLabel = $derived(
         variants.length === 0 ? 'no variants' : `${variants.length} variant${variants.length === 1 ? '' : 's'}`
     );
@@ -70,10 +70,10 @@
                 </li>
             {/each}
         </ul>
-        {#if !showAll && variants.length > 3}
+        {#if variants.length > 3}
             <div class="showAllRow">
-                <Button variant="secondary" onclick={() => (showAll = true)}>
-                    Show all ({variants.length})…
+                <Button variant="secondary" onclick={() => (showAll = !showAll)}>
+                    {showAll ? 'Show fewer' : `Show all (${variants.length})…`}
                 </Button>
             </div>
         {/if}

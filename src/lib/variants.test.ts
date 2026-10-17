@@ -3,6 +3,7 @@ import type { Resume } from './types';
 import {
     buildResumeListEntries,
     sortVariants,
+    truncateVariants,
     variantPrimaryText
 } from './variants';
 
@@ -97,5 +98,27 @@ describe('resume variant helpers', () => {
 
         expect(entries).toHaveLength(2);
         expect(entries[1]).toMatchObject({ kind: 'group', base: { id: 'o1' }, variants: [] });
+    });
+});
+
+describe('truncateVariants', () => {
+    const four = [
+        resume({ id: 'v1' }),
+        resume({ id: 'v2' }),
+        resume({ id: 'v3' }),
+        resume({ id: 'v4' })
+    ];
+
+    it('returns the first 3 when collapsed', () => {
+        expect(truncateVariants(four, false).map((v) => v.id)).toEqual(['v1', 'v2', 'v3']);
+    });
+
+    it('returns all rows when expanded', () => {
+        expect(truncateVariants(four, true)).toHaveLength(4);
+    });
+
+    it('returns short lists unchanged', () => {
+        const two = [resume({ id: 'v1' }), resume({ id: 'v2' })];
+        expect(truncateVariants(two, false)).toHaveLength(2);
     });
 });
