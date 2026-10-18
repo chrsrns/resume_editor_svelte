@@ -58,8 +58,23 @@ export const clearApiRoute = async (page: Page, url: string | RegExp) => {
     await page.unroute(url);
 };
 
-export const setAuthToken = async (page: Page, token = 'test-token') => {
-    await page.addInitScript((token) => {
-        localStorage.setItem('resume_api_token', token);
-    }, token);
+/**
+ * Seeds `resume_api_token` before every page load. `addInitScript` re-runs on
+ * each navigation, so pass `{ once: true }` when the app's own 401 handling
+ * must clear the token for good — the seed then applies to the first load only
+ * and a later reload sees no token.
+ */
+export const setAuthToken = async (
+    page: Page,
+    token = 'test-token',
+    options: { once?: boolean } = {}
+) => {
+    await page.addInitScript(
+        (seed: { token: string; once: boolean }) => {
+            if (seed.once && sessionStorage.getItem('resume_api_token_seeded') === '1') return;
+            localStorage.setItem('resume_api_token', seed.token);
+            if (seed.once) sessionStorage.setItem('resume_api_token_seeded', '1');
+        },
+        { token, once: options.once ?? false }
+    );
 };
