@@ -42,10 +42,9 @@ export async function listEducationKeyPoints(
     resumeId: string,
     educationId: number
 ): Promise<EducationKeyPoint[]> {
-    return apiCall<EducationKeyPoint[]>(
-        `/resume/${resumeId}/education/${educationId}/key_points`,
-        { auth: true }
-    );
+    return apiCall<EducationKeyPoint[]>(`/resume/${resumeId}/education/${educationId}/key_points`, {
+        auth: true
+    });
 }
 
 export async function createEducationKeyPoint(
@@ -53,10 +52,11 @@ export async function createEducationKeyPoint(
     educationId: number,
     payload: NewEducationKeyPointRequest
 ): Promise<EducationKeyPoint> {
-    return apiCall<EducationKeyPoint>(
-        `/resume/${resumeId}/education/${educationId}/key_points`,
-        { method: 'POST', body: payload, auth: true }
-    );
+    return apiCall<EducationKeyPoint>(`/resume/${resumeId}/education/${educationId}/key_points`, {
+        method: 'POST',
+        body: payload,
+        auth: true
+    });
 }
 
 export async function updateEducationKeyPoint(

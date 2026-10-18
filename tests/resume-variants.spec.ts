@@ -244,12 +244,12 @@ test('list renders zero-variant base without disclosure control', async ({ page 
 
     await expect(page.getByRole('link', { name: 'Base Resume' })).toBeVisible();
     await expect(page.getByText('no variants')).toBeVisible();
-    await expect(
-        page.getByRole('button', { name: 'Toggle variants for Base Resume' })
-    ).toHaveCount(0);
-    await expect(
-        page.getByRole('button', { name: 'Toggle variants for Other Base' })
-    ).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Toggle variants for Base Resume' })).toHaveCount(
+        0
+    );
+    await expect(page.getByRole('button', { name: 'Toggle variants for Other Base' })).toHaveCount(
+        0
+    );
     await expect(page.getByRole('link', { name: 'New variant' })).toHaveCount(1);
 });
 
@@ -369,10 +369,7 @@ test('new variant surfaces create failure', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Create variant' })).toBeEnabled();
 });
 
-async function openVariantEditPage(
-    page: import('@playwright/test').Page,
-    resume = variantResume
-) {
+async function openVariantEditPage(page: import('@playwright/test').Page, resume = variantResume) {
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
     await mockApiResponse(page, `**/api/resume/${resume.id}`, 200, resume);
@@ -693,9 +690,7 @@ test('variant metadata validation limits block save', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
 
-    await expect(
-        page.getByText('Company name must be 255 characters or less')
-    ).toBeVisible();
+    await expect(page.getByText('Company name must be 255 characters or less')).toBeVisible();
     expect(updateCalls).toBe(0);
 });
 

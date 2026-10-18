@@ -1004,8 +1004,18 @@ test('update portfolio project video_url sends update', async ({ page }) => {
     );
 
     let updatePayload: unknown = null;
-    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/key_points`, 200, []);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/technologies`, 200, []);
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/portfolio_projects/*/key_points`,
+        200,
+        []
+    );
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/portfolio_projects/*/technologies`,
+        200,
+        []
+    );
     await mockApiMethods(page, `**/api/portfolio_projects/${projectId}`, {
         PUT: {
             status: 200,

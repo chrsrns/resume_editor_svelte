@@ -15,7 +15,9 @@ function makeStore(actions: DraftAction[]): FakeStore {
         calls: [] as string[],
         computeDiff: () => actions,
         applySaveResults(this: FakeStore & { calls: string[] }, map, succeeded) {
-            this.calls.push(`applySaveResults(${[...map.keys()].join(',')}|${[...(succeeded ?? [])].join(',')})`);
+            this.calls.push(
+                `applySaveResults(${[...map.keys()].join(',')}|${[...(succeeded ?? [])].join(',')})`
+            );
         },
         commitBaseline(this: FakeStore & { calls: string[] }) {
             this.calls.push('commitBaseline');
@@ -28,7 +30,11 @@ const plan = (store: FakeStore, log: string[]) => ({
     kind: 'entity' as const,
     label: 'Edu',
     store,
-    actionTypes: { create: 'createEducation', update: 'updateEducation', delete: 'deleteEducation' },
+    actionTypes: {
+        create: 'createEducation',
+        update: 'updateEducation',
+        delete: 'deleteEducation'
+    },
     call: {
         create: async (resumeId: string, payload: unknown) => {
             log.push('parentCreate');
@@ -44,7 +50,11 @@ const plan = (store: FakeStore, log: string[]) => ({
     childGroups: [
         {
             label: 'Edu key points',
-            actionTypes: { create: 'createKeyPoint', update: 'updateKeyPoint', delete: 'deleteKeyPoint' },
+            actionTypes: {
+                create: 'createKeyPoint',
+                update: 'updateKeyPoint',
+                delete: 'deleteKeyPoint'
+            },
             parentIdField: 'educationId',
             call: {
                 create: async (resumeId: string, parentId: number, payload: unknown) => {

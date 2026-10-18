@@ -326,7 +326,11 @@ const educationPlan: SectionPlan = {
             parentIdField: 'educationId',
             call: {
                 create: (resumeId, parentId, payload) =>
-                    createEducationKeyPoint(resumeId, parentId, payload as NewEducationKeyPointRequest),
+                    createEducationKeyPoint(
+                        resumeId,
+                        parentId,
+                        payload as NewEducationKeyPointRequest
+                    ),
                 update: (id, payload) =>
                     updateEducationKeyPoint(id, payload as UpdateEducationKeyPointRequest),
                 delete: (id) => deleteEducationKeyPoint(id)
@@ -363,7 +367,10 @@ const workPlan: SectionPlan = {
                         payload as NewWorkExperienceKeyPointRequest
                     ),
                 update: (id, payload) =>
-                    updateWorkExperienceKeyPoint(id, payload as UpdateWorkExperienceKeyPointRequest),
+                    updateWorkExperienceKeyPoint(
+                        id,
+                        payload as UpdateWorkExperienceKeyPointRequest
+                    ),
                 delete: (id) => deleteWorkExperienceKeyPoint(id)
             }
         }
@@ -382,7 +389,8 @@ const portfolioPlan: SectionPlan = {
     call: {
         create: (resumeId, payload) =>
             createPortfolioProject(resumeId, payload as NewPortfolioProjectRequest),
-        update: (id, payload) => updatePortfolioProject(id, payload as UpdatePortfolioProjectRequest),
+        update: (id, payload) =>
+            updatePortfolioProject(id, payload as UpdatePortfolioProjectRequest),
         delete: (id) => deletePortfolioProject(id)
     },
     childGroups: [
@@ -396,7 +404,11 @@ const portfolioPlan: SectionPlan = {
             parentIdField: 'projectId',
             call: {
                 create: (resumeId, parentId, payload) =>
-                    createPortfolioKeyPoint(resumeId, parentId, payload as NewPortfolioKeyPointRequest),
+                    createPortfolioKeyPoint(
+                        resumeId,
+                        parentId,
+                        payload as NewPortfolioKeyPointRequest
+                    ),
                 update: (id, payload) =>
                     updatePortfolioKeyPoint(id, payload as UpdatePortfolioKeyPointRequest),
                 delete: (id) => deletePortfolioKeyPoint(id)
@@ -457,4 +469,3 @@ const languagesPlan: SectionPlan = {
         }
     ]
 };
-

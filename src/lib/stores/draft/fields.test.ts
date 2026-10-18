@@ -64,7 +64,15 @@ describe('defineFields', () => {
     });
 
     it('toBaseline applies per-field law and derives baseline-only fields', () => {
-        const d = { req: ' A ', raw: 'B ', opt: ' ', n: '12', nreq: '7', flag: false, optflag: false };
+        const d = {
+            req: ' A ',
+            raw: 'B ',
+            opt: ' ',
+            n: '12',
+            nreq: '7',
+            flag: false,
+            optflag: false
+        };
         expect(fields.toBaseline(d, baseline)).toEqual({
             req: 'A',
             raw: 'B ',
@@ -83,7 +91,15 @@ describe('defineFields', () => {
     });
 
     it('normalizeDraft and normalizeBaseline converge on the same domain', () => {
-        const d = { req: 'A ', raw: 'B ', opt: ' ', n: '10', nreq: '42', flag: true, optflag: false };
+        const d = {
+            req: 'A ',
+            raw: 'B ',
+            opt: ' ',
+            n: '10',
+            nreq: '42',
+            flag: true,
+            optflag: false
+        };
         expect(fields.normalizeDraft(d)).toEqual({
             req: 'A',
             raw: 'B ',

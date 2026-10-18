@@ -276,7 +276,10 @@ export function createDraftListStore<
         return actions;
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
+    function applySaveResults(
+        tempIdMap: Map<number, number>,
+        succeededDeleteIds?: Set<number>
+    ): void {
         state.drafts = state.drafts
             .map((d) => {
                 if (d._status === 'new' && tempIdMap.has(d.id)) {
@@ -286,7 +289,10 @@ export function createDraftListStore<
                         _status: 'existing' as DraftStatus
                     };
                 }
-                if (d._status === 'deleted' && (d.id < 0 || (succeededDeleteIds?.has(d.id) ?? false))) {
+                if (
+                    d._status === 'deleted' &&
+                    (d.id < 0 || (succeededDeleteIds?.has(d.id) ?? false))
+                ) {
                     return null;
                 }
                 return d;
@@ -674,7 +680,10 @@ export function createChildGroupStore<
         return actions;
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
+    function applySaveResults(
+        tempIdMap: Map<number, number>,
+        succeededDeleteIds?: Set<number>
+    ): void {
         const nextDraftsMap: Record<number, DraftItem<TDraft>[]> = {};
 
         for (const parentId of Object.keys(state.draftsMap)) {
@@ -919,7 +928,10 @@ export function createParentChildSection<
         }
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
+    function applySaveResults(
+        tempIdMap: Map<number, number>,
+        succeededDeleteIds?: Set<number>
+    ): void {
         parentStore.applySaveResults(tempIdMap, succeededDeleteIds);
         for (const child of getChildStores()) {
             child.applySaveResults(tempIdMap, succeededDeleteIds);
@@ -989,7 +1001,10 @@ export function createParentChildSection<
     };
 }
 
-export interface DraftItemState<TDraft extends { id: number | string }, TBaseline extends { id: number | string }> {
+export interface DraftItemState<
+    TDraft extends { id: number | string },
+    TBaseline extends { id: number | string }
+> {
     draft: DraftItem<TDraft> | null;
     baseline: TBaseline | null;
     saving: boolean;
@@ -1019,7 +1034,10 @@ export interface DraftItemStoreConfig<
     buildPayload: (draft: TDraft) => unknown;
 }
 
-export interface DraftItemStore<TDraft extends { id: number | string }, TBaseline extends { id: number | string }> {
+export interface DraftItemStore<
+    TDraft extends { id: number | string },
+    TBaseline extends { id: number | string }
+> {
     initialize(baseline: TBaseline): void;
     getDraft(): DraftItem<TDraft>;
     getField<K extends keyof TDraft>(field: K): TDraft[K];

@@ -70,7 +70,6 @@
     });
 
     async function handleImportFile(file: File) {
-
         importBusy = true;
         importErrorOpen = false;
         try {
@@ -104,11 +103,7 @@
     <div class="actions">
         {#if $authToken}
             <Button href={resolve('/resumes/new')}>New resume</Button>
-            <Button
-                variant="secondary"
-                onclick={() => openImport?.()}
-                disabled={importBusy}
-            >
+            <Button variant="secondary" onclick={() => openImport?.()} disabled={importBusy}>
                 {#snippet icon()}<FileUp size={16} />{/snippet}
                 Import Markdown
             </Button>
@@ -181,7 +176,6 @@
         align-items: center;
         flex-wrap: wrap;
     }
-
 
     .searchRow {
         margin-top: var(--space-4);

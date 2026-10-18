@@ -152,10 +152,7 @@
             oninput={(e) => (jobDescription = (e.currentTarget as HTMLTextAreaElement).value)}
         />
 
-        <VisibilityRadioGroup
-            value={visibility}
-            onchange={(v) => (visibility = v)}
-        />
+        <VisibilityRadioGroup value={visibility} onchange={(v) => (visibility = v)} />
         <div class="checkboxRow">
             <label class="checkboxLabel">
                 <input type="checkbox" bind:checked={showVariantTag} />

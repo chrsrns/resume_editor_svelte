@@ -68,16 +68,8 @@
 {:else if !editable && resume}
     <section class="targetingCard" aria-label="Variant targeting">
         <h3>Variant targeting</h3>
-        <FieldRow
-            Icon={Building2}
-            label="Company"
-            value={resume.company_name ?? '-'}
-        />
-        <FieldRow
-            Icon={Briefcase}
-            label="Role / title"
-            value={resume.role_title ?? '-'}
-        />
+        <FieldRow Icon={Building2} label="Company" value={resume.company_name ?? '-'} />
+        <FieldRow Icon={Briefcase} label="Role / title" value={resume.role_title ?? '-'} />
         <FieldRow
             Icon={Calendar}
             label="Target date"

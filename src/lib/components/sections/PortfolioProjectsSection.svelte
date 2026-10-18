@@ -88,8 +88,6 @@
     // UI state for collapsed cards
     let collapsedById = $state<Record<number, boolean>>({});
 
-
-
     // Local drag state (UI only, no API calls)
     let draggingId = $state<number | null>(null);
     let dragOverId = $state<number | null>(null);
@@ -114,8 +112,6 @@
         newSourceLink = '';
         newDescription = '';
     }
-
-
 
     function handleDragStart(id: number, e: DragEvent) {
         draggingId = id;
@@ -160,16 +156,6 @@
         if (nextIndex < 0 || nextIndex >= ids.length) return;
         onReorder(id, ids[nextIndex]);
     }
-
-
-
-
-
-
-
-
-
-
 </script>
 
 <SectionShell title="Portfolio" description="Projects with key points and technologies.">

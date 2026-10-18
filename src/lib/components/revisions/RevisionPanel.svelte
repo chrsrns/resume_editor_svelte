@@ -57,11 +57,7 @@
             loading = false;
             return;
         }
-        if (
-            failures.some(
-                (e) => e instanceof ApiError && (e.status === 403 || e.status === 422)
-            )
-        ) {
+        if (failures.some((e) => e instanceof ApiError && (e.status === 403 || e.status === 422))) {
             oninaccessible();
             return;
         }
@@ -134,7 +130,8 @@
                 <p class="meta">
                     {formatRevisionTimestamp(revision.created_at)} · {revisionActionLabel(
                         revision.action
-                    )}{#if revision.is_restore} · restored{/if}
+                    )}{#if revision.is_restore}
+                        · restored{/if}
                 </p>
             {/if}
         </div>

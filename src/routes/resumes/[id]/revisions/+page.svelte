@@ -57,10 +57,7 @@
     }
 
     function isInaccessible(e: unknown): boolean {
-        return (
-            e instanceof ApiError &&
-            (e.status === 403 || e.status === 404 || e.status === 422)
-        );
+        return e instanceof ApiError && (e.status === 403 || e.status === 404 || e.status === 422);
     }
 
     async function load(id: string) {
@@ -68,10 +65,7 @@
         inaccessible = false;
         loadError = null;
         const stale = () => page.params.id !== id;
-        const [titleRes, revRes] = await Promise.allSettled([
-            getResume(id),
-            listRevisions(id)
-        ]);
+        const [titleRes, revRes] = await Promise.allSettled([getResume(id), listRevisions(id)]);
         if (stale()) return;
 
         const failures = [titleRes, revRes]
@@ -170,9 +164,7 @@
             <section class="panelRegion" aria-label="Revision panel">
                 <div class="panelWall">
                     <h2>Revision not found</h2>
-                    <p>
-                        The requested revision is malformed or does not exist for this resume.
-                    </p>
+                    <p>The requested revision is malformed or does not exist for this resume.</p>
                     <Button variant="secondary" href={closeHref}>
                         {#snippet icon()}<ChevronLeft size={16} />{/snippet}
                         Back to timeline
