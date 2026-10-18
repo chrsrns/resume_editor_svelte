@@ -1,5 +1,6 @@
 import { get } from 'svelte/store';
 import { authToken, clearAuthToken } from '$lib/auth';
+import { raiseSessionExpiredNotice } from '$lib/sessionExpiry';
 import { clearCurrentUser } from '$lib/session';
 import type { ApiResponse } from '$lib/types';
 
@@ -60,6 +61,7 @@ export async function apiRequest<T = unknown>(
         method?: string;
         body?: unknown;
         auth?: boolean;
+        suppressSessionExpiredNotice?: boolean;
     } = {}
 ): Promise<{ res: Response; body?: T }> {
     function wait(delay: number) {
@@ -144,6 +146,9 @@ export async function apiRequest<T = unknown>(
     if (res.status === 401 && options.auth) {
         clearAuthToken();
         clearCurrentUser();
+        if (token && !options.suppressSessionExpiredNotice) {
+            raiseSessionExpiredNotice();
+        }
     }
 
     if (!res.ok) {
@@ -157,6 +162,7 @@ export type ApiRequestOptions = {
     method?: string;
     body?: unknown;
     auth?: boolean;
+    suppressSessionExpiredNotice?: boolean;
 };
 
 /**
@@ -206,6 +212,9 @@ export async function apiRawRequest(
     if (res.status === 401 && options.auth) {
         clearAuthToken();
         clearCurrentUser();
+        if (token) {
+            raiseSessionExpiredNotice();
+        }
     }
 
     const text = await res.text();
