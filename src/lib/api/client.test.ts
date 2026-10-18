@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
-import { apiCall, apiRawRequest, ApiError } from './client';
+import { apiCall, apiRawRequest, apiErrorMessage, ApiError } from './client';
 import { authToken, setAuthToken, clearAuthToken } from '$lib/auth';
 
 function jsonResponse(status: number, payload: unknown): Response {
@@ -62,11 +62,77 @@ describe('apiRawRequest', () => {
     });
 
     it('returns parsed undefined on a non-JSON body and keeps the raw text', async () => {
-        vi.mocked(fetch).mockResolvedValue(
-            new Response('not json', { status: 200 })
-        );
+        vi.mocked(fetch).mockResolvedValue(new Response('not json', { status: 200 }));
         const { text, parsed } = await apiRawRequest('/x', { auth: true });
         expect(text).toBe('not json');
         expect(parsed).toBeUndefined();
+    });
+});
+
+describe('apiErrorMessage', () => {
+    const catcher = {
+        error: {
+            code: 401,
+            reason: 'Unauthorized',
+            description: 'The request requires user authentication.'
+        }
+    };
+
+    it('renders a string envelope body verbatim', () => {
+        expect(apiErrorMessage({ body: 'Unauthorized' }, 'Request failed')).toBe('Unauthorized');
+    });
+
+    it('prefers a string body over the catcher fields', () => {
+        expect(apiErrorMessage({ body: 'verbatim', ...catcher }, 'Request failed')).toBe(
+            'verbatim'
+        );
+    });
+
+    it('renders reason and description together', () => {
+        expect(apiErrorMessage(catcher, 'Request failed')).toBe(
+            'Unauthorized: The request requires user authentication.'
+        );
+    });
+
+    it('renders reason alone when the description is absent', () => {
+        expect(apiErrorMessage({ error: { reason: 'Unauthorized' } }, 'Request failed')).toBe(
+            'Unauthorized'
+        );
+    });
+
+    it('renders description alone when the reason is absent', () => {
+        expect(
+            apiErrorMessage({ error: { description: 'Missing token.' } }, 'Request failed')
+        ).toBe('Missing token.');
+    });
+
+    it('falls back for an unknown payload shape', () => {
+        expect(apiErrorMessage(undefined, 'Request failed')).toBe('Request failed');
+        expect(apiErrorMessage(null, 'Request failed')).toBe('Request failed');
+        expect(apiErrorMessage({}, 'Request failed')).toBe('Request failed');
+        expect(apiErrorMessage({ error: 'Unauthorized' }, 'Request failed')).toBe('Request failed');
+    });
+});
+
+describe('apiRequest error message', () => {
+    it('surfaces the Rocket catcher message on 401', async () => {
+        setAuthToken('tok');
+        vi.mocked(fetch).mockResolvedValue(
+            jsonResponse(401, {
+                error: {
+                    code: 401,
+                    reason: 'Unauthorized',
+                    description: 'The request requires user authentication.'
+                }
+            })
+        );
+
+        const rejection = await apiCall('/x', { auth: true }).catch((e: unknown) => e);
+
+        expect(rejection).toBeInstanceOf(ApiError);
+        expect(rejection).toMatchObject({
+            status: 401,
+            message: 'Unauthorized: The request requires user authentication.'
+        });
     });
 });
