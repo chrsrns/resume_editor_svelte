@@ -84,8 +84,7 @@ export async function exportResumeMarkdown(id: string): Promise<Blob> {
     });
 
     if (!res.ok) {
-        const message = typeof parsed?.body === 'string' ? parsed.body : 'Export failed';
-        throw new ApiError(res.status, message);
+        throw new ApiError(res.status, ApiError.messageFrom(parsed, 'Export failed'));
     }
 
     return new Blob([text], { type: 'text/markdown' });
@@ -103,8 +102,7 @@ export async function importResumeMarkdown(markdown: string): Promise<Resume> {
         throw new ApiError(res.status, 'Failed to parse response', text);
     }
     if (!res.ok) {
-        const message = typeof parsed.body === 'string' ? parsed.body : 'Import failed';
-        throw new ApiError(res.status, message);
+        throw new ApiError(res.status, ApiError.messageFrom(parsed, 'Import failed'));
     }
     if (parsed.body === undefined) throw new ApiError(500, 'Missing response body');
     return parsed.body as Resume;
@@ -122,8 +120,7 @@ export async function importResumeMarkdownInto(id: string, markdown: string): Pr
         throw new ApiError(res.status, 'Failed to parse response', text);
     }
     if (!res.ok) {
-        const message = typeof parsed.body === 'string' ? parsed.body : 'Import failed';
-        throw new ApiError(res.status, message);
+        throw new ApiError(res.status, ApiError.messageFrom(parsed, 'Import failed'));
     }
     if (parsed.body === undefined) throw new ApiError(500, 'Missing response body');
     return parsed.body as Resume;

@@ -1,5 +1,6 @@
 import { get } from 'svelte/store';
 import { authToken, clearAuthToken } from '$lib/auth';
+import { raiseSessionExpiredNotice } from '$lib/sessionExpiry';
 import { clearCurrentUser } from '$lib/session';
 import type { ApiResponse } from '$lib/types';
 
@@ -18,6 +19,40 @@ export class ApiError extends Error {
         this.status = status;
         this.payloadText = payloadText;
     }
+
+    /**
+     * The V232 precedence, reachable from any module that already imports
+     * `ApiError`, so callers that only need a message do not have to add a
+     * second import from this module.
+     */
+    static messageFrom(payload: unknown, fallback: string): string {
+        return apiErrorMessage(payload, fallback);
+    }
+}
+
+/**
+ * Error message precedence: an envelope `body` string renders verbatim, else the
+ * Rocket default catcher's `reason` and `description`, else the caller's
+ * fallback. Rocket content-negotiates on `Accept`, and every request here asks
+ * for JSON, so a framework-level rejection arrives as `{error:{…}}` with no
+ * `body` key at all.
+ */
+export function apiErrorMessage(payload: unknown, fallback: string): string {
+    if (payload === null || typeof payload !== 'object') return fallback;
+
+    const { body, error } = payload as { body?: unknown; error?: unknown };
+
+    if (typeof body === 'string') return body;
+
+    if (error !== null && typeof error === 'object') {
+        const { reason, description } = error as { reason?: unknown; description?: unknown };
+        const parts = [reason, description].filter(
+            (part): part is string => typeof part === 'string' && part.length > 0
+        );
+        if (parts.length > 0) return parts.join(': ');
+    }
+
+    return fallback;
 }
 
 async function parseJsonResponse<T>(res: Response): Promise<ApiResponse<T>> {
@@ -35,6 +70,7 @@ export async function apiRequest<T = unknown>(
         method?: string;
         body?: unknown;
         auth?: boolean;
+        suppressSessionExpiredNotice?: boolean;
     } = {}
 ): Promise<{ res: Response; body?: T }> {
     function wait(delay: number) {
@@ -119,14 +155,13 @@ export async function apiRequest<T = unknown>(
     if (res.status === 401 && options.auth) {
         clearAuthToken();
         clearCurrentUser();
+        if (token && !options.suppressSessionExpiredNotice) {
+            raiseSessionExpiredNotice();
+        }
     }
 
     if (!res.ok) {
-        if (typeof body === 'string') {
-            throw new ApiError(res.status, body);
-        }
-
-        throw new ApiError(res.status, 'Request failed');
+        throw new ApiError(res.status, apiErrorMessage(parsed, 'Request failed'));
     }
 
     return { res, body };
@@ -136,6 +171,7 @@ export type ApiRequestOptions = {
     method?: string;
     body?: unknown;
     auth?: boolean;
+    suppressSessionExpiredNotice?: boolean;
 };
 
 /**
@@ -185,6 +221,9 @@ export async function apiRawRequest(
     if (res.status === 401 && options.auth) {
         clearAuthToken();
         clearCurrentUser();
+        if (token) {
+            raiseSessionExpiredNotice();
+        }
     }
 
     const text = await res.text();

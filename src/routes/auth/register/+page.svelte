@@ -21,7 +21,7 @@
         try {
             await register({ email, password });
             const token = await login({ email, password });
-            setAuthToken(token.token);
+            setAuthToken(token.token, token.expires_at);
             await refreshCurrentUser();
             await goto(resolve('/resumes'));
         } catch (e) {

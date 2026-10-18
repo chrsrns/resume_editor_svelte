@@ -7,9 +7,16 @@
     import { page } from '$app/state';
     import { authToken, clearAuthToken } from '$lib/auth';
     import { logout } from '$lib/api/auth';
-    import { currentUser, refreshCurrentUser, clearCurrentUser } from '$lib/session';
+    import {
+        currentUser,
+        refreshCurrentUser,
+        clearCurrentUser,
+        sessionExpired,
+        clearSessionExpiredNotice
+    } from '$lib/session';
     import FileText from '@lucide/svelte/icons/file-text';
     import LogOut from '@lucide/svelte/icons/log-out';
+    import X from '@lucide/svelte/icons/x';
     import HeadsUpDialog from '$lib/components/ui/HeadsUpDialog.svelte';
 
     let { children } = $props();
@@ -54,6 +61,20 @@
 </svelte:head>
 
 <div class="shell">
+    {#if $sessionExpired}
+        <div class="sessionExpired" role="status">
+            <span>You were signed out because your session expired.</span>
+            <a class="sessionExpiredLink" href={resolve('/auth/login')}>Log in again</a>
+            <button
+                class="sessionExpiredDismiss"
+                type="button"
+                aria-label="Dismiss"
+                onclick={clearSessionExpiredNotice}
+            >
+                <X size={16} />
+            </button>
+        </div>
+    {/if}
     <header class="header">
         <div class="brand">
             <a class="brandLink" href={resolve('/resumes')}>
@@ -87,6 +108,51 @@
         min-height: 100vh;
         background: var(--color-background);
         color: var(--color-text);
+    }
+
+    .sessionExpired {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        padding: var(--space-2-5) 18px;
+        border-bottom: 1px solid var(--color-danger);
+        background: var(--color-danger-light);
+        color: var(--color-danger);
+        font-size: 14px;
+    }
+
+    .sessionExpiredLink {
+        color: var(--color-danger-dark);
+        font-weight: 600;
+        text-decoration: underline;
+    }
+
+    .sessionExpiredLink:focus-visible {
+        outline: 2px solid var(--color-danger);
+        outline-offset: 2px;
+    }
+
+    .sessionExpiredDismiss {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-1);
+        border: none;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    .sessionExpiredDismiss:hover {
+        background: var(--color-danger);
+        color: var(--color-surface);
+    }
+
+    .sessionExpiredDismiss:focus-visible {
+        outline: 2px solid var(--color-danger);
+        outline-offset: 2px;
     }
 
     .header {

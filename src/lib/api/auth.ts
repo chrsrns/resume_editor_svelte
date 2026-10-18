@@ -1,4 +1,4 @@
-import { apiCall, ApiError } from './client';
+import { apiCall } from './client';
 import type { AuthLoginRequest, AuthRegisterRequest, AuthTokenResponse, User } from '$lib/types';
 
 export async function register(payload: AuthRegisterRequest): Promise<User> {
@@ -17,5 +17,11 @@ export async function me(): Promise<User> {
 }
 
 export async function logout(): Promise<string> {
-    return apiCall<string>('/auth/logout', { method: 'POST', auth: true });
+    // A deliberate sign-out is not an expired session, so the 401 this can
+    // produce must not raise the session-expired notice.
+    return apiCall<string>('/auth/logout', {
+        method: 'POST',
+        auth: true,
+        suppressSessionExpiredNotice: true
+    });
 }
