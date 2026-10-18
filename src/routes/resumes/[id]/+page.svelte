@@ -57,6 +57,7 @@
     import Globe from '@lucide/svelte/icons/globe';
     import Plus from '@lucide/svelte/icons/plus';
     import FileUp from '@lucide/svelte/icons/file-up';
+    import History from '@lucide/svelte/icons/history';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     const tabs = [
@@ -371,6 +372,10 @@
                 New variant
             </Button>
         {/if}
+        <Button variant="secondary" href={resolve(`/resumes/${resume?.id}/revisions`)}>
+            {#snippet icon()}<History size={16} />{/snippet}
+            History
+        </Button>
     {/snippet}
     <ResumeViewHeader
         {resume}
