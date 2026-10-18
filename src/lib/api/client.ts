@@ -19,6 +19,15 @@ export class ApiError extends Error {
         this.status = status;
         this.payloadText = payloadText;
     }
+
+    /**
+     * The V232 precedence, reachable from any module that already imports
+     * `ApiError`, so callers that only need a message do not have to add a
+     * second import from this module.
+     */
+    static messageFrom(payload: unknown, fallback: string): string {
+        return apiErrorMessage(payload, fallback);
+    }
 }
 
 /**
