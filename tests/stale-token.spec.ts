@@ -28,7 +28,8 @@ const resume = {
 };
 
 // Every shape a real 401 can take, and the message the client derives from it.
-// The last one is the string the stale-token report observed.
+// The Rocket JSON catcher entry is the body a live backend returns here: the
+// catcher content-negotiates on `Accept`, and `apiRequest` asks for JSON.
 const authFailureShapes = [
     {
         label: 'Rocket HTML catcher',
@@ -47,6 +48,18 @@ const authFailureShapes = [
         contentType: 'application/json',
         body: JSON.stringify({ error: 'Unauthorized' }),
         message: 'Request failed'
+    },
+    {
+        label: 'Rocket JSON catcher',
+        contentType: 'application/json',
+        body: JSON.stringify({
+            error: {
+                code: 401,
+                reason: 'Unauthorized',
+                description: 'The request requires user authentication.'
+            }
+        }),
+        message: 'Request failed'
     }
 ];
 
@@ -55,12 +68,14 @@ for (const shape of authFailureShapes) {
         page
     }) => {
         const listAuthHeaders: (string | null)[] = [];
+        const listAcceptHeaders: (string | null)[] = [];
 
         await setAuthToken(page, staleToken, { once: true });
         await mockApiResponse(page, '**/api/auth/me', 401, { error: 'Unauthorized' });
         await page.route(listUrl, async (route) => {
             const authorization = route.request().headers()['authorization'] ?? null;
             listAuthHeaders.push(authorization);
+            listAcceptHeaders.push(route.request().headers()['accept'] ?? null);
 
             if (authorization === null) {
                 await route.fulfill({
@@ -82,6 +97,7 @@ for (const shape of authFailureShapes) {
 
         await expect(page.getByText(shape.message)).toBeVisible();
         expect(listAuthHeaders[0]).toBe(`Bearer ${staleToken}`);
+        expect(listAcceptHeaders[0]).toBe('application/json');
         expect(await page.evaluate(() => localStorage.getItem('resume_api_token'))).toBeNull();
         await expect(page.getByRole('link', { name: 'Login', exact: true })).toBeVisible();
 
