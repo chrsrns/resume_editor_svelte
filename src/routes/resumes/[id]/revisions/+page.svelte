@@ -90,6 +90,33 @@
         loading = false;
     }
 
+    async function reloadTimeline(id: string) {
+        try {
+            const next = await listRevisions(id);
+            if (page.params.id !== id) return;
+            revisions = next;
+        } catch (e) {
+            if (page.params.id !== id) return;
+            if (isAuthError(e)) {
+                void goto(resolve('/auth/login'));
+            } else if (isInaccessible(e)) {
+                inaccessible = true;
+            } else {
+                showHistoryError('Failed to reload history', e);
+            }
+        }
+    }
+
+    function handleRestored(updated: Resume) {
+        resume = updated;
+        void reloadTimeline(resumeId);
+    }
+
+    function handleConflict(e: unknown) {
+        showHistoryError('Restore failed', e);
+        void reloadTimeline(resumeId);
+    }
+
     onMount(() => {
         if (!get(authToken)) {
             void goto(resolve('/auth/login'));
@@ -149,6 +176,8 @@
                         onunauthorized={() => void goto(resolve('/auth/login'))}
                         oninaccessible={() => (inaccessible = true)}
                         onerror={showHistoryError}
+                        onrestored={handleRestored}
+                        onconflict={handleConflict}
                     />
                 {/key}
             </section>

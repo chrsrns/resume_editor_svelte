@@ -1,11 +1,14 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { getRevision, getRevisionDiff } from '$lib/api/resumes';
+    import { page } from '$app/state';
+    import { getRevision, getRevisionDiff, listRevisions, restoreRevision } from '$lib/api/resumes';
     import { ApiError } from '$lib/api/client';
     import { formatRevisionTimestamp, revisionActionLabel } from '$lib/revisions';
-    import type { ResumeRevision, ResumeRevisionDiff } from '$lib/types';
+    import type { Resume, ResumeRevision, ResumeRevisionDiff } from '$lib/types';
+    import Button from '$lib/components/ui/Button.svelte';
     import RevisionSnapshot from './RevisionSnapshot.svelte';
     import RevisionDiff from './RevisionDiff.svelte';
+    import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import X from '@lucide/svelte/icons/x';
 
     let {
@@ -14,7 +17,9 @@
         closeHref,
         onunauthorized,
         oninaccessible,
-        onerror
+        onerror,
+        onrestored,
+        onconflict
     }: {
         resumeId: string;
         n: number;
@@ -22,6 +27,8 @@
         onunauthorized: () => void;
         oninaccessible: () => void;
         onerror: (title: string, e: unknown) => void;
+        onrestored: (resume: Resume) => void;
+        onconflict: (e: unknown) => void;
     } = $props();
 
     let revision = $state<ResumeRevision | null>(null);
@@ -29,6 +36,7 @@
     let loading = $state(true);
     let notFound = $state(false);
     let view = $state<'changes' | 'state'>('changes');
+    let restoring = $state(false);
 
     onMount(async () => {
         const [revRes, diffRes] = await Promise.allSettled([
@@ -67,6 +75,55 @@
         diff = (diffRes as PromiseFulfilledResult<ResumeRevisionDiff>).value;
         loading = false;
     });
+
+    async function handleRestore() {
+        if (restoring || !revision) return;
+        const confirmed = confirm(
+            `Restore the state before revision ${n}? Your current state will be kept as a new revision.`
+        );
+        if (!confirmed) return;
+
+        restoring = true;
+        const stillCurrent = () => page.params.id === resumeId;
+        try {
+            let timeline;
+            try {
+                timeline = await listRevisions(resumeId);
+            } catch (e) {
+                if (!stillCurrent()) return;
+                if (e instanceof ApiError && e.status === 401) {
+                    onunauthorized();
+                } else if (
+                    e instanceof ApiError &&
+                    (e.status === 403 || e.status === 404 || e.status === 422)
+                ) {
+                    oninaccessible();
+                } else {
+                    onerror('Failed to verify history head', e);
+                }
+                return;
+            }
+            if (!stillCurrent()) return;
+            const expected = timeline[0]?.revision ?? 0;
+
+            try {
+                const updated = await restoreRevision(resumeId, n, expected);
+                if (!stillCurrent()) return;
+                onrestored(updated);
+            } catch (e) {
+                if (!stillCurrent()) return;
+                if (e instanceof ApiError && e.status === 401) {
+                    onunauthorized();
+                } else if (e instanceof ApiError && e.status === 409) {
+                    onconflict(e);
+                } else {
+                    onerror('Restore failed', e);
+                }
+            }
+        } finally {
+            restoring = false;
+        }
+    }
 </script>
 
 <section class="panel" aria-label={`Revision ${n}`}>
@@ -81,9 +138,22 @@
                 </p>
             {/if}
         </div>
-        <a class="close" href={closeHref} aria-label="Close revision panel">
-            <X size={18} />
-        </a>
+        <div class="headActions">
+            {#if revision}
+                <Button
+                    variant="secondary"
+                    onclick={handleRestore}
+                    disabled={restoring}
+                    title="Restore the state before this revision"
+                >
+                    {#snippet icon()}<RotateCcw size={16} />{/snippet}
+                    {restoring ? 'Restoring…' : 'Restore'}
+                </Button>
+            {/if}
+            <a class="close" href={closeHref} aria-label="Close revision panel">
+                <X size={18} />
+            </a>
+        </div>
     </header>
 
     {#if loading}
@@ -160,6 +230,13 @@
         margin: var(--space-1) 0 0;
         color: var(--color-muted);
         font-size: 13px;
+    }
+
+    .headActions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex-shrink: 0;
     }
 
     .close {
