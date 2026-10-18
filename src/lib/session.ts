@@ -3,6 +3,8 @@ import { authToken } from '$lib/auth';
 import { me } from '$lib/api/auth';
 import type { User } from '$lib/types';
 
+export { clearSessionExpiredNotice, sessionExpired } from '$lib/sessionExpiry';
+
 export const currentUser = writable<User | null>(null);
 
 export async function refreshCurrentUser(): Promise<User | null> {
