@@ -63,18 +63,24 @@ export const clearApiRoute = async (page: Page, url: string | RegExp) => {
  * each navigation, so pass `{ once: true }` when the app's own 401 handling
  * must clear the token for good — the seed then applies to the first load only
  * and a later reload sees no token.
+ *
+ * `expiresAt` seeds `resume_api_expires_at` so a test can boot with an expiry
+ * already in the past. Leave it out to boot with an unknown expiry.
  */
 export const setAuthToken = async (
     page: Page,
     token = 'test-token',
-    options: { once?: boolean } = {}
+    options: { once?: boolean; expiresAt?: string | null } = {}
 ) => {
     await page.addInitScript(
-        (seed: { token: string; once: boolean }) => {
+        (seed: { token: string; once: boolean; expiresAt: string | null }) => {
             if (seed.once && sessionStorage.getItem('resume_api_token_seeded') === '1') return;
             localStorage.setItem('resume_api_token', seed.token);
+            if (seed.expiresAt !== null) {
+                localStorage.setItem('resume_api_expires_at', seed.expiresAt);
+            }
             if (seed.once) sessionStorage.setItem('resume_api_token_seeded', '1');
         },
-        { token, once: options.once ?? false }
+        { token, once: options.once ?? false, expiresAt: options.expiresAt ?? null }
     );
 };

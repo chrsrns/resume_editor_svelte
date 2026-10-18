@@ -15,7 +15,7 @@ const user = {
 
 const token = {
     token: 'test-token',
-    expires_at: '2024-12-31T23:59:59Z'
+    expires_at: '2099-01-01T00:00:00Z'
 };
 
 const resumes: Resume[] = [];

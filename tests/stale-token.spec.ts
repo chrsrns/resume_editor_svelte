@@ -59,7 +59,7 @@ const authFailureShapes = [
                 description: 'The request requires user authentication.'
             }
         }),
-        message: 'Request failed'
+        message: 'Unauthorized: The request requires user authentication.'
     }
 ];
 
