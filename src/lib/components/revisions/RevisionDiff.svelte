@@ -1,6 +1,9 @@
 <script lang="ts">
+    import { getRevisionDiff } from '$lib/api/resumes';
+    import { ApiError } from '$lib/api/client';
     import { formatChangeValue } from '$lib/revisions';
     import type { ResumeRevisionDiff } from '$lib/types';
+    import FileDiff from '@lucide/svelte/icons/file-diff';
 
     let {
         diff,
@@ -8,6 +11,7 @@
         n,
         onunauthorized,
         oninaccessible,
+        onnotfound,
         onerror
     }: {
         diff: ResumeRevisionDiff;
@@ -15,8 +19,41 @@
         n: number;
         onunauthorized: () => void;
         oninaccessible: () => void;
+        onnotfound: () => void;
         onerror: (title: string, e: unknown) => void;
     } = $props();
+
+    let showUnified = $state(false);
+    let unifiedLoading = $state(false);
+    let unifiedFetched = $state(false);
+    let unifiedText = $state<string | null>(null);
+
+    async function toggleUnified() {
+        showUnified = !showUnified;
+        if (!showUnified || unifiedFetched) return;
+        unifiedLoading = true;
+        try {
+            const result = await getRevisionDiff(resumeId, n, true);
+            unifiedText = result.unified ?? null;
+            unifiedFetched = true;
+        } catch (e) {
+            showUnified = false;
+            if (e instanceof ApiError && e.status === 401) {
+                onunauthorized();
+            } else if (e instanceof ApiError && e.status === 404) {
+                onnotfound();
+            } else if (
+                e instanceof ApiError &&
+                (e.status === 403 || e.status === 422)
+            ) {
+                oninaccessible();
+            } else {
+                onerror('Failed to load text diff', e);
+            }
+        } finally {
+            unifiedLoading = false;
+        }
+    }
 </script>
 
 <div class="diffView">
@@ -43,6 +80,21 @@
                 </li>
             {/each}
         </ul>
+    {/if}
+
+    <button
+        class="unifiedToggle"
+        type="button"
+        aria-expanded={showUnified}
+        onclick={toggleUnified}
+        disabled={unifiedLoading}
+    >
+        <FileDiff size={16} />
+        {unifiedLoading ? 'Loading…' : showUnified ? 'Hide text diff' : 'Show text diff'}
+    </button>
+
+    {#if showUnified && unifiedFetched && unifiedText}
+        <pre class="unified">{unifiedText}</pre>
     {/if}
 </div>
 
@@ -133,6 +185,43 @@
         color: var(--color-text);
         word-break: break-all;
         white-space: pre-wrap;
+    }
+
+    .unifiedToggle {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1-5);
+        align-self: flex-start;
+        padding: var(--space-2) var(--space-3);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .unifiedToggle:hover:not([disabled]) {
+        background: var(--color-background);
+        border-color: var(--color-muted);
+    }
+
+    .unifiedToggle[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .unified {
+        margin: 0;
+        padding: var(--space-4);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-background);
+        font-size: 12px;
+        line-height: 1.6;
+        overflow-x: auto;
+        white-space: pre;
     }
 
     @media (max-width: 640px) {

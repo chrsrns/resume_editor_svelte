@@ -4,7 +4,6 @@
     import { ApiError } from '$lib/api/client';
     import { formatRevisionTimestamp, revisionActionLabel } from '$lib/revisions';
     import type { ResumeRevision, ResumeRevisionDiff } from '$lib/types';
-    import Button from '$lib/components/ui/Button.svelte';
     import RevisionSnapshot from './RevisionSnapshot.svelte';
     import RevisionDiff from './RevisionDiff.svelte';
     import X from '@lucide/svelte/icons/x';
@@ -123,6 +122,7 @@
                 {n}
                 {onunauthorized}
                 {oninaccessible}
+                onnotfound={() => (notFound = true)}
                 {onerror}
             />
         {:else}
