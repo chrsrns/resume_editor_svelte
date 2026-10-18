@@ -124,8 +124,11 @@
     onMount(() => {
         if (!get(authToken)) {
             void goto(resolve('/auth/login'));
-            return;
         }
+    });
+
+    $effect(() => {
+        if (!get(authToken)) return;
         void load(resumeId);
     });
 </script>
