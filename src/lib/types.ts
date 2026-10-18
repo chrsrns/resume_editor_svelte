@@ -335,6 +335,147 @@ export type UpdatePortfolioTechnologyRequest = {
     display_order?: number | null;
 };
 
+export type ResumeRevisionSummary = {
+    revision: number;
+    created_at: string;
+    created_by: number;
+    action: string;
+    is_restore: boolean;
+};
+
+export type SnapshotEducation = {
+    id: number;
+    education_stage: string;
+    institution_name: string;
+    degree: string | null;
+    start_date: string;
+    end_date: string | null;
+    description: string | null;
+    display_order: number | null;
+    active: boolean;
+};
+
+export type SnapshotEducationKeyPoint = {
+    id: number;
+    key_point: string;
+    display_order: number | null;
+    active: boolean;
+};
+
+export type SnapshotSkill = {
+    id: number;
+    skill_name: string;
+    confidence_percentage: number;
+    display_order: number | null;
+};
+
+export type SnapshotWorkExperience = {
+    id: number;
+    job_title: string;
+    company_name: string | null;
+    start_date: string;
+    end_date: string | null;
+    description: string | null;
+    display_order: number | null;
+    active: boolean;
+};
+
+export type SnapshotWorkExperienceKeyPoint = {
+    id: number;
+    key_point: string;
+    display_order: number | null;
+    active: boolean;
+};
+
+export type SnapshotPortfolioProject = {
+    id: number;
+    project_name: string;
+    image_url: string | null;
+    project_link: string | null;
+    source_code_link: string | null;
+    video_url: string | null;
+    description: string | null;
+    display_order: number | null;
+    active: boolean;
+};
+
+export type SnapshotPortfolioKeyPoint = {
+    id: number;
+    key_point: string;
+    display_order: number | null;
+    active: boolean;
+};
+
+export type SnapshotPortfolioTechnology = {
+    id: number;
+    technology_name: string;
+    display_order: number | null;
+    active: boolean;
+};
+
+export type SnapshotLanguage = {
+    id: number;
+    language_name: string;
+    display_order: number | null;
+};
+
+export type SnapshotFramework = {
+    id: number;
+    framework_name: string;
+    display_order: number | null;
+};
+
+export type ResumeSnapshot = {
+    schema_version: number;
+    name: string;
+    profile_image_url: string | null;
+    location: string | null;
+    email: string;
+    github_url: string | null;
+    mobile_number: string | null;
+    executive_summary: string | null;
+    video: string | null;
+    visibility: Visibility;
+    company_name: string | null;
+    role_title: string | null;
+    target_date: string | null;
+    target_date_precision: string | null;
+    job_description: string | null;
+    variant_label: string | null;
+    show_variant_tag: boolean;
+    education: SnapshotEducation[];
+    education_key_points: Record<string, SnapshotEducationKeyPoint[]>;
+    skills: SnapshotSkill[];
+    work_experiences: SnapshotWorkExperience[];
+    work_experience_key_points: Record<string, SnapshotWorkExperienceKeyPoint[]>;
+    portfolio_projects: SnapshotPortfolioProject[];
+    portfolio_key_points: Record<string, SnapshotPortfolioKeyPoint[]>;
+    portfolio_technologies: Record<string, SnapshotPortfolioTechnology[]>;
+    languages: SnapshotLanguage[];
+    frameworks: Record<string, SnapshotFramework[]>;
+};
+
+export type ResumeRevision = ResumeRevisionSummary & {
+    snapshot: ResumeSnapshot;
+};
+
+export type RevisionChange = {
+    path: string;
+    kind: 'added' | 'removed' | 'changed';
+    before: unknown;
+    after: unknown;
+};
+
+export type ResumeRevisionDiff = {
+    revision: number;
+    changes: RevisionChange[];
+    unified?: string;
+};
+
+export type RestoreRequest = {
+    expected_revision: number;
+};
+
 export type PartialDate = {
     year: string;
     month: string;
