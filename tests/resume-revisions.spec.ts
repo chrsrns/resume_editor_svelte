@@ -134,6 +134,48 @@ test.describe('revision history page', () => {
         await expect(rows.nth(2)).toContainText('Education');
     });
 
+    test('client-side nav to another resume on the same route reloads title and timeline', async ({
+        page
+    }) => {
+        const resumeId2 = 'r2';
+        await mockBase(page);
+        await mockApiResponse(page, new RegExp(`/api/resume/${resumeId2}$`), 200, {
+            ...resume,
+            id: resumeId2,
+            name: 'Other Resume'
+        });
+        await mockApiResponse(
+            page,
+            new RegExp(`/api/resume/${resumeId2}/revisions$`),
+            200,
+            [
+                {
+                    revision: 5,
+                    created_at: '2026-03-05T10:00:00',
+                    created_by: 1,
+                    action: 'languages',
+                    is_restore: false
+                }
+            ]
+        );
+        await page.goto(`${base}/revisions`);
+        await expect(page.locator('h1')).toHaveText('Test Resume');
+        await expect(page.locator('a.row')).toHaveCount(3);
+
+        await page.evaluate((href) => {
+            const anchor = document.createElement('a');
+            anchor.href = href;
+            document.body.appendChild(anchor);
+            anchor.click();
+        }, `/resume_editor/resumes/${resumeId2}/revisions`);
+
+        await expect(page).toHaveURL(new RegExp(`/resumes/${resumeId2}/revisions`));
+        await expect(page.locator('h1')).toHaveText('Other Resume');
+        await expect(page.locator('a.row')).toHaveCount(1);
+        await expect(page.locator('a.row').first()).toContainText('#5');
+        await expect(page.locator('a.row').first()).toContainText('Languages');
+    });
+
     test('shows the ghost state for an empty chain', async ({ page }) => {
         await setAuthToken(page);
         await mockApiResponse(page, '**/api/auth/me', 200, owner);
