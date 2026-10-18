@@ -12,7 +12,12 @@
     import MarkdownFilePicker from '$lib/components/ui/MarkdownFilePicker.svelte';
     import VariantGroup from '$lib/components/VariantGroup.svelte';
     import VariantRow from '$lib/components/VariantRow.svelte';
-    import { buildResumeListEntries } from '$lib/variants';
+    import TextInput from '$lib/components/ui/TextInput.svelte';
+    import {
+        buildResumeListEntries,
+        filterResumeListEntries,
+        parseSearchTerms
+    } from '$lib/variants';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import FileUp from '@lucide/svelte/icons/file-up';
 
@@ -24,8 +29,24 @@
     let importErrorOpen = $state(false);
     let importErrorTitle = $state('Import failed');
     let importErrorMessage = $state('');
+    let query = $state('');
+    let activeQuery = $state('');
 
-    const listEntries = $derived(buildResumeListEntries(resumes));
+    $effect(() => {
+        const pending = query;
+        const timer = setTimeout(() => {
+            activeQuery = pending;
+        }, 200);
+        return () => clearTimeout(timer);
+    });
+
+    const searchTerms = $derived(parseSearchTerms(activeQuery));
+    const searching = $derived(searchTerms.length > 0);
+    const listEntries = $derived(
+        searching
+            ? filterResumeListEntries(buildResumeListEntries(resumes), searchTerms)
+            : buildResumeListEntries(resumes)
+    );
 
     function isOwned(resume: Resume): boolean {
         return $currentUser !== null && resume.created_by === $currentUser.id;
@@ -105,12 +126,23 @@
     onclose={closeImportError}
 />
 
+<div class="searchRow">
+    <TextInput
+        bind:value={query}
+        label="Search resumes"
+        placeholder="Search resumes"
+        aria-label="Search resumes"
+    />
+</div>
+
 {#if loading}
     <p>Loading…</p>
 {:else if error}
     <p class="error">{error}</p>
 {:else if resumes.length === 0}
     <p class="muted">No resumes found.</p>
+{:else if searching && listEntries.length === 0}
+    <p class="muted">No resumes match "{activeQuery.trim()}".</p>
 {:else}
     <ul class="list">
         {#each listEntries as entry (entry.kind === 'group' ? `group-${entry.base.id}` : `orphan-${entry.resume.id}`)}
@@ -119,6 +151,7 @@
                     base={entry.base}
                     variants={entry.variants}
                     owned={isOwned(entry.base)}
+                    matchIds={searching ? entry.matchIds : undefined}
                 />
             {:else}
                 <li class="item">
@@ -149,6 +182,10 @@
         flex-wrap: wrap;
     }
 
+
+    .searchRow {
+        margin-top: var(--space-4);
+    }
 
     .list {
         list-style: none;
