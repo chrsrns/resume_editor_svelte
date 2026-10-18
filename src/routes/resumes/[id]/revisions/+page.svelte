@@ -142,7 +142,14 @@
         {:else if selectionState.kind === 'selected'}
             <section class="panelRegion" aria-label="Revision panel">
                 {#key selectionState.n}
-                    <RevisionPanel {resumeId} n={selectionState.n} {closeHref} />
+                    <RevisionPanel
+                        {resumeId}
+                        n={selectionState.n}
+                        {closeHref}
+                        onunauthorized={() => void goto(resolve('/auth/login'))}
+                        oninaccessible={() => (inaccessible = true)}
+                        onerror={showHistoryError}
+                    />
                 {/key}
             </section>
         {/if}
