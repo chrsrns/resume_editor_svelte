@@ -27,3 +27,4 @@ After completing the code, ask the user if they want a playground link. Only cal
 - `npm run check` — svelte-kit sync + svelte-check + TypeScript strict.
 - `npm run test:unit` — Vitest unit tests for pure helpers under `src/**/*.{test,spec}.{js,ts}`.
 - `npm run test` — Playwright E2E suite (uses `npm run dev` via `playwright.config.ts`).
+- `npm run lint` — `prettier --check` + `eslint --max-warnings 0` repo-wide.
