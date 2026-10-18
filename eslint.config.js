@@ -40,10 +40,6 @@ export default defineConfig(
         rules: { 'svelte/no-navigation-without-resolve': 'off' }
     },
     {
-        files: ['src/lib/stores/draft/draftStore.ts'],
-        rules: { '@typescript-eslint/no-explicit-any': 'warn' }
-    },
-    {
         files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 
         languageOptions: {
