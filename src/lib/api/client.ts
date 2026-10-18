@@ -20,6 +20,31 @@ export class ApiError extends Error {
     }
 }
 
+/**
+ * Error message precedence: an envelope `body` string renders verbatim, else the
+ * Rocket default catcher's `reason` and `description`, else the caller's
+ * fallback. Rocket content-negotiates on `Accept`, and every request here asks
+ * for JSON, so a framework-level rejection arrives as `{error:{…}}` with no
+ * `body` key at all.
+ */
+export function apiErrorMessage(payload: unknown, fallback: string): string {
+    if (payload === null || typeof payload !== 'object') return fallback;
+
+    const { body, error } = payload as { body?: unknown; error?: unknown };
+
+    if (typeof body === 'string') return body;
+
+    if (error !== null && typeof error === 'object') {
+        const { reason, description } = error as { reason?: unknown; description?: unknown };
+        const parts = [reason, description].filter(
+            (part): part is string => typeof part === 'string' && part.length > 0
+        );
+        if (parts.length > 0) return parts.join(': ');
+    }
+
+    return fallback;
+}
+
 async function parseJsonResponse<T>(res: Response): Promise<ApiResponse<T>> {
     const text = await res.text();
     try {
@@ -122,11 +147,7 @@ export async function apiRequest<T = unknown>(
     }
 
     if (!res.ok) {
-        if (typeof body === 'string') {
-            throw new ApiError(res.status, body);
-        }
-
-        throw new ApiError(res.status, 'Request failed');
+        throw new ApiError(res.status, apiErrorMessage(parsed, 'Request failed'));
     }
 
     return { res, body };
