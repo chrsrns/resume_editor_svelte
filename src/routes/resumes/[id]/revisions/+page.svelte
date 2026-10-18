@@ -15,9 +15,11 @@
     import RevisionTimeline from '$lib/components/revisions/RevisionTimeline.svelte';
     import RevisionPanel from '$lib/components/revisions/RevisionPanel.svelte';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+    import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
     let loading = $state(true);
     let inaccessible = $state(false);
+    let loadError = $state<string | null>(null);
     let resume = $state<Resume | null>(null);
     let revisions = $state<ResumeRevisionSummary[]>([]);
 
@@ -64,6 +66,7 @@
     async function load(id: string) {
         loading = true;
         inaccessible = false;
+        loadError = null;
         const stale = () => page.params.id !== id;
         const [titleRes, revRes] = await Promise.allSettled([
             getResume(id),
@@ -82,6 +85,7 @@
         if (failures.some(isInaccessible)) {
             inaccessible = true;
         } else if (failures.length > 0) {
+            loadError = failures[0] instanceof ApiError ? failures[0].message : 'Request failed';
             showHistoryError('History unavailable', failures[0]);
         } else {
             resume = (titleRes as PromiseFulfilledResult<Resume>).value;
@@ -137,6 +141,12 @@
     <Button variant="secondary" href={resolve(`/resumes/${resumeId}`)}>
         {#snippet icon()}<ChevronLeft size={16} />{/snippet}
         Back
+    </Button>
+{:else if loadError}
+    <p class="stateText error">{loadError}</p>
+    <Button variant="secondary" onclick={() => load(resumeId)} disabled={loading}>
+        {#snippet icon()}<RefreshCw size={16} />{/snippet}
+        Retry
     </Button>
 {:else}
     <header class="pageHead">
@@ -196,6 +206,10 @@
     .stateText {
         margin: var(--space-6) 0;
         color: var(--color-muted);
+    }
+
+    .error {
+        color: var(--color-danger);
     }
 
     .pageHead {
