@@ -6,7 +6,12 @@
     import Button from './ui/Button.svelte';
     import VariantRow from './VariantRow.svelte';
 
-    let { base, variants, owned = false, matchIds } = $props<{
+    let {
+        base,
+        variants,
+        owned = false,
+        matchIds
+    } = $props<{
         base: Resume;
         variants: Resume[];
         owned?: boolean;
@@ -24,7 +29,9 @@
             : sortedVariants.filter((variant) => matchIds.has(variant.id))
     );
     const variantCountLabel = $derived(
-        variants.length === 0 ? 'no variants' : `${variants.length} variant${variants.length === 1 ? '' : 's'}`
+        variants.length === 0
+            ? 'no variants'
+            : `${variants.length} variant${variants.length === 1 ? '' : 's'}`
     );
     const variantsListId = $derived(`resume-${base.id}-variants`);
 </script>

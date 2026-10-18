@@ -73,10 +73,6 @@
             checkMaxLen('Variant label', variantLabel, FIELD_LIMITS.variant_label) ??
             checkMaxLen('Job description', jobDescription, FIELD_LIMITS.job_description)
         );
-        if (targetDate.trim() && !/^\d{4}(-\d{2}(-\d{2})?)?$/.test(targetDate.trim())) {
-            return 'Target date must be YYYY, YYYY-MM, or YYYY-MM-DD';
-        }
-        return null;
     }
 
     async function handleSubmit(event: SubmitEvent) {
@@ -152,10 +148,7 @@
             oninput={(e) => (jobDescription = (e.currentTarget as HTMLTextAreaElement).value)}
         />
 
-        <VisibilityRadioGroup
-            value={visibility}
-            onchange={(v) => (visibility = v)}
-        />
+        <VisibilityRadioGroup value={visibility} onchange={(v) => (visibility = v)} />
         <div class="checkboxRow">
             <label class="checkboxLabel">
                 <input type="checkbox" bind:checked={showVariantTag} />

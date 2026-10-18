@@ -74,11 +74,8 @@
             return false;
         }
         const lenError =
-            checkMaxLen(
-                'Executive summary',
-                executive_summary,
-                FIELD_LIMITS.executive_summary
-            ) ?? checkMaxLen('Video', video, FIELD_LIMITS.video_url);
+            checkMaxLen('Executive summary', executive_summary, FIELD_LIMITS.executive_summary) ??
+            checkMaxLen('Video', video, FIELD_LIMITS.video_url);
         if (lenError) {
             validationError = lenError;
             return false;
@@ -158,10 +155,7 @@
             title="Optional. A short professional summary."
         />
 
-        <VisibilityRadioGroup
-            value={visibility}
-            onchange={(v) => (visibility = v)}
-        />
+        <VisibilityRadioGroup value={visibility} onchange={(v) => (visibility = v)} />
 
         {#if validationError}
             <p class="error-message">{validationError}</p>

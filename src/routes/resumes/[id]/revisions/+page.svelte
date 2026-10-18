@@ -38,13 +38,13 @@
               : selection
     );
     const selectedN = $derived(selectionState.kind === 'selected' ? selectionState.n : null);
-    const closeHref = $derived.by(() => {
+    const closeQuery = $derived.by(() => {
         const params = new SvelteURLSearchParams(page.url.searchParams);
         params.delete('n');
         const qs = params.toString();
-        const base = resolve(`/resumes/${resumeId}/revisions`);
-        return qs ? `${base}?${qs}` : base;
+        return qs ? `?${qs}` : '';
     });
+    const closeHref = $derived(`${resolve(`/resumes/${resumeId}/revisions`)}${closeQuery}`);
 
     function showHistoryError(title: string, e: unknown) {
         historyErrorTitle = title;
@@ -57,10 +57,7 @@
     }
 
     function isInaccessible(e: unknown): boolean {
-        return (
-            e instanceof ApiError &&
-            (e.status === 403 || e.status === 404 || e.status === 422)
-        );
+        return e instanceof ApiError && (e.status === 403 || e.status === 404 || e.status === 422);
     }
 
     async function load(id: string) {
@@ -68,10 +65,7 @@
         inaccessible = false;
         loadError = null;
         const stale = () => page.params.id !== id;
-        const [titleRes, revRes] = await Promise.allSettled([
-            getResume(id),
-            listRevisions(id)
-        ]);
+        const [titleRes, revRes] = await Promise.allSettled([getResume(id), listRevisions(id)]);
         if (stale()) return;
 
         const failures = [titleRes, revRes]
@@ -170,9 +164,7 @@
             <section class="panelRegion" aria-label="Revision panel">
                 <div class="panelWall">
                     <h2>Revision not found</h2>
-                    <p>
-                        The requested revision is malformed or does not exist for this resume.
-                    </p>
+                    <p>The requested revision is malformed or does not exist for this resume.</p>
                     <Button variant="secondary" href={closeHref}>
                         {#snippet icon()}<ChevronLeft size={16} />{/snippet}
                         Back to timeline
@@ -185,7 +177,7 @@
                     <RevisionPanel
                         {resumeId}
                         n={selectionState.n}
-                        {closeHref}
+                        {closeQuery}
                         onunauthorized={() => void goto(resolve('/auth/login'))}
                         oninaccessible={() => (inaccessible = true)}
                         onerror={showHistoryError}

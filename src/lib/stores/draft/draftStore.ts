@@ -276,7 +276,10 @@ export function createDraftListStore<
         return actions;
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
+    function applySaveResults(
+        tempIdMap: Map<number, number>,
+        succeededDeleteIds?: Set<number>
+    ): void {
         state.drafts = state.drafts
             .map((d) => {
                 if (d._status === 'new' && tempIdMap.has(d.id)) {
@@ -286,7 +289,10 @@ export function createDraftListStore<
                         _status: 'existing' as DraftStatus
                     };
                 }
-                if (d._status === 'deleted' && (d.id < 0 || (succeededDeleteIds?.has(d.id) ?? false))) {
+                if (
+                    d._status === 'deleted' &&
+                    (d.id < 0 || (succeededDeleteIds?.has(d.id) ?? false))
+                ) {
                     return null;
                 }
                 return d;
@@ -674,7 +680,10 @@ export function createChildGroupStore<
         return actions;
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
+    function applySaveResults(
+        tempIdMap: Map<number, number>,
+        succeededDeleteIds?: Set<number>
+    ): void {
         const nextDraftsMap: Record<number, DraftItem<TDraft>[]> = {};
 
         for (const parentId of Object.keys(state.draftsMap)) {
@@ -765,10 +774,24 @@ export function createChildGroupStore<
     };
 }
 
+interface AnyChildGroupStore {
+    initialize(data: unknown[]): void;
+    addGroup(parentId: number): void;
+    removeGroup(parentId: number): void;
+    removeAllInGroup(parentId: number): void;
+    validateAll(): boolean;
+    getValidationErrors(): string[];
+    isDirty(): boolean;
+    resetToBaseline(): void;
+    applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void;
+    commitBaseline(): void;
+    computeDiff(): DraftAction[];
+}
+
 export interface ParentChildSection<
     TPDraft extends { id: number; display_order: string },
     TPBaseline extends { id: number; display_order: number | null },
-    TChildren extends Record<string, { label: string; store: ChildGroupStore<any, any> }>
+    TChildren extends Record<string, { label: string; store: AnyChildGroupStore }>
 > {
     parent: DraftListStore<TPDraft, TPBaseline>;
     children: { [K in keyof TChildren]: TChildren[K]['store'] };
@@ -778,9 +801,7 @@ export interface ParentChildSection<
     initialize(
         parentData: TPBaseline[],
         childrenData: {
-            [K in keyof TChildren]: TChildren[K] extends { store: ChildGroupStore<any, infer TB> }
-                ? TB[]
-                : never;
+            [K in keyof TChildren]?: unknown[];
         }
     ): void;
     addParent(draft: Omit<TPDraft, 'id' | 'display_order'>): number;
@@ -804,34 +825,27 @@ export interface ParentChildSection<
 export function createParentChildSection<
     TPDraft extends { id: number; display_order: string },
     TPBaseline extends { id: number; display_order: number | null },
-    TChildren extends Record<string, { label: string; store: ChildGroupStore<any, any> }>
+    TChildren extends Record<string, { label: string; store: AnyChildGroupStore }>
 >(
     parentStore: DraftListStore<TPDraft, TPBaseline>,
     children: TChildren,
     parentLabel: string
 ): ParentChildSection<TPDraft, TPBaseline, TChildren> {
-    function getChildStores(): ChildGroupStore<any, any>[] {
-        return (
-            Object.values(children) as { label: string; store: ChildGroupStore<any, any> }[]
-        ).map((c) => c.store);
+    function getChildStores(): AnyChildGroupStore[] {
+        return Object.values(children).map((c) => c.store);
     }
 
     function initialize(
         parentData: TPBaseline[],
         childrenData: {
-            [K in keyof TChildren]: TChildren[K] extends { store: ChildGroupStore<any, infer TB> }
-                ? TB[]
-                : never;
+            [K in keyof TChildren]?: unknown[];
         }
     ): void {
         parentStore.initialize(parentData);
         const dataMap = childrenData as unknown as Record<string, unknown[]>;
-        for (const [key, child] of Object.entries(children) as [
-            string,
-            { label: string; store: ChildGroupStore<any, any> }
-        ][]) {
+        for (const [key, child] of Object.entries(children)) {
             const data = dataMap[key] ?? [];
-            child.store.initialize(data as any);
+            child.store.initialize(data);
         }
     }
 
@@ -895,7 +909,7 @@ export function createParentChildSection<
         }
         for (const { label, store } of Object.values(children) as {
             label: string;
-            store: ChildGroupStore<any, any>;
+            store: AnyChildGroupStore;
         }[]) {
             for (const error of store.getValidationErrors()) {
                 errors.push(`${label}: ${error}`);
@@ -919,7 +933,10 @@ export function createParentChildSection<
         }
     }
 
-    function applySaveResults(tempIdMap: Map<number, number>, succeededDeleteIds?: Set<number>): void {
+    function applySaveResults(
+        tempIdMap: Map<number, number>,
+        succeededDeleteIds?: Set<number>
+    ): void {
         parentStore.applySaveResults(tempIdMap, succeededDeleteIds);
         for (const child of getChildStores()) {
             child.applySaveResults(tempIdMap, succeededDeleteIds);
@@ -960,7 +977,7 @@ export function createParentChildSection<
 
     const childStores = {} as { [K in keyof TChildren]: TChildren[K]['store'] };
     for (const key of Object.keys(children)) {
-        (childStores as any)[key] = (children as any)[key].store;
+        (childStores as Record<string, AnyChildGroupStore>)[key] = children[key].store;
     }
 
     return {
@@ -989,7 +1006,10 @@ export function createParentChildSection<
     };
 }
 
-export interface DraftItemState<TDraft extends { id: number | string }, TBaseline extends { id: number | string }> {
+export interface DraftItemState<
+    TDraft extends { id: number | string },
+    TBaseline extends { id: number | string }
+> {
     draft: DraftItem<TDraft> | null;
     baseline: TBaseline | null;
     saving: boolean;
@@ -1019,7 +1039,10 @@ export interface DraftItemStoreConfig<
     buildPayload: (draft: TDraft) => unknown;
 }
 
-export interface DraftItemStore<TDraft extends { id: number | string }, TBaseline extends { id: number | string }> {
+export interface DraftItemStore<
+    TDraft extends { id: number | string },
+    TBaseline extends { id: number | string }
+> {
     initialize(baseline: TBaseline): void;
     getDraft(): DraftItem<TDraft>;
     getField<K extends keyof TDraft>(field: K): TDraft[K];

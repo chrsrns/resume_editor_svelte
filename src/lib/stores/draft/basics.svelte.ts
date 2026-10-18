@@ -107,10 +107,7 @@ const store = createDraftItemStore<BasicsDraft, BaselineBasics>({
             if (variantLenError) {
                 return variantLenError;
             }
-            if (
-                d.target_date.trim() &&
-                !/^\d{4}(-\d{2}(-\d{2})?)?$/.test(d.target_date.trim())
-            ) {
+            if (d.target_date.trim() && !/^\d{4}(-\d{2}(-\d{2})?)?$/.test(d.target_date.trim())) {
                 return 'Target date must be YYYY, YYYY-MM, or YYYY-MM-DD';
             }
         }

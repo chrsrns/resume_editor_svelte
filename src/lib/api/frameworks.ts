@@ -1,13 +1,10 @@
-import { apiRequest, apiCall, ApiError } from './client';
+import { apiRequest, apiCall } from './client';
 import type { Framework, NewFrameworkRequest, UpdateFrameworkRequest } from '$lib/types';
 
 export async function listFrameworks(resumeId: string, languageId: number): Promise<Framework[]> {
-    return apiCall<Framework[]>(
-        `/resume/${resumeId}/languages/${languageId}/frameworks`,
-        {
-            auth: true
-        }
-    );
+    return apiCall<Framework[]>(`/resume/${resumeId}/languages/${languageId}/frameworks`, {
+        auth: true
+    });
 }
 
 export async function createFramework(
@@ -15,14 +12,11 @@ export async function createFramework(
     languageId: number,
     payload: NewFrameworkRequest
 ): Promise<Framework> {
-    return apiCall<Framework>(
-        `/resume/${resumeId}/languages/${languageId}/frameworks`,
-        {
-            method: 'POST',
-            body: payload,
-            auth: true
-        }
-    );
+    return apiCall<Framework>(`/resume/${resumeId}/languages/${languageId}/frameworks`, {
+        method: 'POST',
+        body: payload,
+        auth: true
+    });
 }
 
 export async function updateFramework(

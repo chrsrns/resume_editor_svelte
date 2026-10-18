@@ -86,7 +86,6 @@
         return found ? found.id : 'basics';
     }
 
-
     let loading = $state(true);
     let sectionLoading = $state(false);
     let error = $state<string | null>(null);
@@ -401,10 +400,7 @@
             {#if resume.variant_label}
                 <span class="badge">{resume.variant_label}</span>
             {/if}
-            <a
-                class="baseLink"
-                href={resolve(`/resumes/${resume.base_resume_id}`)}
-            >
+            <a class="baseLink" href={resolve(`/resumes/${resume.base_resume_id}`)}>
                 Variant of {baseResumeName ?? `resume #${resume.base_resume_id}`}
             </a>
         </div>
@@ -457,11 +453,7 @@
         <ExecutiveSummaryCard summary={resume.executive_summary} />
 
         <div class="card">
-            <FieldRow
-                Icon={Eye}
-                label="Visibility"
-                value={visibilityLabel(resume.visibility)}
-            />
+            <FieldRow Icon={Eye} label="Visibility" value={visibilityLabel(resume.visibility)} />
             <FieldRow Icon={Mail} label="Email" value={resume.email} />
             <FieldRow
                 Icon={Image}
@@ -950,7 +942,6 @@
         outline: 2px solid var(--color-primary);
         outline-offset: 2px;
     }
-
 
     @media (max-width: 640px) {
         .sectionHead,

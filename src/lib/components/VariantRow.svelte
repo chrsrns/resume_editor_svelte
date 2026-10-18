@@ -3,7 +3,11 @@
     import { visibilityClass, visibilityLabel, type Resume } from '$lib/types';
     import { formatVariantTargetDate, variantPrimaryText } from '$lib/variants';
 
-    let { resume, orphan = false, owned = false } = $props<{
+    let {
+        resume,
+        orphan = false,
+        owned = false
+    } = $props<{
         resume: Resume;
         orphan?: boolean;
         owned?: boolean;
@@ -13,11 +17,7 @@
     const targetDate = $derived(formatVariantTargetDate(resume.target_date));
 </script>
 
-<a
-    class="variantLink"
-    class:orphan
-    href={resolve('/resumes/[id]', { id: resume.id })}
->
+<a class="variantLink" class:orphan href={resolve('/resumes/[id]', { id: resume.id })}>
     {#if !orphan}
         <span class="nestArrow" aria-hidden="true">↳</span>
     {/if}

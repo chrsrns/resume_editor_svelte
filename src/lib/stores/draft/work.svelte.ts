@@ -150,7 +150,10 @@ const keyPointsStore = createChildGroupStore<KeyPointDraft, WorkExperienceKeyPoi
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload = keyPointFields.buildUpdatePayload(d, b) as UpdateWorkExperienceKeyPointRequest;
+        const payload = keyPointFields.buildUpdatePayload(
+            d,
+            b
+        ) as UpdateWorkExperienceKeyPointRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;

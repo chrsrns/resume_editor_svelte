@@ -53,8 +53,23 @@ describe('parseRevisionParam', () => {
     });
 
     it('rejects malformed, non-positive, and overflowing values', () => {
-        for (const raw of ['0', '-1', '01', '1.5', '0x10', '1e2', '+1', ' 1', '1 ', '', 'abc', '2147483648']) {
-            expect(parseRevisionParam(raw), `raw=${JSON.stringify(raw)}`).toEqual({ kind: 'invalid' });
+        for (const raw of [
+            '0',
+            '-1',
+            '01',
+            '1.5',
+            '0x10',
+            '1e2',
+            '+1',
+            ' 1',
+            '1 ',
+            '',
+            'abc',
+            '2147483648'
+        ]) {
+            expect(parseRevisionParam(raw), `raw=${JSON.stringify(raw)}`).toEqual({
+                kind: 'invalid'
+            });
         }
     });
 });
@@ -155,7 +170,9 @@ describe('snapshotToSections', () => {
                 active: true
             }
         ];
-        snap.education_key_points = { '999': [{ id: 1, key_point: 'orphan', display_order: null, active: true }] };
+        snap.education_key_points = {
+            '999': [{ id: 1, key_point: 'orphan', display_order: null, active: true }]
+        };
 
         expect(snapshotToSections(snap).educations[0].keyPoints).toEqual([]);
 
@@ -198,7 +215,9 @@ describe('snapshotToSections', () => {
                 active: true
             }
         ];
-        snap.portfolio_key_points = { '5': [{ id: 1, key_point: 'kp', display_order: null, active: true }] };
+        snap.portfolio_key_points = {
+            '5': [{ id: 1, key_point: 'kp', display_order: null, active: true }]
+        };
         snap.portfolio_technologies = {
             '5': [{ id: 2, technology_name: 'Svelte', display_order: null, active: true }]
         };

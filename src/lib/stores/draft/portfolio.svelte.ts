@@ -185,7 +185,10 @@ const technologiesStore = createChildGroupStore<TechnologyDraft, PortfolioTechno
         display_order: toNumberOrNull(d.display_order)
     }),
     buildUpdatePayload: (d, b) => {
-        const payload = technologyFields.buildUpdatePayload(d, b) as UpdatePortfolioTechnologyRequest;
+        const payload = technologyFields.buildUpdatePayload(
+            d,
+            b
+        ) as UpdatePortfolioTechnologyRequest;
         const newOrder = toNumberOrNull(d.display_order);
         if (newOrder !== b.display_order) {
             payload.display_order = newOrder;

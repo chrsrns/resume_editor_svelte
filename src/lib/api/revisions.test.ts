@@ -11,7 +11,10 @@ function jsonResponse(status: number, payload: unknown): Response {
 
 function lastCall(): { url: string; init: RequestInit } {
     const calls = vi.mocked(fetch).mock.calls;
-    return { url: calls[calls.length - 1][0] as string, init: calls[calls.length - 1][1] as RequestInit };
+    return {
+        url: calls[calls.length - 1][0] as string,
+        init: calls[calls.length - 1][1] as RequestInit
+    };
 }
 
 beforeEach(() => {
@@ -23,7 +26,15 @@ beforeEach(() => {
 
 describe('revision API functions', () => {
     it('listRevisions GETs the timeline with a bearer header', async () => {
-        const rows = [{ revision: 1, created_at: '2026-01-01T00:00:00', created_by: 1, action: 'personalinfo', is_restore: false }];
+        const rows = [
+            {
+                revision: 1,
+                created_at: '2026-01-01T00:00:00',
+                created_by: 1,
+                action: 'personalinfo',
+                is_restore: false
+            }
+        ];
         vi.mocked(fetch).mockResolvedValue(jsonResponse(200, { body: rows }));
 
         await expect(listRevisions('r1')).resolves.toEqual(rows);

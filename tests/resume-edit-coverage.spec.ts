@@ -250,8 +250,8 @@ test('add language with framework and save', async ({ page }) => {
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
 
     expect(languageRequestBody).toMatchObject({ language_name: 'TypeScript' });
-    expect(frameworkUrl).toBe(
-        `http://localhost:5173/api/resume/${resumeId}/languages/${languageId}/frameworks`
+    expect(new URL(frameworkUrl!).pathname).toBe(
+        `/api/resume/${resumeId}/languages/${languageId}/frameworks`
     );
 });
 
@@ -453,8 +453,8 @@ test('delete language removes framework before language', async ({ page }) => {
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
     await closeSavePopup(page);
 
-    expect(frameworkUrl).toBe(
-        `http://localhost:5173/api/resume/${resumeId}/languages/${languageId}/frameworks`
+    expect(new URL(frameworkUrl!).pathname).toBe(
+        `/api/resume/${resumeId}/languages/${languageId}/frameworks`
     );
 
     const deleteOrder: string[] = [];
@@ -558,8 +558,8 @@ test('delete education removes key point before education', async ({ page }) => 
     await expect(page.getByText('All changes saved successfully!')).toBeVisible();
     await closeSavePopup(page);
 
-    expect(keyPointUrl).toBe(
-        `http://localhost:5173/api/resume/${resumeId}/education/${educationId}/key_points`
+    expect(new URL(keyPointUrl!).pathname).toBe(
+        `/api/resume/${resumeId}/education/${educationId}/key_points`
     );
 
     const deleteOrder: string[] = [];
@@ -1004,8 +1004,18 @@ test('update portfolio project video_url sends update', async ({ page }) => {
     );
 
     let updatePayload: unknown = null;
-    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/key_points`, 200, []);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/technologies`, 200, []);
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/portfolio_projects/*/key_points`,
+        200,
+        []
+    );
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/portfolio_projects/*/technologies`,
+        200,
+        []
+    );
     await mockApiMethods(page, `**/api/portfolio_projects/${projectId}`, {
         PUT: {
             status: 200,

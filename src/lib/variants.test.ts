@@ -47,10 +47,14 @@ describe('resume variant helpers', () => {
 
         const entries = buildResumeListEntries([baseOne, baseTwo, variant, orphan]);
 
-        expect(entries.map((entry) => (entry.kind === 'group' ? entry.base.id : entry.resume.id))).toEqual([
-            'b1', 'b2', 'o1'
-        ]);
-        expect(entries[0]).toMatchObject({ kind: 'group', base: { id: 'b1' }, variants: [{ id: 'v1' }] });
+        expect(
+            entries.map((entry) => (entry.kind === 'group' ? entry.base.id : entry.resume.id))
+        ).toEqual(['b1', 'b2', 'o1']);
+        expect(entries[0]).toMatchObject({
+            kind: 'group',
+            base: { id: 'b1' },
+            variants: [{ id: 'v1' }]
+        });
         expect(entries[1]).toMatchObject({ kind: 'group', base: { id: 'b2' }, variants: [] });
         expect(entries[2]).toMatchObject({ kind: 'orphan', resume: { id: 'o1' } });
     });
@@ -79,8 +83,18 @@ describe('resume variant helpers', () => {
 
     it('sorts grouped variants without mutating the GET response order', () => {
         const base = resume({ id: 'b1' });
-        const older = resume({ id: 'v1', is_variant: true, base_resume_id: 'b1', target_date: '2025' });
-        const newer = resume({ id: 'v2', is_variant: true, base_resume_id: 'b1', target_date: '2026' });
+        const older = resume({
+            id: 'v1',
+            is_variant: true,
+            base_resume_id: 'b1',
+            target_date: '2025'
+        });
+        const newer = resume({
+            id: 'v2',
+            is_variant: true,
+            base_resume_id: 'b1',
+            target_date: '2026'
+        });
         const response = [base, older, newer];
 
         const entries = buildResumeListEntries(response);

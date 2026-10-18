@@ -4,8 +4,18 @@ import { mockApiResponse, mockApiMethods, setAuthToken } from './mocks';
 const resumeId = 'r1';
 const base = `/resume_editor/resumes/${resumeId}`;
 
-const owner = { id: 1, email: 'owner@example.com', created_at: '2024-01-01', updated_at: '2024-01-01' };
-const otherUser = { id: 2, email: 'other@example.com', created_at: '2024-01-01', updated_at: '2024-01-01' };
+const owner = {
+    id: 1,
+    email: 'owner@example.com',
+    created_at: '2024-01-01',
+    updated_at: '2024-01-01'
+};
+const otherUser = {
+    id: 2,
+    email: 'other@example.com',
+    created_at: '2024-01-01',
+    updated_at: '2024-01-01'
+};
 
 const resume = {
     id: resumeId,
@@ -33,9 +43,27 @@ const resume = {
 };
 
 const revisions = [
-    { revision: 3, created_at: '2026-03-02T10:00:00', created_by: 1, action: 'skills', is_restore: false },
-    { revision: 2, created_at: '2026-03-01T10:00:00', created_by: 1, action: 'personalinfo', is_restore: true },
-    { revision: 1, created_at: '2026-02-28T10:00:00', created_by: 1, action: 'education', is_restore: false }
+    {
+        revision: 3,
+        created_at: '2026-03-02T10:00:00',
+        created_by: 1,
+        action: 'skills',
+        is_restore: false
+    },
+    {
+        revision: 2,
+        created_at: '2026-03-01T10:00:00',
+        created_by: 1,
+        action: 'personalinfo',
+        is_restore: true
+    },
+    {
+        revision: 1,
+        created_at: '2026-02-28T10:00:00',
+        created_by: 1,
+        action: 'education',
+        is_restore: false
+    }
 ];
 
 const snapshot = {
@@ -69,7 +97,9 @@ const snapshot = {
             active: false
         }
     ],
-    education_key_points: { '7': [{ id: 11, key_point: 'Honors', display_order: 1, active: true }] },
+    education_key_points: {
+        '7': [{ id: 11, key_point: 'Honors', display_order: 1, active: true }]
+    },
     skills: [],
     work_experiences: [],
     work_experience_key_points: {},
@@ -100,9 +130,7 @@ const diff2 = {
 const resumeUrl = new RegExp(`/api/resume/${resumeId}$`);
 const revisionsUrl = new RegExp(`/api/resume/${resumeId}/revisions$`);
 const rev2Url = new RegExp(`/api/resume/${resumeId}/revisions/2$`);
-const rev3Url = new RegExp(`/api/resume/${resumeId}/revisions/3$`);
 const diff2Url = new RegExp(`/api/resume/${resumeId}/revisions/2/diff`);
-const diff3Url = new RegExp(`/api/resume/${resumeId}/revisions/3/diff`);
 const restore2Url = new RegExp(`/api/resume/${resumeId}/revisions/2/restore$`);
 const anyRevisionSubUrl = new RegExp(`/api/resume/${resumeId}/revisions/`);
 
@@ -144,20 +172,15 @@ test.describe('revision history page', () => {
             id: resumeId2,
             name: 'Other Resume'
         });
-        await mockApiResponse(
-            page,
-            new RegExp(`/api/resume/${resumeId2}/revisions$`),
-            200,
-            [
-                {
-                    revision: 5,
-                    created_at: '2026-03-05T10:00:00',
-                    created_by: 1,
-                    action: 'languages',
-                    is_restore: false
-                }
-            ]
-        );
+        await mockApiResponse(page, new RegExp(`/api/resume/${resumeId2}/revisions$`), 200, [
+            {
+                revision: 5,
+                created_at: '2026-03-05T10:00:00',
+                created_by: 1,
+                action: 'languages',
+                is_restore: false
+            }
+        ]);
         await page.goto(`${base}/revisions`);
         await expect(page.locator('h1')).toHaveText('Test Resume');
         await expect(page.locator('a.row')).toHaveCount(3);
@@ -216,7 +239,9 @@ test.describe('revision history page', () => {
         await expect(page.locator('code.path', { hasText: '/name' })).toBeVisible();
     });
 
-    test('the unified diff is fetched lazily once and toggled without refetch', async ({ page }) => {
+    test('the unified diff is fetched lazily once and toggled without refetch', async ({
+        page
+    }) => {
         await mockBase(page);
         await mockRevision2(page);
         let unifiedCalls = 0;
@@ -252,7 +277,9 @@ test.describe('revision history page', () => {
         await expect(page.getByText('No recorded changes')).toBeVisible();
     });
 
-    test('malformed or out-of-range ?n walls the panel region without a request', async ({ page }) => {
+    test('malformed or out-of-range ?n walls the panel region without a request', async ({
+        page
+    }) => {
         await mockBase(page);
         let subRequests = 0;
         await page.route(anyRevisionSubUrl, async (route) => {
@@ -343,7 +370,9 @@ test.describe('revision history page', () => {
         await expect(page.getByText('Resume not found or is private')).toBeVisible();
     });
 
-    test('restore confirms, sends the refetched head, applies the returned title, reloads', async ({ page }) => {
+    test('restore confirms, sends the refetched head, applies the returned title, reloads', async ({
+        page
+    }) => {
         await mockBase(page);
         await mockRevision2(page);
         await page.goto(`${base}/revisions?n=2`);

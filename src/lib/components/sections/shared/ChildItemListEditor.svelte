@@ -154,11 +154,7 @@
             }
         }}
     />
-    <Button
-        onclick={handleAdd}
-        disabled={saving || newText.trim().length === 0}
-        title={addLabel}
-    >
+    <Button onclick={handleAdd} disabled={saving || newText.trim().length === 0} title={addLabel}>
         {#snippet icon()}<Plus size={16} />{/snippet}
         Add
     </Button>

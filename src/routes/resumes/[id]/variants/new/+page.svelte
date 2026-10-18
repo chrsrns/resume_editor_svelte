@@ -21,8 +21,5 @@
 
 {#if $authToken}
     <h1>New variant</h1>
-    <NewVariantForm
-        {baseId}
-        oncancel={() => goto(resolve(`/resumes/${baseId}`))}
-    />
+    <NewVariantForm {baseId} oncancel={() => goto(resolve(`/resumes/${baseId}`))} />
 {/if}

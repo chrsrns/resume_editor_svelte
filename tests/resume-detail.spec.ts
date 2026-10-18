@@ -151,8 +151,18 @@ test('detail view shows portfolio video_url as link when present', async ({ page
     await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/skills`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects`, 200, [project]);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/key_points`, 200, []);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/technologies`, 200, []);
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/portfolio_projects/*/key_points`,
+        200,
+        []
+    );
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/portfolio_projects/*/technologies`,
+        200,
+        []
+    );
     await mockApiResponse(page, `**/api/resume/${resumeId}/languages`, 200, []);
 
     await page.goto(`/resume_editor/resumes/${resumeId}?tab=portfolio`);
@@ -183,8 +193,18 @@ test('detail view shows dash when portfolio video_url is null', async ({ page })
     await mockApiResponse(page, `**/api/resume/${resumeId}/work_experiences`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/skills`, 200, []);
     await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects`, 200, [project]);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/key_points`, 200, []);
-    await mockApiResponse(page, `**/api/resume/${resumeId}/portfolio_projects/*/technologies`, 200, []);
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/portfolio_projects/*/key_points`,
+        200,
+        []
+    );
+    await mockApiResponse(
+        page,
+        `**/api/resume/${resumeId}/portfolio_projects/*/technologies`,
+        200,
+        []
+    );
     await mockApiResponse(page, `**/api/resume/${resumeId}/languages`, 200, []);
 
     await page.goto(`/resume_editor/resumes/${resumeId}?tab=portfolio`);

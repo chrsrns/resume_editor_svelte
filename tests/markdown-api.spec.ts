@@ -283,7 +283,13 @@ test('import with Video field returns resume with video and shows it', async ({ 
     await openListPage(page);
 
     const videoUrl = 'https://example.com/video';
-    const newResume = { ...resume, id: 'r99', name: 'Imported Resume', created_by: 1, video: videoUrl };
+    const newResume = {
+        ...resume,
+        id: 'r99',
+        name: 'Imported Resume',
+        created_by: 1,
+        video: videoUrl
+    };
 
     await page.route('**/api/resume/import/markdown', async (route) => {
         await route.fulfill({
@@ -306,7 +312,9 @@ test('import with Video field returns resume with video and shows it', async ({ 
     await fileChooser.setFiles({
         name: 'resume.md',
         mimeType: 'text/markdown',
-        buffer: Buffer.from(`# Imported Resume\n\n- Email: test@example.com\n- Video: ${videoUrl}\n`)
+        buffer: Buffer.from(
+            `# Imported Resume\n\n- Email: test@example.com\n- Video: ${videoUrl}\n`
+        )
     });
 
     await expect(page).toHaveURL(`/resume_editor/resumes/r99/edit`);
@@ -430,7 +438,9 @@ test('import 401 clears auth token', async ({ page }) => {
 
 // --- V100: import with portfolio video_url round-trip ---
 
-test('import preserves portfolio project video_url and shows it on detail view', async ({ page }) => {
+test('import preserves portfolio project video_url and shows it on detail view', async ({
+    page
+}) => {
     await openListPage(page);
 
     const videoUrl = 'https://example.com/project-video';

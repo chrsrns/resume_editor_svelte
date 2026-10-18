@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { page } from '$app/state';
+    import { resolve } from '$app/paths';
     import { getRevision, getRevisionDiff, listRevisions, restoreRevision } from '$lib/api/resumes';
     import { ApiError } from '$lib/api/client';
     import { formatRevisionTimestamp, revisionActionLabel } from '$lib/revisions';
@@ -14,7 +15,7 @@
     let {
         resumeId,
         n,
-        closeHref,
+        closeQuery,
         onunauthorized,
         oninaccessible,
         onerror,
@@ -23,7 +24,7 @@
     }: {
         resumeId: string;
         n: number;
-        closeHref: string;
+        closeQuery: string;
         onunauthorized: () => void;
         oninaccessible: () => void;
         onerror: (title: string, e: unknown) => void;
@@ -57,11 +58,7 @@
             loading = false;
             return;
         }
-        if (
-            failures.some(
-                (e) => e instanceof ApiError && (e.status === 403 || e.status === 422)
-            )
-        ) {
+        if (failures.some((e) => e instanceof ApiError && (e.status === 403 || e.status === 422))) {
             oninaccessible();
             return;
         }
@@ -134,7 +131,8 @@
                 <p class="meta">
                     {formatRevisionTimestamp(revision.created_at)} · {revisionActionLabel(
                         revision.action
-                    )}{#if revision.is_restore} · restored{/if}
+                    )}{#if revision.is_restore}
+                        · restored{/if}
                 </p>
             {/if}
         </div>
@@ -150,7 +148,11 @@
                     {restoring ? 'Restoring…' : 'Restore'}
                 </Button>
             {/if}
-            <a class="close" href={closeHref} aria-label="Close revision panel">
+            <a
+                class="close"
+                href="{resolve(`/resumes/${resumeId}/revisions`)}{closeQuery}"
+                aria-label="Close revision panel"
+            >
                 <X size={18} />
             </a>
         </div>

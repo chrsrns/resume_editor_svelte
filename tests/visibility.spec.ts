@@ -73,7 +73,12 @@ for (const visibility of ['private', 'unlisted', 'public'] as Visibility[]) {
         const baseline: Visibility = visibility === 'private' ? 'public' : 'private';
         await openEditPage(page, resume({ visibility: baseline }));
 
-        const label = visibility === 'private' ? 'Private' : visibility === 'unlisted' ? 'Unlisted' : 'Public';
+        const label =
+            visibility === 'private'
+                ? 'Private'
+                : visibility === 'unlisted'
+                  ? 'Unlisted'
+                  : 'Public';
         const radio = page.getByRole('radio', { name: label });
         await radio.check();
         await expect(radio).toBeChecked();

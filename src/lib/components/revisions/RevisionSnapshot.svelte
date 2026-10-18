@@ -33,9 +33,7 @@
     function formatDateRange(start: string, end: string | null): string {
         const startDisplay = formatPartialDateLong(parsePartialDate(start));
         const endDisplay =
-            end && end.trim().length > 0
-                ? formatPartialDateLong(parsePartialDate(end))
-                : 'Present';
+            end && end.trim().length > 0 ? formatPartialDateLong(parsePartialDate(end)) : 'Present';
         return `${startDisplay} - ${endDisplay}`;
     }
 </script>

@@ -1,4 +1,4 @@
-import { apiRequest, apiCall, ApiError } from './client';
+import { apiRequest, apiCall } from './client';
 import type {
     WorkExperience,
     WorkExperienceKeyPoint,
@@ -65,14 +65,11 @@ export async function updateWorkExperienceKeyPoint(
     keyPointId: number,
     payload: UpdateWorkExperienceKeyPointRequest
 ): Promise<WorkExperienceKeyPoint> {
-    return apiCall<WorkExperienceKeyPoint>(
-        `/work_experience_key_points/${keyPointId}`,
-        {
-            method: 'PUT',
-            body: payload,
-            auth: true
-        }
-    );
+    return apiCall<WorkExperienceKeyPoint>(`/work_experience_key_points/${keyPointId}`, {
+        method: 'PUT',
+        body: payload,
+        auth: true
+    });
 }
 
 export async function deleteWorkExperienceKeyPoint(keyPointId: number): Promise<void> {

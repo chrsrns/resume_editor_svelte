@@ -42,10 +42,7 @@
                 onunauthorized();
             } else if (e instanceof ApiError && e.status === 404) {
                 onnotfound();
-            } else if (
-                e instanceof ApiError &&
-                (e.status === 403 || e.status === 422)
-            ) {
+            } else if (e instanceof ApiError && (e.status === 403 || e.status === 422)) {
                 oninaccessible();
             } else {
                 onerror('Failed to load text diff', e);

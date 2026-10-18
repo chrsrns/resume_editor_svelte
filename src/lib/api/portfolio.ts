@@ -1,4 +1,4 @@
-import { apiRequest, apiCall, ApiError } from './client';
+import { apiRequest, apiCall } from './client';
 import type {
     PortfolioProject,
     PortfolioKeyPoint,
@@ -12,12 +12,9 @@ import type {
 } from '$lib/types';
 
 export async function listPortfolioProjects(resumeId: string): Promise<PortfolioProject[]> {
-    return apiCall<PortfolioProject[]>(
-        `/resume/${resumeId}/portfolio_projects`,
-        {
-            auth: true
-        }
-    );
+    return apiCall<PortfolioProject[]>(`/resume/${resumeId}/portfolio_projects`, {
+        auth: true
+    });
 }
 
 export async function createPortfolioProject(
@@ -107,14 +104,11 @@ export async function updatePortfolioTechnology(
     technologyId: number,
     payload: UpdatePortfolioTechnologyRequest
 ): Promise<PortfolioTechnology> {
-    return apiCall<PortfolioTechnology>(
-        `/portfolio_technologies/${technologyId}`,
-        {
-            method: 'PUT',
-            body: payload,
-            auth: true
-        }
-    );
+    return apiCall<PortfolioTechnology>(`/portfolio_technologies/${technologyId}`, {
+        method: 'PUT',
+        body: payload,
+        auth: true
+    });
 }
 
 export async function deletePortfolioTechnology(technologyId: number): Promise<void> {
