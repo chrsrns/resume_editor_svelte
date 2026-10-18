@@ -130,9 +130,7 @@ const diff2 = {
 const resumeUrl = new RegExp(`/api/resume/${resumeId}$`);
 const revisionsUrl = new RegExp(`/api/resume/${resumeId}/revisions$`);
 const rev2Url = new RegExp(`/api/resume/${resumeId}/revisions/2$`);
-const rev3Url = new RegExp(`/api/resume/${resumeId}/revisions/3$`);
 const diff2Url = new RegExp(`/api/resume/${resumeId}/revisions/2/diff`);
-const diff3Url = new RegExp(`/api/resume/${resumeId}/revisions/3/diff`);
 const restore2Url = new RegExp(`/api/resume/${resumeId}/revisions/2/restore$`);
 const anyRevisionSubUrl = new RegExp(`/api/resume/${resumeId}/revisions/`);
 

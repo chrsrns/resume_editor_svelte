@@ -1,4 +1,4 @@
-import { apiRequest, apiCall, ApiError } from './client';
+import { apiRequest, apiCall } from './client';
 import type { Language, NewLanguageRequest, UpdateLanguageRequest } from '$lib/types';
 
 export async function listLanguages(resumeId: string): Promise<Language[]> {

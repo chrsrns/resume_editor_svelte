@@ -36,11 +36,11 @@ const plan = (store: FakeStore, log: string[]) => ({
         delete: 'deleteEducation'
     },
     call: {
-        create: async (resumeId: string, payload: unknown) => {
+        create: async (_resumeId: string, _payload: unknown) => {
             log.push('parentCreate');
             return { id: 500 };
         },
-        update: async (id: number, payload: unknown) => {
+        update: async (id: number, _payload: unknown) => {
             log.push(`parentUpdate:${id}`);
         },
         delete: async (id: number) => {
@@ -57,11 +57,11 @@ const plan = (store: FakeStore, log: string[]) => ({
             },
             parentIdField: 'educationId',
             call: {
-                create: async (resumeId: string, parentId: number, payload: unknown) => {
+                create: async (_resumeId: string, parentId: number, _payload: unknown) => {
                     log.push(`childCreate:${parentId}`);
                     return { id: 600 };
                 },
-                update: async (id: number, payload: unknown) => {
+                update: async (id: number, _payload: unknown) => {
                     log.push(`childUpdate:${id}`);
                 },
                 delete: async (id: number) => {

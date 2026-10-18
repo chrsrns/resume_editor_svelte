@@ -1,4 +1,4 @@
-import { apiRequest, apiCall, ApiError } from './client';
+import { apiRequest, apiCall } from './client';
 import type {
     WorkExperience,
     WorkExperienceKeyPoint,

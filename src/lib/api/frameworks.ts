@@ -1,4 +1,4 @@
-import { apiRequest, apiCall, ApiError } from './client';
+import { apiRequest, apiCall } from './client';
 import type { Framework, NewFrameworkRequest, UpdateFrameworkRequest } from '$lib/types';
 
 export async function listFrameworks(resumeId: string, languageId: number): Promise<Framework[]> {

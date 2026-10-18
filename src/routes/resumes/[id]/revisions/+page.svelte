@@ -38,13 +38,13 @@
               : selection
     );
     const selectedN = $derived(selectionState.kind === 'selected' ? selectionState.n : null);
-    const closeHref = $derived.by(() => {
+    const closeQuery = $derived.by(() => {
         const params = new SvelteURLSearchParams(page.url.searchParams);
         params.delete('n');
         const qs = params.toString();
-        const base = resolve(`/resumes/${resumeId}/revisions`);
-        return qs ? `${base}?${qs}` : base;
+        return qs ? `?${qs}` : '';
     });
+    const closeHref = $derived(`${resolve(`/resumes/${resumeId}/revisions`)}${closeQuery}`);
 
     function showHistoryError(title: string, e: unknown) {
         historyErrorTitle = title;
@@ -177,7 +177,7 @@
                     <RevisionPanel
                         {resumeId}
                         n={selectionState.n}
-                        {closeHref}
+                        {closeQuery}
                         onunauthorized={() => void goto(resolve('/auth/login'))}
                         oninaccessible={() => (inaccessible = true)}
                         onerror={showHistoryError}
