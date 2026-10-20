@@ -1,14 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import type { Resume } from './types';
 import {
-    buildResumeListEntries,
-    filterResumeListEntries,
+    mapResumePageEntries,
     parseSearchTerms,
     resumeMatches,
     sortVariants,
     truncateVariants,
     variantPrimaryText
 } from './variants';
+import type { ResumeGroup, ResumePage } from './types';
+
+function pageOf(groups: ResumeGroup[]): ResumePage {
+    return { items: groups, total: groups.length, limit: 20, offset: 0 };
+}
+
+function group(base: Resume, variants: Resume[] = []): ResumeGroup {
+    return { base, variants };
+}
 
 function resume(overrides: Partial<Resume>): Resume {
     return {
@@ -39,13 +47,20 @@ function resume(overrides: Partial<Resume>): Resume {
 }
 
 describe('resume variant helpers', () => {
-    it('builds list entries in GET response order', () => {
+    it('maps page groups to entries in wire order', () => {
         const baseOne = resume({ id: 'b1', name: 'Base One' });
         const baseTwo = resume({ id: 'b2', name: 'Base Two' });
         const variant = resume({ id: 'v1', is_variant: true, base_resume_id: 'b1' });
-        const orphan = resume({ id: 'o1', is_variant: true, base_resume_id: null });
+        const standalone = resume({ id: 'o1', is_variant: true, base_resume_id: null });
 
-        const entries = buildResumeListEntries([baseOne, baseTwo, variant, orphan]);
+        const entries = mapResumePageEntries(
+            pageOf([
+                group(baseOne, [variant]),
+                group(baseTwo),
+                group(standalone)
+            ]),
+            []
+        );
 
         expect(
             entries.map((entry) => (entry.kind === 'group' ? entry.base.id : entry.resume.id))
@@ -95,23 +110,26 @@ describe('resume variant helpers', () => {
             base_resume_id: 'b1',
             target_date: '2026'
         });
-        const response = [base, older, newer];
+        const groupEntry = group(base, [older, newer]);
 
-        const entries = buildResumeListEntries(response);
-        const group = entries[0];
+        const entries = mapResumePageEntries(pageOf([groupEntry]), []);
+        const entry = entries[0];
 
-        expect(group.kind).toBe('group');
-        if (group.kind === 'group') {
-            expect(group.variants.map((variant) => variant.id)).toEqual(['v2', 'v1']);
+        expect(entry.kind).toBe('group');
+        if (entry.kind === 'group') {
+            expect(entry.variants.map((variant) => variant.id)).toEqual(['v2', 'v1']);
         }
-        expect(response.map((r) => r.id)).toEqual(['b1', 'v1', 'v2']);
+        expect(groupEntry.variants.map((r) => r.id)).toEqual(['v1', 'v2']);
     });
 
     it('renders a contradictory non-variant row with a base id as ordinary', () => {
         const base = resume({ id: 'b1', name: 'Base' });
         const contradictory = resume({ id: 'o1', is_variant: false, base_resume_id: 'b1' });
 
-        const entries = buildResumeListEntries([base, contradictory]);
+        const entries = mapResumePageEntries(
+            pageOf([group(base), group(contradictory)]),
+            []
+        );
 
         expect(entries).toHaveLength(2);
         expect(entries[1]).toMatchObject({ kind: 'group', base: { id: 'o1' }, variants: [] });
@@ -186,7 +204,7 @@ describe('resumeMatches', () => {
     });
 });
 
-describe('filterResumeListEntries', () => {
+describe('mapResumePageEntries matchIds', () => {
     function fixture() {
         const base = resume({ id: 'b1', name: 'Base One' });
         const v1 = resume({
@@ -202,35 +220,34 @@ describe('filterResumeListEntries', () => {
             company_name: 'Globex'
         });
         const orphan = resume({ id: 'o1', is_variant: true, name: 'Acme Orphan' });
-        return buildResumeListEntries([base, v1, v2, orphan]);
+        return pageOf([group(base, [v1, v2]), group(orphan)]);
     }
 
-    it('keeps a matched variant nested under an unmatched base', () => {
-        const entries = filterResumeListEntries(fixture(), parseSearchTerms('globex'));
-        expect(entries).toHaveLength(1);
-        expect(entries[0].kind).toBe('group');
+    it('marks only matching variants inside a server-qualified group', () => {
+        const entries = mapResumePageEntries(fixture(), parseSearchTerms('globex'));
+        expect(entries).toHaveLength(2);
         if (entries[0].kind === 'group') {
             expect(entries[0].matchIds?.has('v2')).toBe(true);
             expect(entries[0].matchIds?.has('v1')).toBe(false);
         }
     });
 
-    it('keeps a base-matched group with an empty matchIds set', () => {
-        const entries = filterResumeListEntries(fixture(), parseSearchTerms('base one'));
-        expect(entries).toHaveLength(1);
+    it('keeps every unit the server returned, even ones matching nothing', () => {
+        const entries = mapResumePageEntries(fixture(), parseSearchTerms('zzz'));
+        expect(entries).toHaveLength(2);
+    });
+
+    it('sets an empty matchIds set when only the base matches', () => {
+        const entries = mapResumePageEntries(fixture(), parseSearchTerms('base one'));
         if (entries[0].kind === 'group') {
             expect(entries[0].matchIds?.size).toBe(0);
         }
     });
 
-    it('filters orphans by the same predicate', () => {
-        const entries = filterResumeListEntries(fixture(), parseSearchTerms('orphan'));
-        expect(entries).toHaveLength(1);
-        expect(entries[0]).toMatchObject({ kind: 'orphan', resume: { id: 'o1' } });
-    });
-
-    it('drops groups where neither base nor variants match', () => {
-        const entries = filterResumeListEntries(fixture(), parseSearchTerms('zzz'));
-        expect(entries).toEqual([]);
+    it('leaves matchIds undefined when no search is active', () => {
+        const entries = mapResumePageEntries(fixture(), []);
+        if (entries[0].kind === 'group') {
+            expect(entries[0].matchIds).toBeUndefined();
+        }
     });
 });
