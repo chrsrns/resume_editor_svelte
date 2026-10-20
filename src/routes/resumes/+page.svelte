@@ -1,29 +1,28 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
     import { resolve } from '$app/paths';
     import { listResumes, importResumeMarkdown } from '$lib/api/resumes';
     import type { ApiError } from '$lib/api/client';
-    import type { Resume } from '$lib/types';
+    import type { Resume, ResumePage, ListResumesParams } from '$lib/types';
     import { authToken } from '$lib/auth';
     import { currentUser } from '$lib/session';
+    import { createRequestSupersession } from '$lib/requestSupersession';
     import Button from '$lib/components/ui/Button.svelte';
     import ErrorDialog from '$lib/components/ui/ErrorDialog.svelte';
     import MarkdownFilePicker from '$lib/components/ui/MarkdownFilePicker.svelte';
     import VariantGroup from '$lib/components/VariantGroup.svelte';
     import VariantRow from '$lib/components/VariantRow.svelte';
     import TextInput from '$lib/components/ui/TextInput.svelte';
-    import {
-        buildResumeListEntries,
-        filterResumeListEntries,
-        parseSearchTerms
-    } from '$lib/variants';
+    import { mapResumePageEntries, parseSearchTerms } from '$lib/variants';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import FileUp from '@lucide/svelte/icons/file-up';
 
+    const limit = 20;
+
     let loading = $state(true);
     let error = $state<string | null>(null);
-    let resumes = $state<Resume[]>([]);
+    let page = $state<ResumePage | null>(null);
+    let renderedSearch = $state('');
     let openImport: (() => void) | undefined = $state();
     let importBusy = $state(false);
     let importErrorOpen = $state(false);
@@ -31,43 +30,83 @@
     let importErrorMessage = $state('');
     let query = $state('');
     let activeQuery = $state('');
+    let sort = $state<'id' | 'name' | 'updated_at'>('id');
+    let order = $state<'asc' | 'desc'>('asc');
+    let offset = $state(0);
+
+    const supersession = createRequestSupersession();
+    let lastRequestKey = $state('');
 
     $effect(() => {
         const pending = query;
         const timer = setTimeout(() => {
-            activeQuery = pending;
+            if (pending !== activeQuery) {
+                activeQuery = pending;
+                offset = 0;
+            }
         }, 200);
         return () => clearTimeout(timer);
     });
 
-    const searchTerms = $derived(parseSearchTerms(activeQuery));
-    const searching = $derived(searchTerms.length > 0);
+    const params = $derived<ListResumesParams>({
+        limit,
+        offset,
+        sort,
+        order,
+        search: activeQuery.trim() || undefined
+    });
+
+    async function loadResumes(p: ListResumesParams) {
+        const token = supersession.next();
+        loading = true;
+        try {
+            const next = await listResumes(p);
+            if (!supersession.current(token)) return;
+            page = next;
+            renderedSearch = p.search ?? '';
+            error = null;
+        } catch (e) {
+            if (!supersession.current(token)) return;
+            const err = e as ApiError;
+            error = err.message;
+        } finally {
+            if (supersession.current(token)) loading = false;
+        }
+    }
+
+    $effect(() => {
+        const key = JSON.stringify(params);
+        if (key === lastRequestKey) return;
+        lastRequestKey = key;
+        void loadResumes(params);
+    });
+
     const listEntries = $derived(
-        searching
-            ? filterResumeListEntries(buildResumeListEntries(resumes), searchTerms)
-            : buildResumeListEntries(resumes)
+        page ? mapResumePageEntries(page, parseSearchTerms(renderedSearch)) : []
     );
+    const renderedSearching = $derived(renderedSearch.length > 0);
+    const pageStart = $derived(
+        page && page.items.length > 0 ? page.offset + 1 : 0
+    );
+    const pageEnd = $derived(page ? page.offset + page.items.length : 0);
+    const canPrev = $derived((page?.offset ?? 0) > 0);
+    const canNext = $derived(page !== null && page.offset + page.items.length < page.total);
 
     function isOwned(resume: Resume): boolean {
         return $currentUser !== null && resume.created_by === $currentUser.id;
     }
 
-    async function loadResumes() {
-        loading = true;
-        error = null;
-        try {
-            resumes = await listResumes();
-        } catch (e) {
-            const err = e as ApiError;
-            error = err.message;
-        } finally {
-            loading = false;
-        }
+    function prevPage() {
+        offset = Math.max(0, offset - limit);
     }
 
-    onMount(() => {
-        void loadResumes();
-    });
+    function nextPage() {
+        offset = offset + limit;
+    }
+
+    function resetOffset() {
+        offset = 0;
+    }
 
     async function handleImportFile(file: File) {
         importBusy = true;
@@ -121,32 +160,49 @@
     onclose={closeImportError}
 />
 
-<div class="searchRow">
-    <TextInput
-        bind:value={query}
-        label="Search resumes"
-        placeholder="Search resumes"
-        aria-label="Search resumes"
-    />
+<div class="controls">
+    <div class="searchRow">
+        <TextInput
+            bind:value={query}
+            label="Search resumes"
+            placeholder="Search resumes"
+            aria-label="Search resumes"
+        />
+    </div>
+    <label class="control">
+        Sort by
+        <select bind:value={sort} onchange={resetOffset} aria-label="Sort field">
+            <option value="id">ID</option>
+            <option value="name">Name</option>
+            <option value="updated_at">Updated</option>
+        </select>
+    </label>
+    <label class="control">
+        Order
+        <select bind:value={order} onchange={resetOffset} aria-label="Sort order">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+        </select>
+    </label>
 </div>
 
-{#if loading}
+{#if error}
+    <p class="error" role="alert">{error}</p>
+{:else if page === null}
     <p>Loading…</p>
-{:else if error}
-    <p class="error">{error}</p>
-{:else if resumes.length === 0}
-    <p class="muted">No resumes found.</p>
-{:else if searching && listEntries.length === 0}
-    <p class="muted">No resumes match "{activeQuery.trim()}".</p>
+{:else if page.items.length === 0}
+    <p class="muted">
+        {#if renderedSearching}No resumes match "{renderedSearch}".{:else}No resumes found.{/if}
+    </p>
 {:else}
-    <ul class="list">
+    <ul class="list" aria-busy={loading}>
         {#each listEntries as entry (entry.kind === 'group' ? `group-${entry.base.id}` : `orphan-${entry.resume.id}`)}
             {#if entry.kind === 'group'}
                 <VariantGroup
                     base={entry.base}
                     variants={entry.variants}
                     owned={isOwned(entry.base)}
-                    matchIds={searching ? entry.matchIds : undefined}
+                    matchIds={renderedSearching ? entry.matchIds : undefined}
                 />
             {:else}
                 <li class="item">
@@ -157,10 +213,23 @@
     </ul>
 {/if}
 
-<Button variant="secondary" onclick={loadResumes} disabled={loading}>
-    {#snippet icon()}<RefreshCw size={16} />{/snippet}
-    Refresh
-</Button>
+{#if page !== null}
+    <div class="pager">
+        <Button variant="secondary" onclick={prevPage} disabled={!canPrev || loading}>
+            Previous
+        </Button>
+        <span class="muted pageIndicator">
+            {pageStart}–{pageEnd} of {page.total}
+        </span>
+        <Button variant="secondary" onclick={nextPage} disabled={!canNext || loading}>
+            Next
+        </Button>
+        <Button variant="secondary" onclick={() => void loadResumes(params)} disabled={loading}>
+            {#snippet icon()}<RefreshCw size={16} />{/snippet}
+            Refresh
+        </Button>
+    </div>
+{/if}
 
 <style>
     .header {
@@ -177,8 +246,44 @@
         flex-wrap: wrap;
     }
 
-    .searchRow {
+    .controls {
+        display: flex;
+        align-items: flex-end;
+        gap: var(--space-4);
         margin-top: var(--space-4);
+        flex-wrap: wrap;
+    }
+
+    .searchRow {
+        flex: 1 1 16rem;
+    }
+
+    .control {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        font-size: var(--font-size-sm);
+        color: var(--color-muted);
+    }
+
+    .control select {
+        padding: var(--space-1-5) var(--space-2);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+        color: inherit;
+    }
+
+    .pager {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2-5);
+        margin-top: var(--space-4);
+    }
+
+    .pageIndicator {
+        min-width: 8rem;
+        text-align: center;
     }
 
     .list {
