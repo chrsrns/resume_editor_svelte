@@ -35,7 +35,7 @@
     let offset = $state(0);
 
     const supersession = createRequestSupersession();
-    let lastRequestKey = $state('');
+    let lastRequestKey = '';
 
     $effect(() => {
         const pending = query;
@@ -85,9 +85,7 @@
         page ? mapResumePageEntries(page, parseSearchTerms(renderedSearch)) : []
     );
     const renderedSearching = $derived(renderedSearch.length > 0);
-    const pageStart = $derived(
-        page && page.items.length > 0 ? page.offset + 1 : 0
-    );
+    const pageStart = $derived(page && page.items.length > 0 ? page.offset + 1 : 0);
     const pageEnd = $derived(page ? page.offset + page.items.length : 0);
     const canPrev = $derived((page?.offset ?? 0) > 0);
     const canNext = $derived(page !== null && page.offset + page.items.length < page.total);
@@ -221,15 +219,14 @@
         <span class="muted pageIndicator">
             {pageStart}–{pageEnd} of {page.total}
         </span>
-        <Button variant="secondary" onclick={nextPage} disabled={!canNext || loading}>
-            Next
-        </Button>
-        <Button variant="secondary" onclick={() => void loadResumes(params)} disabled={loading}>
-            {#snippet icon()}<RefreshCw size={16} />{/snippet}
-            Refresh
-        </Button>
+        <Button variant="secondary" onclick={nextPage} disabled={!canNext || loading}>Next</Button>
     </div>
 {/if}
+
+<Button variant="secondary" onclick={() => void loadResumes(params)} disabled={loading}>
+    {#snippet icon()}<RefreshCw size={16} />{/snippet}
+    Refresh
+</Button>
 
 <style>
     .header {
