@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
-import { mockApiResponse, setAuthToken } from './mocks';
+import { mockApiResponse, setAuthToken, resumeListPage } from './mocks';
 
 const BANNER = 'You were signed out because your session expired.';
-const listUrl = '**/api/resumes';
+const listUrl = /\/api\/resumes(\?.*)?$/;
 const meUrl = '**/api/auth/me';
 const logoutUrl = '**/api/auth/logout';
 
@@ -65,7 +65,7 @@ test('a stored expiry in the past renders the anonymous list and the notice', as
 
     await setAuthToken(page, 'expired-token', { expiresAt: PAST_EXPIRY });
     await mockApiResponse(page, meUrl, 401, { error: 'Unauthorized' });
-    await mockApiResponse(page, listUrl, 200, [resume]);
+    await mockApiResponse(page, listUrl, 200, resumeListPage([resume]));
 
     await page.goto('/resume_editor/resumes');
 
@@ -87,7 +87,7 @@ test('a session that died server side shows the notice without an error region',
     // bearer, and the auth check is what reports the death.
     await setAuthToken(page, 'expired-token');
     await mockApiResponse(page, meUrl, 401, { error: 'Unauthorized' });
-    await mockApiResponse(page, listUrl, 200, [resume]);
+    await mockApiResponse(page, listUrl, 200, resumeListPage([resume]));
 
     await page.goto('/resume_editor/resumes');
 
@@ -102,7 +102,7 @@ test('the notice survives a reload', async ({ page }) => {
     // from the stored flag rather than from the gate firing a second time.
     await setAuthToken(page, 'expired-token', { once: true, expiresAt: PAST_EXPIRY });
     await mockApiResponse(page, meUrl, 401, { error: 'Unauthorized' });
-    await mockApiResponse(page, listUrl, 200, [resume]);
+    await mockApiResponse(page, listUrl, 200, resumeListPage([resume]));
 
     await page.goto('/resume_editor/resumes');
     await expect(page.getByText(BANNER)).toBeVisible();
@@ -126,7 +126,7 @@ test('a second tab shows the notice and a dismissal clears it there', async ({ p
         await route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify({ body: [resume] })
+            body: JSON.stringify({ body: resumeListPage([resume]) })
         });
     });
 
@@ -156,7 +156,7 @@ test('a successful login clears the notice', async ({ page }) => {
             body: JSON.stringify(authorization === null ? { body: 'Unauthorized' } : { body: user })
         });
     });
-    await mockApiResponse(page, listUrl, 200, [resume]);
+    await mockApiResponse(page, listUrl, 200, resumeListPage([resume]));
     await mockApiResponse(page, '**/api/auth/login', 200, {
         token: 'fresh-token',
         expires_at: FUTURE_EXPIRY
@@ -179,7 +179,7 @@ test('a deliberate logout does not raise the notice', async ({ page }) => {
     // rather than bypassed by a successful response.
     await setAuthToken(page, 'good-token', { expiresAt: FUTURE_EXPIRY });
     await mockApiResponse(page, meUrl, 200, user);
-    await mockApiResponse(page, listUrl, 200, [resume]);
+    await mockApiResponse(page, listUrl, 200, resumeListPage([resume]));
     await page.route(logoutUrl, async (route) => {
         await route.fulfill({
             status: 401,
@@ -217,7 +217,7 @@ test('an authenticated 401 outside logout raises the notice', async ({ page }) =
 });
 
 test('a visitor who was never signed in sees no notice', async ({ page }) => {
-    await mockApiResponse(page, listUrl, 200, [resume]);
+    await mockApiResponse(page, listUrl, 200, resumeListPage([resume]));
 
     await page.goto('/resume_editor/resumes');
 

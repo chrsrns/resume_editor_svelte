@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mockApiMethods, mockApiResponse, setAuthToken } from './mocks';
+import { mockApiMethods, mockApiResponse, setAuthToken, resumeListPage } from './mocks';
 import type { Resume } from '$lib/types';
 
 const user = {
@@ -52,7 +52,7 @@ const variantResume: Resume = {
 test('variant API helpers call create and list endpoints with auth', async ({ page }) => {
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, []);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage([]));
 
     let createAuthHeader: string | null = null;
     let listAuthHeader: string | null = null;
@@ -159,15 +159,20 @@ const otherBase: Resume = {
 test('list groups variants under owned base and supports truncation', async ({ page }) => {
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, [
-        baseResume,
-        otherBase,
-        orphanVariant,
-        variants[0],
-        variants[1],
-        variants[2],
-        variants[3]
-    ]);
+    await mockApiResponse(
+        page,
+        /\/api\/resumes(\?.*)?$/,
+        200,
+        resumeListPage([
+            baseResume,
+            otherBase,
+            orphanVariant,
+            variants[0],
+            variants[1],
+            variants[2],
+            variants[3]
+        ])
+    );
 
     await page.goto('/resume_editor/resumes');
     await page.waitForLoadState('networkidle');
@@ -223,7 +228,7 @@ test('list groups variants under owned base and supports truncation', async ({ p
 
 test('list hides owner-only variant count and action from non-owner', async ({ page }) => {
     await mockApiResponse(page, '**/api/auth/me', 200, null);
-    await mockApiResponse(page, '**/api/resumes', 200, [baseResume, variants[0]]);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage([baseResume, variants[0]]));
 
     await page.goto('/resume_editor/resumes');
     await page.waitForLoadState('networkidle');
@@ -237,7 +242,7 @@ test('list hides owner-only variant count and action from non-owner', async ({ p
 test('list renders zero-variant base without disclosure control', async ({ page }) => {
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, [baseResume, otherBase]);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage([baseResume, otherBase]));
 
     await page.goto('/resume_editor/resumes');
     await page.waitForLoadState('networkidle');
@@ -624,7 +629,7 @@ test('detail variants card hidden when server returns empty', async ({ page }) =
 test('variant delete reuses shared delete flow and navigates to list', async ({ page }) => {
     page.on('dialog', (dialog) => void dialog.accept());
     await openVariantEditPage(page);
-    await mockApiResponse(page, '**/api/resumes', 200, [baseResume]);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage([baseResume]));
     await mockApiMethods(page, `**/api/resume/${variantResume.id}`, {
         DELETE: { status: 200, body: null }
     });

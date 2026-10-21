@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { resumeListPage } from './mocks';
 
-const listUrl = '**/api/resumes';
+const listUrl = /\/api\/resumes(\?.*)?$/;
 
 const resume = {
     id: 'r1',
@@ -36,7 +37,7 @@ test('retries 500 responses with an empty body', async ({ page }) => {
         await route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify({ body: [resume] })
+            body: JSON.stringify({ body: resumeListPage([resume]) })
         });
     });
 

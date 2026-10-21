@@ -6,11 +6,41 @@ import type {
     UpdateResumeRequest,
     ResumeRevision,
     ResumeRevisionSummary,
-    ResumeRevisionDiff
+    ResumeRevisionDiff,
+    ResumePage,
+    ResumeGroup,
+    ListResumesParams
 } from '$lib/types';
 
-export async function listResumes(): Promise<Resume[]> {
-    return apiCall<Resume[]>('/resumes', { auth: true });
+function isResumeGroup(value: unknown): value is ResumeGroup {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        'base' in value &&
+        'variants' in value &&
+        Array.isArray((value as ResumeGroup).variants)
+    );
+}
+
+function assertResumePage(page: ResumePage): ResumePage {
+    if (!Array.isArray(page.items) || page.items.some((item) => !isResumeGroup(item))) {
+        throw new ApiError(
+            500,
+            'Contract mismatch: GET /resumes returned a flat item list instead of grouped page units'
+        );
+    }
+    return page;
+}
+
+export async function listResumes(params: ListResumesParams = {}): Promise<ResumePage> {
+    const search = new URLSearchParams();
+    if (params.limit !== undefined) search.set('limit', String(params.limit));
+    if (params.offset !== undefined) search.set('offset', String(params.offset));
+    if (params.sort !== undefined) search.set('sort', params.sort);
+    if (params.order !== undefined) search.set('order', params.order);
+    if (params.search !== undefined) search.set('search', params.search);
+    const suffix = search.size > 0 ? `?${search.toString()}` : '';
+    return apiCall<ResumePage>(`/resumes${suffix}`, { auth: true }).then(assertResumePage);
 }
 
 export async function getResume(id: string): Promise<Resume> {

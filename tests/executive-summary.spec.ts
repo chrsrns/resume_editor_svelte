@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { mockApiResponse, setAuthToken } from './mocks';
+import { mockApiResponse, setAuthToken, resumeListPage } from './mocks';
 import type { Resume } from '$lib/types';
 
 const resumeId = 'r1';
@@ -59,7 +59,7 @@ async function openEditPage(page: Page, initialResume: Resume = resume) {
 async function openListPage(page: Page) {
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, [resume]);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage([resume]));
     await page.goto('/resume_editor/resumes');
     await waitForApp(page);
 }

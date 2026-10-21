@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { mockApiResponse } from './mocks';
+import { mockApiResponse, resumeListPage } from './mocks';
 import type { Resume } from '$lib/types';
 
 async function waitForApp(page: Page) {
@@ -23,7 +23,7 @@ const resumes: Resume[] = [];
 test('login form authenticates and redirects to resumes', async ({ page }) => {
     await mockApiResponse(page, '**/api/auth/login', 200, token);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, resumes);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage(resumes));
 
     await page.goto('/resume_editor/auth/login');
     await waitForApp(page);
@@ -40,7 +40,7 @@ test('register form creates account and redirects to resumes', async ({ page }) 
     await mockApiResponse(page, '**/api/auth/register', 200, user);
     await mockApiResponse(page, '**/api/auth/login', 200, token);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, resumes);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage(resumes));
 
     await page.goto('/resume_editor/auth/register');
     await waitForApp(page);

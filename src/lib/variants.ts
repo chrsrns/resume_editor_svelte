@@ -1,4 +1,4 @@
-import { formatPartialDateLong, parsePartialDate, type Resume } from './types';
+import { formatPartialDateLong, parsePartialDate, type Resume, type ResumePage } from './types';
 
 export type ResumeListEntry =
     | { kind: 'group'; base: Resume; variants: Resume[]; matchIds?: ReadonlySet<string> }
@@ -56,19 +56,24 @@ export function resumeMatches(resume: Resume, terms: string[]): boolean {
     return terms.every((term) => lowered.some((text) => text.includes(term)));
 }
 
-export function filterResumeListEntries(
-    entries: ResumeListEntry[],
-    terms: string[]
-): ResumeListEntry[] {
-    return entries.flatMap((entry): ResumeListEntry[] => {
-        if (entry.kind === 'orphan') {
-            return resumeMatches(entry.resume, terms) ? [entry] : [];
+/**
+ * Maps a server-decided grouped page to list entries. A unit whose own
+ * row is a standalone variant renders as an orphan; a non-variant unit
+ * renders as a group. `matchIds` marks which variants matched the
+ * rendered search terms for dimming — the server already decided group
+ * membership, so entries are never filtered out here.
+ */
+export function mapResumePageEntries(page: ResumePage, terms: string[]): ResumeListEntry[] {
+    return page.items.map((unit): ResumeListEntry => {
+        if (unit.base.is_variant) {
+            return { kind: 'orphan', resume: unit.base };
         }
-        const matchIds = new Set(
-            entry.variants.filter((variant) => resumeMatches(variant, terms)).map((v) => v.id)
-        );
-        if (!resumeMatches(entry.base, terms) && matchIds.size === 0) return [];
-        return [{ ...entry, matchIds }];
+        const variants = sortVariants(unit.variants);
+        const matchIds =
+            terms.length === 0
+                ? undefined
+                : new Set(variants.filter((v) => resumeMatches(v, terms)).map((v) => v.id));
+        return { kind: 'group', base: unit.base, variants, matchIds };
     });
 }
 
@@ -76,38 +81,4 @@ export const TRUNCATED_VARIANT_COUNT = 3;
 
 export function truncateVariants(variants: Resume[], expanded: boolean): Resume[] {
     return expanded ? variants : variants.slice(0, TRUNCATED_VARIANT_COUNT);
-}
-
-export function buildResumeListEntries(resumes: Resume[]): ResumeListEntry[] {
-    const variantsByBase = new Map<string, Resume[]>();
-    const basesById = new Set(resumes.map((resume) => resume.id));
-
-    for (const resume of resumes) {
-        if (resume.is_variant && resume.base_resume_id !== null) {
-            const variants = variantsByBase.get(resume.base_resume_id) ?? [];
-            variants.push(resume);
-            variantsByBase.set(resume.base_resume_id, variants);
-        }
-    }
-
-    const entries: ResumeListEntry[] = [];
-    for (const resume of resumes) {
-        if (
-            resume.is_variant &&
-            resume.base_resume_id !== null &&
-            basesById.has(resume.base_resume_id)
-        ) {
-            continue;
-        }
-        if (resume.is_variant) {
-            entries.push({ kind: 'orphan', resume });
-        } else {
-            entries.push({
-                kind: 'group',
-                base: resume,
-                variants: sortVariants(variantsByBase.get(resume.id) ?? [])
-            });
-        }
-    }
-    return entries;
 }

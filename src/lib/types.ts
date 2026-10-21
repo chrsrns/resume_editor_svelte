@@ -49,6 +49,29 @@ export type Resume = {
     variant_label: string | null;
 };
 
+export type ResumeGroup = {
+    base: Resume;
+    variants: Resume[];
+};
+
+export type ResumePage = {
+    items: ResumeGroup[];
+    total: number;
+    limit: number;
+    offset: number;
+};
+
+export type ResumeListSort = 'id' | 'name' | 'updated_at';
+export type ResumeListOrder = 'asc' | 'desc';
+
+export type ListResumesParams = {
+    limit?: number;
+    offset?: number;
+    sort?: ResumeListSort;
+    order?: ResumeListOrder;
+    search?: string;
+};
+
 export type AuthRegisterRequest = {
     email: string;
     password: string;
