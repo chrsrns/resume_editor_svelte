@@ -160,11 +160,7 @@
 
 <div class="controls">
     <div class="searchRow">
-        <TextInput
-            bind:value={query}
-            label="Search resumes"
-            aria-label="Search resumes"
-        />
+        <TextInput bind:value={query} label="Search resumes" aria-label="Search resumes" />
     </div>
     <label class="control">
         Sort by
@@ -181,6 +177,10 @@
             <option value="desc">Descending</option>
         </select>
     </label>
+    <Button variant="secondary" onclick={() => void loadResumes(params)} disabled={loading}>
+        {#snippet icon()}<RefreshCw size={16} />{/snippet}
+        Refresh
+    </Button>
 </div>
 
 {#if error}
@@ -221,11 +221,6 @@
         <Button variant="secondary" onclick={nextPage} disabled={!canNext || loading}>Next</Button>
     </div>
 {/if}
-
-<Button variant="secondary" onclick={() => void loadResumes(params)} disabled={loading}>
-    {#snippet icon()}<RefreshCw size={16} />{/snippet}
-    Refresh
-</Button>
 
 <style>
     .header {
