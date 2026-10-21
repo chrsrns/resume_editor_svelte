@@ -54,11 +54,7 @@ describe('resume variant helpers', () => {
         const standalone = resume({ id: 'o1', is_variant: true, base_resume_id: null });
 
         const entries = mapResumePageEntries(
-            pageOf([
-                group(baseOne, [variant]),
-                group(baseTwo),
-                group(standalone)
-            ]),
+            pageOf([group(baseOne, [variant]), group(baseTwo), group(standalone)]),
             []
         );
 
@@ -126,10 +122,7 @@ describe('resume variant helpers', () => {
         const base = resume({ id: 'b1', name: 'Base' });
         const contradictory = resume({ id: 'o1', is_variant: false, base_resume_id: 'b1' });
 
-        const entries = mapResumePageEntries(
-            pageOf([group(base), group(contradictory)]),
-            []
-        );
+        const entries = mapResumePageEntries(pageOf([group(base), group(contradictory)]), []);
 
         expect(entries).toHaveLength(2);
         expect(entries[1]).toMatchObject({ kind: 'group', base: { id: 'o1' }, variants: [] });

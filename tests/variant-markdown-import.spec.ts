@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { mockApiResponse, setAuthToken } from './mocks';
+import { mockApiResponse, setAuthToken, resumeListPage } from './mocks';
 import type { Resume } from '$lib/types';
 
 const user = {
@@ -68,7 +68,7 @@ test('API helper posts to the explicit import route with auth and markdown conte
 }) => {
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, []);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage([]));
 
     let authHeader: string | null = null;
     let contentType: string | null = null;
@@ -355,7 +355,7 @@ test('non-JSON failure shows the fallback message', async ({ page }) => {
 test('list-page 200 update redirects to the updated resume edit page', async ({ page }) => {
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, [variantResume]);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage([variantResume]));
 
     await page.route('**/api/resume/import/markdown', async (route) => {
         await route.fulfill({

@@ -7,6 +7,39 @@ export type MethodHandlers = Partial<
     >
 >;
 
+type ResumeRow = {
+    id: string;
+    is_variant: boolean;
+    base_resume_id: string | null;
+    [key: string]: unknown;
+};
+
+/**
+ * Groups flat fixture rows the way `GET /api/resumes` now serves them:
+ * a variant whose base row is present nests under it; every other row
+ * becomes its own unit. Pass the flat row list the old contract returned.
+ */
+export const resumeListPage = (
+    rows: ResumeRow[],
+    options: { total?: number; limit?: number; offset?: number } = {}
+) => {
+    const baseIds = new Set(rows.filter((r) => !r.is_variant).map((r) => r.id));
+    const items = rows
+        .filter((r) => !r.is_variant || r.base_resume_id === null || !baseIds.has(r.base_resume_id))
+        .map((row) => ({
+            base: row,
+            variants: row.is_variant
+                ? []
+                : rows.filter((v) => v.is_variant && v.base_resume_id === row.id)
+        }));
+    return {
+        items,
+        total: options.total ?? items.length,
+        limit: options.limit ?? 100,
+        offset: options.offset ?? 0
+    };
+};
+
 export const mockApiResponse = <T>(page: Page, url: string | RegExp, status: number, body: T) => {
     return page.route(url, async (route) => {
         await route.fulfill({

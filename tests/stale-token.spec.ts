@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { mockApiResponse, setAuthToken } from './mocks';
+import { mockApiResponse, setAuthToken, resumeListPage } from './mocks';
 
-const listUrl = '**/api/resumes';
+const listUrl = /\/api\/resumes(\?.*)?$/;
 const staleToken = 'expired-token';
 
 const resume = {
@@ -81,7 +81,7 @@ for (const shape of authFailureShapes) {
                 await route.fulfill({
                     status: 200,
                     contentType: 'application/json',
-                    body: JSON.stringify({ body: [resume] })
+                    body: JSON.stringify({ body: resumeListPage([resume]) })
                 });
                 return;
             }

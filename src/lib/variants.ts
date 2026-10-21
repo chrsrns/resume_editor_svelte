@@ -82,5 +82,3 @@ export const TRUNCATED_VARIANT_COUNT = 3;
 export function truncateVariants(variants: Resume[], expanded: boolean): Resume[] {
     return expanded ? variants : variants.slice(0, TRUNCATED_VARIANT_COUNT);
 }
-
-

@@ -63,10 +63,58 @@ const orphanVariant: Resume = {
     base_resume_id: null
 };
 
+const SEARCH_FIELDS = [
+    'name',
+    'email',
+    'company_name',
+    'role_title',
+    'variant_label',
+    'job_description',
+    'target_date'
+] as const;
+
+function rowMatches(resume: Resume, terms: string[]): boolean {
+    const haystacks = SEARCH_FIELDS.map((f) => String(resume[f] ?? '').toLowerCase());
+    return terms.every((term) => haystacks.some((text) => text.includes(term)));
+}
+
+/**
+ * Emulates server-side grouped search: a unit qualifies when its own row
+ * or any variant row matches every term; a qualifying group returns all
+ * of its variants (the client dims non-matches via matchIds).
+ */
 async function mockList(page: import('@playwright/test').Page, resumes: Resume[]) {
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, resumes);
+    await page.route(/\/api\/resumes(\?.*)?$/, async (route) => {
+        const url = new URL(route.request().url());
+        const terms = (url.searchParams.get('search') ?? '')
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+        const baseIds = new Set(resumes.filter((r) => !r.is_variant).map((r) => r.id));
+        const isUnit = (row: Resume) =>
+            !row.is_variant || row.base_resume_id === null || !baseIds.has(row.base_resume_id);
+        const groups = resumes.filter(isUnit).map((row) => ({
+            base: row,
+            variants: row.is_variant
+                ? []
+                : resumes.filter((v) => v.is_variant && v.base_resume_id === row.id)
+        }));
+        const qualified = groups.filter((g) => {
+            if (terms.length === 0) return true;
+            if (g.base.is_variant) return rowMatches(g.base, terms);
+            return rowMatches(g.base, terms) || g.variants.some((v) => rowMatches(v, terms));
+        });
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                body: { items: qualified, total: qualified.length, limit: 100, offset: 0 }
+            })
+        });
+    });
 }
 
 test('show all toggles to show fewer and restores truncation', async ({ page }) => {

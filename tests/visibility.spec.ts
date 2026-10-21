@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { mockApiResponse, setAuthToken } from './mocks';
+import { mockApiResponse, setAuthToken, resumeListPage } from './mocks';
 import type { Resume, Visibility } from '../src/lib/types';
 
 const resumeId = 'r1';
@@ -145,7 +145,7 @@ test('unlisted resume shows Unlisted tag in own list and detail', async ({ page 
     const unlisted = resume({ visibility: 'unlisted' });
     await setAuthToken(page);
     await mockApiResponse(page, '**/api/auth/me', 200, user);
-    await mockApiResponse(page, '**/api/resumes', 200, [unlisted]);
+    await mockApiResponse(page, /\/api\/resumes(\?.*)?$/, 200, resumeListPage([unlisted]));
 
     await page.goto('/resume_editor/resumes');
     const row = page.getByRole('link', { name: /Test Resume/ });
