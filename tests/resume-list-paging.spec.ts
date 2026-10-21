@@ -135,3 +135,38 @@ test('search and sort controls send query params verbatim', async ({ page }) => 
         .poll(() => requests.some((q) => q.includes('sort=name') && q.includes('order=desc')))
         .toBe(true);
 });
+
+test('an empty page beyond total renders the zero-window indicator and empty state', async ({
+    page
+}) => {
+    await setAuthToken(page);
+    await mockApiResponse(page, '**/api/auth/me', 200, user);
+    await page.route(/\/api\/resumes(\?.*)?$/, async (route) => {
+        const url = new URL(route.request().url());
+        const offset = Number(url.searchParams.get('offset') ?? '0');
+        const rows = Array.from({ length: 30 }, (_, i) => resume(`r${i}`, `Resume ${i}`));
+        const items = rows.slice(offset, offset + 20).map((r) => ({ base: r, variants: [] }));
+        // after the first window loads, the total shrinks below the current offset
+        const shrunken = offset >= 20;
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                body: {
+                    items: shrunken ? [] : items,
+                    total: shrunken ? 10 : rows.length,
+                    limit: 20,
+                    offset
+                }
+            })
+        });
+    });
+
+    await page.goto('/resume_editor/resumes');
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByText('1–20 of 30')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect(page.getByText('0–0 of 10')).toBeVisible();
+    await expect(page.getByText('No resumes found.')).toBeVisible();
+});

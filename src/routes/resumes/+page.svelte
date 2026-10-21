@@ -86,7 +86,7 @@
     );
     const renderedSearching = $derived(renderedSearch.length > 0);
     const pageStart = $derived(page && page.items.length > 0 ? page.offset + 1 : 0);
-    const pageEnd = $derived(page ? page.offset + page.items.length : 0);
+    const pageEnd = $derived(page && page.items.length > 0 ? page.offset + page.items.length : 0);
     const canPrev = $derived((page?.offset ?? 0) > 0);
     const canNext = $derived(page !== null && page.offset + page.items.length < page.total);
 
