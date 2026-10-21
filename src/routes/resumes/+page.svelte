@@ -163,7 +163,6 @@
         <TextInput
             bind:value={query}
             label="Search resumes"
-            placeholder="Search resumes"
             aria-label="Search resumes"
         />
     </div>
